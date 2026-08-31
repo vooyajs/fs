@@ -8,7 +8,7 @@ import { chown, chownSync, statSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-chown-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-chown-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -21,19 +21,19 @@ test('chown: promise current owner matches node:fs/promises on unix', async (t) 
 
   const root = await withFixture(t)
   const nodeFile = path.join(root, 'node.txt')
-  const rushFile = path.join(root, 'rush.txt')
+  const vooyaFile = path.join(root, 'vooya.txt')
   await nodeFs.writeFile(nodeFile, 'node')
-  await nodeFs.writeFile(rushFile, 'rush')
+  await nodeFs.writeFile(vooyaFile, 'vooya')
   const nodeBefore = nodeFsSync.statSync(nodeFile)
-  const rushBefore = nodeFsSync.statSync(rushFile)
+  const vooyaBefore = nodeFsSync.statSync(vooyaFile)
 
   await nodeFs.chown(nodeFile, nodeBefore.uid, nodeBefore.gid)
-  await chown(rushFile, rushBefore.uid, rushBefore.gid)
+  await chown(vooyaFile, vooyaBefore.uid, vooyaBefore.gid)
 
   const nodeAfter = nodeFsSync.statSync(nodeFile)
-  const rushAfter = statSync(rushFile) as any
-  t.is(rushAfter.uid, nodeAfter.uid)
-  t.is(rushAfter.gid, nodeAfter.gid)
+  const vooyaAfter = statSync(vooyaFile) as any
+  t.is(vooyaAfter.uid, nodeAfter.uid)
+  t.is(vooyaAfter.gid, nodeAfter.gid)
 })
 
 test('chown: sync current owner matches node:fs on unix', async (t) => {
@@ -44,19 +44,19 @@ test('chown: sync current owner matches node:fs on unix', async (t) => {
 
   const root = await withFixture(t)
   const nodeFile = path.join(root, 'node-sync.txt')
-  const rushFile = path.join(root, 'rush-sync.txt')
+  const vooyaFile = path.join(root, 'vooya-sync.txt')
   await nodeFs.writeFile(nodeFile, 'node')
-  await nodeFs.writeFile(rushFile, 'rush')
+  await nodeFs.writeFile(vooyaFile, 'vooya')
   const nodeBefore = nodeFsSync.statSync(nodeFile)
-  const rushBefore = nodeFsSync.statSync(rushFile)
+  const vooyaBefore = nodeFsSync.statSync(vooyaFile)
 
   nodeFsSync.chownSync(nodeFile, nodeBefore.uid, nodeBefore.gid)
-  chownSync(rushFile, rushBefore.uid, rushBefore.gid)
+  chownSync(vooyaFile, vooyaBefore.uid, vooyaBefore.gid)
 
   const nodeAfter = nodeFsSync.statSync(nodeFile)
-  const rushAfter = statSync(rushFile) as any
-  t.is(rushAfter.uid, nodeAfter.uid)
-  t.is(rushAfter.gid, nodeAfter.gid)
+  const vooyaAfter = statSync(vooyaFile) as any
+  t.is(vooyaAfter.uid, nodeAfter.uid)
+  t.is(vooyaAfter.gid, nodeAfter.gid)
 })
 
 test('chown: missing paths reject or throw in both implementations', async (t) => {
@@ -64,10 +64,10 @@ test('chown: missing paths reject or throw in both implementations', async (t) =
   const missing = path.join(root, 'missing.txt')
 
   const nodeResult = await capture(() => nodeFs.chown(missing, 0, 0))
-  const rushResult = await capture(() => chown(missing, 0, 0) as Promise<unknown>)
+  const vooyaResult = await capture(() => chown(missing, 0, 0) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.chownSync(missing, 0, 0))
   t.throws(() => chownSync(missing, 0, 0))
 })
@@ -83,7 +83,7 @@ test('chown: permission-denied behavior matches node:fs for privileged owner cha
   await nodeFs.writeFile(file, 'owned')
 
   const nodeResult = await capture(() => nodeFs.chown(file, 0, 0))
-  const rushResult = await capture(() => chown(file, 0, 0) as Promise<unknown>)
+  const vooyaResult = await capture(() => chown(file, 0, 0) as Promise<unknown>)
 
-  t.is(rushResult.ok, nodeResult.ok)
+  t.is(vooyaResult.ok, nodeResult.ok)
 })

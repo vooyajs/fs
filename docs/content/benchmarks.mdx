@@ -1,73 +1,46 @@
 # Benchmarks
 
-Rush-FS excels at **recursive and batch filesystem operations** where Rust's parallel walkers deliver significant speedups (e.g. 12× readdir, 50× copyFile). Single-file operations and recursive glob are on par with Node.js.
+Benchmarks in this repository are evidence for choosing an execution boundary, not
+release assertions. Each performance suite records fixture scale, runtime and
+platform, warmups, measured samples, wall-clock aggregation, and RSS deltas.
 
-> Tested on Apple Silicon (arm64), Node.js 24.0.2, release build with LTO. Run `pnpm build && pnpm bench` in the [repo](https://github.com/CoderSerio/rush-fs) to reproduce.
-
-## Measurement policy
-
-CI runs functional and conformance smoke tests across the supported Node.js LTS matrix. Performance reports are local/manual evidence, not CI gates.
-
-For filesystem scale reports, use:
+## Reproduce
 
 ```bash
-pnpm build
-pnpm perf:fs readdir --iterations 10 --warmup 2 --json .perf/readdir.json
-pnpm docs:sync-perf readdir --report .perf/readdir.json
+corepack pnpm build
+corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
+corepack pnpm perf:fs readdir --iterations 10 --warmup 2 --json .perf/readdir.json
+corepack pnpm perf:fs glob --iterations 10 --warmup 2 --json .perf/glob.json
 ```
 
-The report runner records wall-clock time plus process-level `rss`, `heapUsed`, and `external` memory deltas. Each case defaults to 2 warmup runs and 10 measured runs. Docs use the trimmed mean for wall-clock time and average per-run memory deltas, with median/min/max retained in the JSON output for review.
+The default matrix stops at `medium`. Add `--large` for the 156,248-file fixture
+or `--extreme` for the manual-only stress fixture; these modes can consume
+substantial time and disk space.
 
-Scale fixtures intentionally include tiny, small, medium, and large trees. Tiny cases expose bridge and scheduling overhead; larger trees show where traversal parallelism starts to pay off. Extreme fixtures are manual-only and should not be used in CI.
+Use the same machine and quiet background conditions when comparing changes. Do
+not compare ratios from different hosts as if they were the same experiment.
 
-## Where Rush-FS shines
+## Current scan boundary
 
-| Scenario                                         | Node.js   | Rush-FS  | Speedup   |
-| ------------------------------------------------ | --------- | -------- | --------- |
-| `readdir` recursive (node_modules, ~30k entries) | 281 ms    | 23 ms    | **12x**   |
-| `copyFile` 4 MB                                  | 4.67 ms   | 0.09 ms  | **50x**   |
-| `readFile` 4 MB utf8                             | 1.86 ms   | 0.92 ms  | **2x**    |
-| `rm` 2000 files (4 threads)                      | 92 ms     | 53 ms    | **1.75x** |
-| `cp` 500-file flat dir (4 threads)               | 86.45 ms  | 32.88 ms | **2.6x**  |
-| `cp` tree dir ~363 nodes (4 threads)             | 108.73 ms | 46.88 ms | **2.3x**  |
-| `glob` large tree (`node_modules/**/*.json`, ~30k entries) | fast-glob 303 ms | 30 ms | **10x** |
+Apple M4 Pro, Node 22.22, 2 warmups and 10 measured samples:
 
-## On par with Node.js
+| Scale  |                Fixture | Node recursive readdir + lstat | Vooya FS `scan` |                Result |
+| ------ | ---------------------: | -----------------------------: | --------------: | --------------------: |
+| tiny   |       8 files / 2 dirs |                        0.26 ms |         3.43 ms |    Node 13.44x faster |
+| small  |    104 files / 13 dirs |                        1.43 ms |         3.51 ms |     Node 2.45x faster |
+| medium | 2,728 files / 341 dirs |                       33.98 ms |        10.70 ms | Vooya FS 3.18x faster |
 
-Single-file operations have a ~0.3 µs napi bridge overhead. On **large, deep trees** glob wins (see “Where Rush-FS shines”); on small/medium trees node-glob is faster (see “Where Node.js wins”). Other operations:
+The useful conclusion is the crossover, not the largest ratio: native task setup
+dominates tiny trees, while fused traversal and metadata collection pays off as
+the tree grows.
 
-| Scenario                       | Node.js | Rush-FS | Ratio |
-| ------------------------------ | ------- | ------- | ----- |
-| `stat` (single file)           | 1.45 µs | 1.77 µs | 1.2x  |
-| `readFile` small (Buffer)       | 8.86 µs | 9.46 µs | 1.1x  |
-| `writeFile` small (string)      | 74 µs   | 66 µs   | 0.9x  |
-| `appendFile`                    | 30 µs   | 27 µs   | 0.9x  |
+## Reading reports
 
-## Where Node.js wins
+- Compare absolute time as well as ratios.
+- Treat negative RSS deltas as sampling and garbage-collection noise, not freed
+  memory attributable to one implementation.
+- Rerun outliers and inspect raw samples.
+- Validate behavior with conformance tests separately; a fast mismatch is a bug.
+- Tune concurrency per representative storage and tree shape.
 
-For very lightweight built-in calls, napi overhead dominates; on small/medium trees, node-glob is faster than Rush-FS glob:
-
-| Scenario                     | Node.js | Rush-FS | Note                                |
-| ---------------------------- | ------- | ------- | ----------------------------------- |
-| `existsSync` (existing file) | 444 ns  | 1.34 µs | Node.js internal fast path          |
-| `accessSync` F_OK            | 456 ns  | 1.46 µs | Same                                |
-| `glob` recursive (`**/*.rs`, small tree) vs node-glob | 22 ms | 40 ms | node-glob faster at this scale |
-
-## Parallelism
-
-Rush-FS uses multi-threaded parallelism for traversal operations:
-
-| API                   | `concurrency` option | Default |
-| --------------------- | --------------------- | ------- |
-| `readdir` (recursive) | ✅                     | auto    |
-| `glob`                | ✅                     | 4       |
-| `rm` (recursive)      | ✅                     | 1       |
-| `cp` (recursive)      | ✅                     | 1       |
-
-Single-file operations (`stat`, `readFile`, `writeFile`, `chmod`, etc.) are atomic syscalls — parallelism does not apply.
-
-## Takeaway
-
-**Use Rush-FS when you have heavy recursive or batch I/O** (readdir, glob, rm, cp). For single-file work it performs on par with Node.js; the napi bridge adds a fixed ~0.3 µs per call, which only matters for sub-microsecond operations like `existsSync`.
-
-For more numbers (including `cp` thread scaling), see the [README Benchmarks](https://github.com/CoderSerio/rush-fs#benchmarks) section.
+Generated per-API tables live on API pages when a checked-in report is available.

@@ -65,7 +65,7 @@ export interface BenchmarkComparison {
     profile: ScaleFixture['profile']
   }
   node: Measurement
-  rush: Measurement
+  vooya: Measurement
   ratio: number
   ratioLabel: string
   runtime: RuntimeMetadata
@@ -101,8 +101,8 @@ function readPositiveIntegerEnv(name: string, fallback: number): number {
 
 export function getBenchmarkOptions(options: MeasureOptions = {}): BenchmarkOptions {
   return {
-    iterations: options.iterations ?? readPositiveIntegerEnv('RUSH_FS_PERF_ITERATIONS', 10),
-    warmup: options.warmup ?? readPositiveIntegerEnv('RUSH_FS_PERF_WARMUP', 2),
+    iterations: options.iterations ?? readPositiveIntegerEnv('VOOYA_FS_PERF_ITERATIONS', 10),
+    warmup: options.warmup ?? readPositiveIntegerEnv('VOOYA_FS_PERF_WARMUP', 2),
   }
 }
 
@@ -246,10 +246,10 @@ export function createComparison(
   api: string,
   scale: string,
   node: Measurement,
-  rush: Measurement,
+  vooya: Measurement,
   fixture?: ScaleFixture,
 ): BenchmarkComparison {
-  const ratio = rush.durationMs / node.durationMs
+  const ratio = vooya.durationMs / node.durationMs
   const ratioLabel = ratio > 1 ? `${ratio.toFixed(2)}x slower` : `${(1 / ratio).toFixed(2)}x faster`
   return {
     api,
@@ -262,7 +262,7 @@ export function createComparison(
         }
       : undefined,
     node,
-    rush,
+    vooya,
     ratio,
     ratioLabel,
     runtime: getRuntimeMetadata(),
@@ -278,10 +278,10 @@ export function printComparison(
   api: string,
   scale: string,
   node: Measurement,
-  rush: Measurement,
+  vooya: Measurement,
   fixture?: ScaleFixture,
 ): void {
-  const comparison = recordComparison(createComparison(api, scale, node, rush, fixture))
+  const comparison = recordComparison(createComparison(api, scale, node, vooya, fixture))
   console.log(`\n${api} / ${scale}`)
   console.log(`  Samples  ${node.iterations} iterations, ${node.warmup} warmups`)
   if (fixture) {
@@ -291,7 +291,7 @@ export function printComparison(
     `  Node.js  ${node.duration.trimmedMean.toFixed(2)} ms avg  ${node.duration.median.toFixed(2)} ms median  rss ${formatBytes(node.delta.rss)}  heap ${formatBytes(node.delta.heapUsed)}  external ${formatBytes(node.delta.external)}`,
   )
   console.log(
-    `  Rush-FS  ${rush.duration.trimmedMean.toFixed(2)} ms avg  ${rush.duration.median.toFixed(2)} ms median  rss ${formatBytes(rush.delta.rss)}  heap ${formatBytes(rush.delta.heapUsed)}  external ${formatBytes(rush.delta.external)}`,
+    `  Vooya FS  ${vooya.duration.trimmedMean.toFixed(2)} ms avg  ${vooya.duration.median.toFixed(2)} ms median  rss ${formatBytes(vooya.delta.rss)}  heap ${formatBytes(vooya.delta.heapUsed)}  external ${formatBytes(vooya.delta.external)}`,
   )
   console.log(`  Ratio    ${comparison.ratioLabel}`)
 }

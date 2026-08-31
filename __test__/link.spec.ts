@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 function tmpDir(): string {
-  const dir = join(tmpdir(), `rush-fs-test-link-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(tmpdir(), `vooya-fs-test-link-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -64,7 +64,7 @@ test('linkSync: should match node:fs behavior (same inode)', (t) => {
   linkSync(src, dest)
   const nodeStat = nodeStatSync(dest)
   const hyperStat = statSync(dest)
-  // ino is 0 on Windows in rush-fs; only compare on platforms where we report it
+  // ino is 0 on Windows in vooya-fs; only compare on platforms where we report it
   if (process.platform !== 'win32') {
     t.is(hyperStat.ino, nodeStat.ino)
   } else {

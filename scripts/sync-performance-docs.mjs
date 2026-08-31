@@ -6,9 +6,13 @@ import { fileURLToPath } from 'node:url'
 
 const apiDocNames = new Map([
   ['copyFile', 'copy-file.mdx'],
+  ['cp', 'cp.mdx'],
+  ['glob', 'glob.mdx'],
   ['readFile', 'read-file.mdx'],
   ['lstat', 'lstat.mdx'],
   ['readdir', 'readdir.mdx'],
+  ['rm', 'rm.mdx'],
+  ['scan', 'scan.mdx'],
   ['stat', 'stat.mdx'],
   ['writeFile', 'write-file.mdx'],
 ])
@@ -26,7 +30,7 @@ function formatBytes(value) {
 }
 
 function marker(api, side) {
-  return `{/* rush-fs-perf:${side} ${api} */}`
+  return `{/* vooya-fs-perf:${side} ${api} */}`
 }
 
 function selectComparisons(report, api) {
@@ -44,7 +48,7 @@ export function renderPerformanceSection(report, api) {
   const rows = comparisons
     .map((comparison) => {
       const fixture = comparison.fixture ? `${comparison.fixture.files} files / ${comparison.fixture.dirs} dirs` : '-'
-      return `| ${comparison.scale} | ${fixture} | ${formatMs(comparison.node.duration.trimmedMean)} | ${formatMs(comparison.rush.duration.trimmedMean)} | ${comparison.ratioLabel} | ${formatBytes(comparison.node.delta.rss)} | ${formatBytes(comparison.rush.delta.rss)} |`
+      return `| ${comparison.scale} | ${fixture} | ${formatMs(comparison.node.duration.trimmedMean)} | ${formatMs(comparison.vooya.duration.trimmedMean)} | ${comparison.ratioLabel} | ${formatBytes(comparison.node.delta.rss)} | ${formatBytes(comparison.vooya.delta.rss)} |`
     })
     .join('\n')
 
@@ -57,7 +61,7 @@ export function renderPerformanceSection(report, api) {
     `- Samples: ${options.warmup} warmup runs, ${options.iterations} measured runs`,
     '- Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS',
     '',
-    '| Scale | Fixture | Node.js | Rush-FS | Ratio | Node RSS | Rush-FS RSS |',
+    '| Scale | Fixture | Node.js | Vooya FS | Ratio | Node RSS | Vooya FS RSS |',
     '| --- | ---: | ---: | ---: | ---: | ---: | ---: |',
     rows,
     '',
@@ -95,7 +99,7 @@ export function syncPerformanceDoc({ api, reportPath, docsRoot = path.resolve('d
 function parseArgs(argv) {
   const options = {
     api: argv[0],
-    reportPath: process.env.RUSH_FS_PERF_JSON,
+    reportPath: process.env.VOOYA_FS_PERF_JSON,
   }
 
   for (let i = 1; i < argv.length; i++) {

@@ -5,7 +5,7 @@ Create a unique temporary directory with the given prefix. Uses OS random source
 ## Basic usage
 
 ```ts
-import { mkdtemp } from '@rush-fs/core'
+import { mkdtemp } from '@vooya/fs'
 
 const dir = await mkdtemp('/tmp/myapp-')
 console.log(dir) // e.g. /tmp/myapp-abc123
@@ -17,8 +17,8 @@ console.log(dir) // e.g. /tmp/myapp-abc123
 
 **Async.** Returns `Promise<string>` (the created directory path).
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
+| Argument | Type   | Description                                                     |
+| -------- | ------ | --------------------------------------------------------------- |
 | `prefix` | string | Prefix for the directory name (e.g. path + trailing separator). |
 
 ### `mkdtempSync(prefix)`
@@ -34,4 +34,4 @@ Single syscall plus random generation; on par with Node.js. See [Benchmarks](/be
 - **Prefix**: Include a trailing path separator (e.g. `os.tmpdir() + '/'`) so the random part is the last path component; same as Node.js.
 - **Cleanup**: Caller is responsible for removing the directory when done (e.g. `rm(dir, { recursive: true })`).
 - **Known gap**: Missing-parent errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs/options**: `Buffer` prefixes, `URL` prefixes, and the `encoding` option are not part of the current Rush-FS `mkdtemp` surface.
+- **Unsupported Node inputs/options**: `Buffer` prefixes, `URL` prefixes, and the `encoding` option are not part of the current Vooya FS `mkdtemp` surface.

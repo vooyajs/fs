@@ -19,6 +19,7 @@ export default {
   rename: 'rename',
   rm: 'rm',
   rmdir: 'rmdir',
+  scan: 'scan',
   stat: 'stat',
   symlink: 'symlink',
   truncate: 'truncate',

@@ -1,0 +1,66 @@
+# Execution Model
+
+Vooya FS optimizes the amount of useful work performed per JavaScript-to-native
+boundary crossing.
+
+## Why single calls often do not win
+
+For a tiny operation, Node already reaches an optimized native filesystem API. A
+Vooya FS call adds Node-API argument conversion, task scheduling, and result
+conversion. Rust cannot remove those fixed costs, so `node:fs` often wins.
+
+## Where native batching changes the shape
+
+A recursive JavaScript implementation commonly repeats this sequence thousands of
+times: await a directory read, create JS objects, schedule more calls, perform
+metadata calls, and filter in JavaScript. Vooya FS can keep that loop inside Rust:
+
+```text
+JS: one request
+    ↓
+Rust: parallel walk → pattern filter → metadata → deterministic sort
+    ↓
+JS: one result array
+```
+
+The gain is not “Rust syscall versus Node syscall.” It comes from fewer crossings,
+less promise orchestration, fused passes, and bounded native parallelism.
+
+## Concurrency semantics
+
+`concurrency: 1` selects a serial path where supported. A value greater than one
+sets the per-operation worker count; omitted or zero uses the runtime heuristic.
+Higher values are not guaranteed to be faster, especially on SSDs or small trees.
+Measure the representative tree and workload.
+
+## Native versus WASI
+
+| Concern                         | Node-API native addon    | Node WASI/WebAssembly                 |
+| ------------------------------- | ------------------------ | ------------------------------------- |
+| Filesystem access               | Direct OS APIs           | Capability/preopen mediated           |
+| Parallel traversal              | Native threads and Rayon | Depends on WASM threads/runtime setup |
+| Unix permission/owner semantics | Directly available       | Partial or host-specific              |
+| Deployment                      | Platform binary packages | More portable module artifact         |
+| Likely advantage here           | Throughput and fidelity  | Isolation and portability             |
+
+WASM can outperform JavaScript for compute-heavy loops with compact data exchange.
+It does not remove filesystem syscalls or the host boundary, and copying/marshalling
+can dominate small calls. For this repository's current workload, native Node-API
+is the performance and semantic baseline; WASI is a separate future product choice.
+
+### Reproducible Node 24 probe
+
+The repository includes `experiments/node-wasi`, which instantiates a Rust
+`wasm32-wasip1` module once and gives it a `/data` preopen. On Apple M4 Pro / Node
+24.20.0, a 2,728-file / 341-directory traversal produced these 10-sample means:
+
+| Path                                       |     Mean |
+| ------------------------------------------ | -------: |
+| Node recursive `readdirSync` + `lstatSync` | 19.76 ms |
+| Native Node-API `scanSync`                 |  9.86 ms |
+| WASI Preview 1 count-only traversal        | 15.96 ms |
+
+This setup favors WASI: the module returns one integer and performs no JS result
+conversion or sorting, while native `scanSync` returns full sorted metadata. Even
+under that condition, the native path was about 1.62x faster. Module compilation and
+instantiation were excluded from all samples.

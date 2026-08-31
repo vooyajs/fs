@@ -1,11 +1,19 @@
 import test from 'ava'
-import { globSync, glob, rmSync } from '../index.js'
+import { globSync as rawGlobSync, glob as rawGlob, rmSync, type Dirent, type GlobOptions } from '../index.js'
 import * as nodeFs from 'node:fs'
 import { join } from 'path'
 import { tmpdir } from 'node:os'
 import { globSync as nodeGlobSync } from 'glob'
 
 const CWD = process.cwd()
+
+function globSync(pattern: string, options?: GlobOptions): string[] {
+  return rawGlobSync(pattern, options) as string[]
+}
+
+async function glob(pattern: string, options?: GlobOptions): Promise<string[]> {
+  return rawGlob(pattern, options) as Promise<string[]>
+}
 
 // 构造包含文件和子目录的临时目录，用于验证目录匹配行为
 function makeDirFixture(): string {
@@ -61,7 +69,7 @@ test('globSync: should match files in subdirectories', (t) => {
 })
 
 test('globSync: should return Dirent objects when withFileTypes is true', (t) => {
-  const files = globSync('src/*.rs', { cwd: CWD, withFileTypes: true })
+  const files = rawGlobSync('src/*.rs', { cwd: CWD, withFileTypes: true }) as Dirent[]
   t.true(files.length > 0)
 
   const first = files[0]
@@ -93,7 +101,7 @@ test('globSync: should support exclude option', (t) => {
 
 test('globSync: gitIgnore option (default: false, align with Node)', (t) => {
   // Node.js fs.globSync does not respect .gitignore by default. When gitIgnore: true,
-  // rush-fs excludes files matching .gitignore. Only assert when this repo has
+  // vooya-fs excludes files matching .gitignore. Only assert when this repo has
   // .gitignore rules that affect target/**/*.d.
   const defaultFiles = globSync('target/**/*.d', { cwd: CWD })
   const withGitIgnore = globSync('target/**/*.d', { cwd: CWD, gitIgnore: true })
@@ -119,7 +127,7 @@ test('async: should work basically', async (t) => {
 })
 
 test('async: withFileTypes', async (t) => {
-  const files = await glob('src/*.rs', { cwd: CWD, withFileTypes: true })
+  const files = (await rawGlob('src/*.rs', { cwd: CWD, withFileTypes: true })) as Dirent[]
   t.true(files.length > 0)
   const first = files[0]
   t.is(typeof first, 'object')
@@ -130,6 +138,12 @@ test('async: should return empty array for no matches', async (t) => {
   const files = await glob('non_existent_*.xyz', { cwd: CWD })
   t.true(Array.isArray(files))
   t.is(files.length, 0)
+})
+
+test('async: should return empty array for a missing cwd like node:fs', async (t) => {
+  const cwd = join(tmpdir(), `vooya-fs-missing-cwd-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const files = await glob('*.xyz', { cwd })
+  t.deepEqual(files, [])
 })
 
 test('async: recursive match', async (t) => {
@@ -177,7 +191,7 @@ test('globSync: "**" should include both files and directories recursively', (t)
 
 test('globSync: dir-matching result should have isDirectory()=true with withFileTypes', (t) => {
   const base = makeDirFixture()
-  const results = globSync('src/*', { cwd: base, withFileTypes: true })
+  const results = rawGlobSync('src/*', { cwd: base, withFileTypes: true }) as Dirent[]
   t.true(results.length > 0)
   const subDir = results.find((r) => typeof r === 'object' && r.name === 'sub')
   t.truthy(subDir, 'should include sub directory as Dirent')
@@ -192,7 +206,6 @@ test('dual-run: globSync "src/*" should match node:fs.globSync behavior for dire
   // node:fs.globSync is stable since v22; align directory matching behavior
   const nodeResults: string[] = []
   try {
-    // @ts-expect-error globSync may be missing on older Node
     const nodeGlob = nodeFs.globSync as ((p: string, o: object) => string[]) | undefined
     if (typeof nodeGlob !== 'function') {
       t.pass('node:fs.globSync not available, skipping dual-run comparison')
@@ -221,16 +234,16 @@ test('dual-run: globSync "src/*" should match node:fs.globSync behavior for dire
 
 test('globSync: pattern with path prefix (e.g. .dir/**/*.txt) without cwd should find files', (t) => {
   const base = makeDirFixture()
-  const hiddenDir = join(base, '.rush-fs-glob-check')
+  const hiddenDir = join(base, '.vooya-fs-glob-check')
   nodeFs.mkdirSync(hiddenDir, { recursive: true })
   nodeFs.writeFileSync(join(hiddenDir, 'a.txt'), '')
   nodeFs.writeFileSync(join(hiddenDir, 'b.txt'), '')
 
-  const results = globSync('.rush-fs-glob-check/**/*.txt', { cwd: base })
+  const results = globSync('.vooya-fs-glob-check/**/*.txt', { cwd: base })
   const names = results.map((r) => r.replace(/\\/g, '/'))
   t.true(
     names.length >= 2,
-    `expected at least 2 .txt under .rush-fs-glob-check, got ${names.length}: ${names.join(', ')}`,
+    `expected at least 2 .txt under .vooya-fs-glob-check, got ${names.length}: ${names.join(', ')}`,
   )
   t.true(names.some((n) => n.endsWith('a.txt')))
   t.true(names.some((n) => n.endsWith('b.txt')))
@@ -260,12 +273,12 @@ function getNodeGlobSync(): ((p: string, o: { cwd: string }) => string[]) | unde
 
 test('dual-run: path-prefix pattern .dir/**/*.txt matches node:fs.globSync', (t) => {
   const base = makeDirFixture()
-  const hiddenDir = join(base, '.rush-fs-glob-check')
+  const hiddenDir = join(base, '.vooya-fs-glob-check')
   nodeFs.mkdirSync(hiddenDir, { recursive: true })
   nodeFs.writeFileSync(join(hiddenDir, 'a.txt'), '')
   nodeFs.writeFileSync(join(hiddenDir, 'b.txt'), '')
 
-  const hyper = globSync('.rush-fs-glob-check/**/*.txt', { cwd: base })
+  const hyper = globSync('.vooya-fs-glob-check/**/*.txt', { cwd: base })
     .map((r) => r.replace(/\\/g, '/'))
     .sort()
   const nodeGlob = getNodeGlobSync()
@@ -275,7 +288,7 @@ test('dual-run: path-prefix pattern .dir/**/*.txt matches node:fs.globSync', (t)
   }
   let nodeResults: string[] = []
   try {
-    nodeResults = nodeGlob('.rush-fs-glob-check/**/*.txt', { cwd: base })
+    nodeResults = nodeGlob('.vooya-fs-glob-check/**/*.txt', { cwd: base })
       .map((r) => r.replace(/\\/g, '/'))
       .sort()
   } catch {
@@ -284,7 +297,7 @@ test('dual-run: path-prefix pattern .dir/**/*.txt matches node:fs.globSync', (t)
   }
   t.true(
     hyper.length >= 2,
-    `rush-fs: expected >= 2, got ${hyper.length} (run 'pnpm build' if path-prefix fix not in binary)`,
+    `vooya-fs: expected >= 2, got ${hyper.length} (run 'pnpm build' if path-prefix fix not in binary)`,
   )
   t.deepEqual(hyper.sort(), nodeResults.sort(), 'path-prefix pattern results should match Node')
 })
@@ -312,7 +325,7 @@ test('dual-run: **/*.txt recursion matches node:fs.globSync', (t) => {
     t.pass('node:fs.globSync threw, skipping')
     return
   }
-  t.true(hyper.length >= 2, `rush-fs: expected >= 2, got ${hyper.length}`)
+  t.true(hyper.length >= 2, `vooya-fs: expected >= 2, got ${hyper.length}`)
   t.deepEqual(hyper.sort(), nodeResults.sort(), '**/*.txt recursive results should match Node')
 })
 
@@ -327,7 +340,7 @@ test('globSync: pattern with ? before first * uses correct walk root (dir?/sub/*
   nodeFs.writeFileSync(join(base, 'dir/b/sub/b.ts'), '')
   try {
     const results = globSync('dir?/sub/**/*.ts', { cwd: base })
-    const normalized = results.map((r) => (typeof r === 'string' ? r : r.name).replace(/\\/g, '/'))
+    const normalized = results.map((result) => result.replace(/\\/g, '/'))
     t.true(normalized.length >= 2, `expected at least 2 matches for dir?/sub/**/*.ts, got ${results.length}`)
     t.true(
       normalized.some((p) => p.includes('a.ts')),
@@ -344,13 +357,13 @@ test('globSync: pattern with ? before first * uses correct walk root (dir?/sub/*
 
 // Synthetic deep tree: validate glob correctness on a large, deep tree (same scale idea as readdir node_modules).
 // Perf comparison is in `pnpm bench glob` (Large tree group); no strict timing here to avoid CI flakiness.
-test('glob: deep tree fixture — Rush-FS and node-glob return same match count', (t) => {
+test('glob: deep tree fixture — Vooya FS and node-glob return same match count', (t) => {
   const { root, expectedMatchCount } = makeDeepTreeFixture({ depth: 3, filesPerDir: 6, extension: 'hit' })
   try {
     const pattern = '**/*.hit'
     const hyperCount = globSync(pattern, { cwd: root }).length
     const nodeCount = nodeGlobSync(pattern, { cwd: root }).length
-    t.is(hyperCount, expectedMatchCount, 'Rush-FS should find all matching files')
+    t.is(hyperCount, expectedMatchCount, 'Vooya FS should find all matching files')
     t.is(nodeCount, expectedMatchCount, 'node-glob should find same set')
   } finally {
     rmSync(root, { recursive: true })

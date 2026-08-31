@@ -18,14 +18,14 @@ console.log(`Benchmarking glob in: ${cwd}`)
 group('Glob (Simple: src/*.rs)', () => {
   bench('node-glob', () => nodeGlobSync(patternSimple, { cwd }))
   bench('fast-glob', () => fastGlob.sync(patternSimple, { cwd }))
-  bench('rush-fs', () => hyperGlobSync(patternSimple, { cwd })).baseline()
+  bench('vooya-fs', () => hyperGlobSync(patternSimple, { cwd })).baseline()
 })
 
 // 2. Recursive Glob
 group('Glob (Recursive: **/*.rs)', () => {
   bench('node-glob', () => nodeGlobSync(patternRecursive, { cwd }))
   bench('fast-glob', () => fastGlob.sync(patternRecursive, { cwd }))
-  bench('rush-fs', () => hyperGlobSync(patternRecursive, { cwd })).baseline()
+  bench('vooya-fs', () => hyperGlobSync(patternRecursive, { cwd })).baseline()
 })
 
 // 3. Large tree (same scale as readdir: node_modules ~30k entries) — validates parallel glob advantage
@@ -34,8 +34,8 @@ group('Glob (Large tree: node_modules/**/*.json)', () => {
   if (hasNodeModules) {
     bench('node-glob', () => nodeGlobSync(patternDeep, { cwd }))
     bench('fast-glob', () => fastGlob.sync(patternDeep, { cwd }))
-    bench('rush-fs', () => hyperGlobSync(patternDeep, { cwd })).baseline()
-    bench('rush-fs (8 threads)', () => hyperGlobSync(patternDeep, { cwd, concurrency: 8 }))
+    bench('vooya-fs', () => hyperGlobSync(patternDeep, { cwd })).baseline()
+    bench('vooya-fs (8 threads)', () => hyperGlobSync(patternDeep, { cwd, concurrency: 8 }))
   }
 })
 

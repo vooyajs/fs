@@ -5,7 +5,7 @@ Read the entire contents of a file. Returns a `Buffer` or a decoded string depen
 ## Basic usage
 
 ```ts
-import { readFile } from '@rush-fs/core'
+import { readFile } from '@vooya/fs'
 
 // As UTF-8 string (default)
 const text = await readFile('./package.json', { encoding: 'utf8' })
@@ -24,18 +24,18 @@ const hex = await readFile('./file.bin', { encoding: 'hex' })
 
 **Async.** Returns `Promise<string | Buffer>`.
 
-| Argument  | Type   | Description |
-| --------- | ------ | ----------- |
-| `path`    | string | File path. |
+| Argument  | Type   | Description          |
+| --------- | ------ | -------------------- |
+| `path`    | string | File path.           |
 | `options` | object | Optional. See below. |
 
 **Options:**
 
-| Option    | Type   | Default | Description |
-| --------- | ------ | ------- | ----------- |
-| `encoding` | string | null   | `'utf8'`, `'ascii'`, `'latin1'`, `'base64'`, `'base64url'`, `'hex'`. If set, returns `string`; otherwise returns `Buffer`. |
-| `flag`   | string | `'r'`   | File open flag (e.g. `'r'`, `'r+'`). |
-| `lines`  | object | none    | **(Rush-FS)** Optional `{ from, to }` line range for text reads. |
+| Option     | Type   | Default | Description                                                                                                                |
+| ---------- | ------ | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `encoding` | string | null    | `'utf8'`, `'ascii'`, `'latin1'`, `'base64'`, `'base64url'`, `'hex'`. If set, returns `string`; otherwise returns `Buffer`. |
+| `flag`     | string | `'r'`   | File open flag (e.g. `'r'`, `'r+'`).                                                                                       |
+| `lines`    | object | none    | **(Vooya FS)** Optional `{ from, to }` line range for text reads.                                                          |
 
 ### `readFileSync(path, options?)`
 
@@ -43,14 +43,14 @@ const hex = await readFile('./file.bin', { encoding: 'hex' })
 
 ## Performance
 
-- **Small files / Buffer**: Rush-FS is on par with Node.js (e.g. ~0.9–1.1× in micro-benchmarks). There is a small N-API overhead per call.
-- **Larger UTF-8 reads**: Rush-FS can be ~2× faster for 64 KB–4 MB UTF-8 reads in benchmarks, due to efficient decoding on the Rust side.
+- **Small files / Buffer**: Vooya FS is on par with Node.js (e.g. ~0.9–1.1× in micro-benchmarks). There is a small N-API overhead per call.
+- **Larger UTF-8 reads**: Vooya FS can be ~2× faster for 64 KB–4 MB UTF-8 reads in benchmarks, due to efficient decoding on the Rust side.
 
 See [Benchmarks](/benchmarks) (e.g. `readFile` 4 MB utf8, 64 KB utf8).
 
 ### Local scale report
 
-{/* rush-fs-perf:start readFile */}
+{/* vooya-fs-perf:start readFile */}
 
 _Generated from local performance reports. Do not edit this block by hand._
 
@@ -58,20 +58,22 @@ _Generated from local performance reports. Do not edit this block by hand._
 - Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
-| Scale | Fixture | Node.js | Rush-FS | Ratio | Node RSS | Rush-FS RSS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| small-utf8 | - | 0.16 ms | 0.04 ms | 4.11x faster | 16.0 KB | 0 B |
-| medium-utf8 | - | 0.14 ms | 0.05 ms | 2.67x faster | 8.0 KB | 0 B |
-| large-utf8 | - | 0.99 ms | 0.70 ms | 1.42x faster | 4.2 MB | 0 B |
-| large-buffer | - | 0.40 ms | 0.23 ms | 1.73x faster | 0 B | 0 B |
+| Scale            | Fixture |  Node.js | Vooya FS |          Ratio | Node RSS | Vooya FS RSS |
+| ---------------- | ------: | -------: | -------: | -------------: | -------: | -----------: |
+| small-utf8       |       - |  0.19 ms |  0.05 ms |   3.79x faster |  16.0 KB |          0 B |
+| medium-utf8      |       - |  0.12 ms |  0.04 ms |   2.85x faster |  16.0 KB |          0 B |
+| large-utf8       |       - |  1.01 ms |  0.76 ms |   1.33x faster |   4.2 MB |          0 B |
+| large-buffer     |       - |  0.40 ms |  0.21 ms |   1.94x faster |   3.2 KB |       3.2 KB |
+| large-lines-head |       - | 17.36 ms |  0.08 ms | 214.78x faster |   4.8 KB |          0 B |
 
-{/* rush-fs-perf:end readFile */}
+{/* vooya-fs-perf:end readFile */}
 
 ## Notes
 
 - **Encodings**: Supported encodings are `utf8`, `ascii`, `latin1`, `base64`, `base64url`, `hex`. Behavior matches Node.js where implemented.
 - **Flags**: Standard flags (e.g. `r`, `r+`) are supported. Use the same semantics as Node.js for compatibility.
-- **Lines extension**: `lines` is a Rush-FS extension for text reads, not a Node.js option.
+- **Lines extension**: `lines` is a Vooya FS extension for text reads, not a Node.js option.
+- **Early line ranges**: The native reader stops once `to` is reached. This can avoid reading and decoding the remainder of a large text file; the scale report includes a 16 MB / first-100-lines case.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node options**: `AbortSignal`, `Buffer` paths, and `URL` paths are not part of the current Rush-FS `readFile` surface.
-- **Large files**: Reading the whole file into memory is the same as Node.js; for very large files consider streaming (Node.js `fs.createReadStream`; Rush-FS does not provide a stream API for this yet).
+- **Unsupported Node options**: `AbortSignal`, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `readFile` surface.
+- **Large files**: Reading the whole file into memory is the same as Node.js; for very large files consider streaming (Node.js `fs.createReadStream`; Vooya FS does not provide a stream API for this yet).

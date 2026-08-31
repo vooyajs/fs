@@ -1,0 +1,33 @@
+# Migrating from Rush-FS
+
+The project and repository are now **Vooya FS**. The planned canonical npm package
+is `@vooya/fs`; no npm release or deprecation is performed by this development
+branch.
+
+## Planned import change
+
+```diff
+- import { glob, readdir } from '@rush-fs/core'
++ import { glob, readdir } from '@vooya/fs'
+```
+
+The Rust crate becomes `vooya_fs`, and the native binary basename becomes
+`vooya-fs`. Repository and documentation links move to
+`https://github.com/vooyajs/fs`.
+
+## Release sequence
+
+1. Stabilize this branch and publish `@vooya/fs` only after CI, conformance, package
+   installation, and platform artifact checks pass.
+2. Publish a final `@rush-fs/core` compatibility version that depends on and
+   re-exports `@vooya/fs`.
+3. Mark the old package deprecated with a direct migration message and keep the
+   compatibility window documented.
+4. Remove the bridge only in a later major release after observing actual adoption.
+
+## Behavioral review
+
+The intended API surface remains familiar, but migration is not a promise of total
+Node `fs` parity. Review the [API overview](/api), especially string-only paths,
+missing callback/file-descriptor/stream APIs, and Vooya-only options such as
+`concurrency`, `gitIgnore`, `lines`, and `scan`.

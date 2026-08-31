@@ -7,7 +7,7 @@ import * as path from 'node:path'
 import { exists, existsSync } from '../../../index.js'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-exists-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-exists-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }

@@ -5,7 +5,7 @@ Change the permissions of a file or directory (mode bits).
 ## Basic usage
 
 ```ts
-import { chmod } from '@rush-fs/core'
+import { chmod } from '@vooya/fs'
 
 await chmod('./script.sh', 0o755)
 await chmod('./file.txt', 0o644)
@@ -17,9 +17,9 @@ await chmod('./file.txt', 0o644)
 
 **Async.** Returns `Promise<void>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
-| `path`   | string | File or directory path. |
+| Argument | Type   | Description                       |
+| -------- | ------ | --------------------------------- |
+| `path`   | string | File or directory path.           |
 | `mode`   | number | Numeric mode (e.g. 0o755, 0o644). |
 
 ### `chmodSync(path, mode)`
@@ -33,6 +33,6 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 ## Notes
 
 - **Windows**: Mode has limited meaning on Windows (mainly read-only); same as Node.js.
-- **Current Windows gap**: Rush-FS currently validates path existence but does not fully mirror Node's readonly-related chmod behavior on Windows.
+- **Current Windows gap**: Vooya FS currently validates path existence but does not fully mirror Node's readonly-related chmod behavior on Windows.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs**: String mode values, `Buffer` paths, and `URL` paths are not part of the current Rush-FS `chmod` surface.
+- **Unsupported Node inputs**: String mode values, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `chmod` surface.

@@ -1,5 +1,7 @@
 export default {
   'quick-start': 'Quick Start',
-  'what-is-rush-fs': 'What is Rush-FS',
+  'what-is-vooya-fs': 'What is Vooya FS',
+  'execution-model': 'Execution Model',
   'use-cases': 'Use Cases',
+  migration: 'Migration from Rush-FS',
 }

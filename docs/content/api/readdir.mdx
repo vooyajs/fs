@@ -1,11 +1,11 @@
 # readdir
 
-Read the contents of a directory. Supports non-recursive and recursive modes; recursive mode uses parallel traversal and benefits most from Rush-FS.
+Read the contents of a directory. Supports non-recursive and recursive modes; recursive mode uses parallel traversal and benefits most from Vooya FS.
 
 ## Basic usage
 
 ```ts
-import { readdir } from '@rush-fs/core'
+import { readdir } from '@vooya/fs'
 
 // Names only (default)
 const names = await readdir('./src')
@@ -15,7 +15,7 @@ const names = await readdir('./src')
 const entries = await readdir('./src', { withFileTypes: true })
 // e.g. [{ name: 'a.ts', parentPath: './src', isDir: false }, ...]
 
-// Recursive with concurrency (Rush-FS extension)
+// Recursive with concurrency (Vooya FS extension)
 const all = await readdir('./src', {
   recursive: true,
   withFileTypes: true,
@@ -29,19 +29,19 @@ const all = await readdir('./src', {
 
 **Async.** Returns `Promise<string[]>` or `Promise<Array<{ name, parentPath, isDir }>>` depending on `options.withFileTypes`.
 
-| Argument   | Type   | Description |
-| ---------- | ------ | ----------- |
-| `path`     | string | Directory path to read. |
-| `options`  | object | Optional. See below. |
+| Argument  | Type   | Description             |
+| --------- | ------ | ----------------------- |
+| `path`    | string | Directory path to read. |
+| `options` | object | Optional. See below.    |
 
 **Options:**
 
-| Option           | Type    | Default | Description |
-| ---------------- | ------- | ------- | ----------- |
-| `encoding`       | string  | `'utf8'` | Only `'utf8'` is supported; `'buffer'` is not. |
-| `withFileTypes`  | boolean | false  | If true, returns `{ name, parentPath, isDir }[]` instead of `string[]`. |
-| `recursive`      | boolean | false  | If true, walks the directory tree recursively. |
-| `concurrency`    | number  | auto   | **(Rush-FS)** Max concurrent tasks for recursive walk. |
+| Option          | Type    | Default  | Description                                                             |
+| --------------- | ------- | -------- | ----------------------------------------------------------------------- |
+| `encoding`      | string  | `'utf8'` | Only `'utf8'` is supported; `'buffer'` is not.                          |
+| `withFileTypes` | boolean | false    | If true, returns `{ name, parentPath, isDir }[]` instead of `string[]`. |
+| `recursive`     | boolean | false    | If true, walks the directory tree recursively.                          |
+| `concurrency`   | number  | auto     | **(Vooya FS)** Max concurrent tasks for recursive walk.                 |
 
 ### `readdirSync(path, options?)`
 
@@ -49,14 +49,14 @@ const all = await readdir('./src', {
 
 ## Performance
 
-- **Recursive** (`recursive: true`): Rush-FS is **much faster** than Node.js (e.g. ~12× for a `node_modules`-sized tree) because it uses [jwalk](https://github.com/Byron/jwalk) for parallel directory traversal. Tuning `concurrency` can help on large trees.
-- **Tiny / non-recursive directories**: Node.js can be faster because the fixed N-API bridge cost dominates. Use Rush-FS for recursive or larger directory walks where traversal work can amortize the bridge overhead.
+- **Recursive** (`recursive: true`): Vooya FS can be faster on medium and large trees because it uses [jwalk](https://github.com/Byron/jwalk) for parallel directory traversal. The checked-in scale report below is the current evidence; rerun it for your storage and tree shape.
+- **Tiny / non-recursive directories**: Node.js can be faster because the fixed N-API bridge cost dominates. Use Vooya FS for recursive or larger directory walks where traversal work can amortize the bridge overhead.
 
-See [Benchmarks](/benchmarks) for numbers (e.g. `readdir` recursive ~30k entries: Node 281 ms vs Rush-FS 23 ms).
+See [Benchmarks](/benchmarks) for numbers (e.g. `readdir` recursive ~30k entries: Node 281 ms vs Vooya FS 23 ms).
 
 ### Local scale report
 
-{/* rush-fs-perf:start readdir */}
+{/* vooya-fs-perf:start readdir */}
 
 _Generated from local performance reports. Do not edit this block by hand._
 
@@ -64,14 +64,13 @@ _Generated from local performance reports. Do not edit this block by hand._
 - Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
-| Scale | Fixture | Node.js | Rush-FS | Ratio | Node RSS | Rush-FS RSS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| tiny | 8 files / 2 dirs | 0.25 ms | 0.30 ms | 1.21x slower | 14.4 KB | 0 B |
-| small | 104 files / 13 dirs | 0.90 ms | 0.42 ms | 2.16x faster | 8.0 KB | 9.6 KB |
-| medium | 2728 files / 341 dirs | 22.87 ms | 4.24 ms | 5.40x faster | 814.4 KB | 38.4 KB |
-| large | 156248 files / 19531 dirs | 1357.26 ms | 343.92 ms | 3.95x faster | 2.4 MB | -299.2 KB |
+| Scale  |               Fixture |  Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
+| ------ | --------------------: | -------: | -------: | -----------: | -------: | -----------: |
+| tiny   |      8 files / 2 dirs |  0.22 ms |  0.18 ms | 1.19x faster |   8.0 KB |      11.2 KB |
+| small  |   104 files / 13 dirs |  0.96 ms |  0.30 ms | 3.17x faster |   6.4 KB |       9.6 KB |
+| medium | 2728 files / 341 dirs | 23.23 ms |  4.23 ms | 5.49x faster | 841.6 KB |      40.0 KB |
 
-{/* rush-fs-perf:end readdir */}
+{/* vooya-fs-perf:end readdir */}
 
 ## Notes
 

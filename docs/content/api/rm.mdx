@@ -1,11 +1,11 @@
 # rm
 
-Remove files and directories. Supports recursive removal with optional **concurrency** (Rush-FS extension) for faster deletion of large trees.
+Remove files and directories. Supports recursive removal with optional **concurrency** (Vooya FS extension) for faster deletion of large trees.
 
 ## Basic usage
 
 ```ts
-import { rm } from '@rush-fs/core'
+import { rm } from '@vooya/fs'
 
 // Remove a file
 await rm('./tmp.txt')
@@ -16,7 +16,7 @@ await rm('./temp-dir', { recursive: true })
 // Force (ignore errors when path does not exist) + retries
 await rm('./maybe-missing', { recursive: true, force: true, maxRetries: 3 })
 
-// Recursive with concurrency (Rush-FS: faster for large trees)
+// Recursive with concurrency (Vooya FS: faster for large trees)
 await rm('./large-tree', { recursive: true, force: true, concurrency: 4 })
 ```
 
@@ -26,20 +26,20 @@ await rm('./large-tree', { recursive: true, force: true, concurrency: 4 })
 
 **Async.** Returns `Promise<void>`.
 
-| Argument  | Type   | Description |
-| --------- | ------ | ----------- |
+| Argument  | Type   | Description                |
+| --------- | ------ | -------------------------- |
 | `path`    | string | Path to file or directory. |
-| `options` | object | Optional. See below. |
+| `options` | object | Optional. See below.       |
 
 **Options:**
 
-| Option       | Type   | Default | Description |
-| ------------ | ------ | ------- | ----------- |
-| `force`     | boolean | false | If true, ignore `ENOENT` (path not found). |
-| `maxRetries`| number | 0      | Retry on transient errors (e.g. Windows locking). |
-| `recursive` | boolean | false | If true, remove directory and its contents. |
-| `retryDelay`| number | 100    | Delay in ms between retries. |
-| `concurrency` | number | 1    | **(Rush-FS)** Max concurrent delete operations in recursive mode. |
+| Option        | Type    | Default | Description                                                                         |
+| ------------- | ------- | ------- | ----------------------------------------------------------------------------------- |
+| `force`       | boolean | false   | If true, ignore `ENOENT` (path not found).                                          |
+| `maxRetries`  | number  | 0       | Retry on transient errors (e.g. Windows locking).                                   |
+| `recursive`   | boolean | false   | If true, remove directory and its contents.                                         |
+| `retryDelay`  | number  | 100     | Base delay in ms; retry `n` waits `n * retryDelay`, matching Node's linear backoff. |
+| `concurrency` | number  | 1       | **(Vooya FS)** Max concurrent delete operations in recursive mode.                  |
 
 ### `rmSync(path, options?)`
 
@@ -47,13 +47,31 @@ await rm('./large-tree', { recursive: true, force: true, concurrency: 4 })
 
 ## Performance
 
-- **Recursive**: Rush-FS can be **~1.75×** faster than Node.js for large trees when using `concurrency` (e.g. 2000 files with 4 threads in benchmarks). Higher concurrency helps until I/O becomes the bottleneck.
+- **Recursive**: Vooya FS can be **~1.75×** faster than Node.js for large trees when using `concurrency` (e.g. 2000 files with 4 threads in benchmarks). Higher concurrency helps until I/O becomes the bottleneck.
 - **Single file**: On par with Node.js; small N-API overhead.
 
-See [Benchmarks](/benchmarks) (e.g. `rm` 2000 files, 4 threads: Node 92 ms vs Rush-FS 53 ms).
+See [Benchmarks](/benchmarks) (e.g. `rm` 2000 files, 4 threads: Node 92 ms vs Vooya FS 53 ms).
+
+### Local scale report
+
+{/* vooya-fs-perf:start rm */}
+
+_Generated from local performance reports. Do not edit this block by hand._
+
+- Runtime: v22.22.0 on darwin/arm64
+- Samples: 2 warmup runs, 7 measured runs
+- Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
+
+| Scale  |               Fixture |  Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
+| ------ | --------------------: | -------: | -------: | -----------: | -------: | -----------: |
+| tiny   |      8 files / 2 dirs |  0.53 ms |  0.41 ms | 1.30x faster |  13.7 KB |       2.3 KB |
+| small  |   104 files / 13 dirs |  2.93 ms |  3.04 ms | 1.04x slower |  11.4 KB |       6.9 KB |
+| medium | 2728 files / 341 dirs | 85.42 ms | 73.57 ms | 1.16x faster |  82.3 KB |          0 B |
+
+{/* vooya-fs-perf:end rm */}
 
 ## Notes
 
-- **Recursive**: When `recursive: true`, Rush-FS uses [rayon](https://github.com/rayon-rs/rayon) for parallel deletion. Default `concurrency` is 1 for safety; increase (e.g. 4) for large directories.
+- **Recursive**: When `recursive: true`, Vooya FS uses [rayon](https://github.com/rayon-rs/rayon) for parallel deletion. Default `concurrency` is 1 for safety; increase (e.g. 4) for large directories.
 - **Windows**: `maxRetries` and `retryDelay` help with transient "access denied" or locking issues. Same semantics as Node.js.
-- **Symlinks**: Recursive removal does not follow symlinks; the link is removed, not the target. Matches Node.js behavior.
+- **Symlinks**: Recursive removal does not follow symlinks; valid and broken links are removed without touching their targets.

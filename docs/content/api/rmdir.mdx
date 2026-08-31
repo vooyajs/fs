@@ -5,7 +5,7 @@ Remove an empty directory. Fails if the directory is not empty; use `rm` with `r
 ## Basic usage
 
 ```ts
-import { rmdir } from '@rush-fs/core'
+import { rmdir } from '@vooya/fs'
 
 await rmdir('./empty-dir')
 ```
@@ -16,8 +16,8 @@ await rmdir('./empty-dir')
 
 **Async.** Returns `Promise<void>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
+| Argument | Type   | Description                  |
+| -------- | ------ | ---------------------------- |
 | `path`   | string | Path to the empty directory. |
 
 ### `rmdirSync(path)`
@@ -33,4 +33,4 @@ Single syscall; on par with Node.js. No dedicated benchmark; see [Benchmarks](/b
 - **Non-empty**: Use `rm(path, { recursive: true })` to remove a directory and its contents.
 - **Errors**: Same as Node.js (e.g. `ENOENT`, `ENOTEMPTY`, `EACCES`).
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, and legacy `rmdir` options such as deprecated recursive removal are not part of the current Rush-FS `rmdir` surface.
+- **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, and legacy `rmdir` options such as deprecated recursive removal are not part of the current Vooya FS `rmdir` surface.

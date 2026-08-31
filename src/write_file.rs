@@ -12,7 +12,7 @@ fn encode_string(s: &str, encoding: Option<&str>) -> Result<Vec<u8>> {
     Some("latin1" | "binary") => Ok(s.chars().map(|c| c as u8).collect()),
     Some("base64") => base64_decode(s, false),
     Some("base64url") => base64_decode(s, true),
-    Some("hex") => hex_decode(s),
+    Some("hex") => Ok(hex_decode(s)),
     Some(enc) => Err(Error::from_reason(format!("Unknown encoding: {}", enc))),
   }
 }
@@ -54,30 +54,24 @@ fn base64_decode(s: &str, url_safe: bool) -> Result<Vec<u8>> {
   Ok(buf)
 }
 
-fn hex_decode(s: &str) -> Result<Vec<u8>> {
-  let s = s.trim();
-  if !s.len().is_multiple_of(2) {
-    return Err(Error::from_reason("Invalid hex string".to_string()));
-  }
+fn hex_decode(s: &str) -> Vec<u8> {
   let mut buf = Vec::with_capacity(s.len() / 2);
   let bytes = s.as_bytes();
-  for i in (0..bytes.len()).step_by(2) {
-    let hi = hex_val(bytes[i])?;
-    let lo = hex_val(bytes[i + 1])?;
+  for pair in bytes.chunks_exact(2) {
+    let (Some(hi), Some(lo)) = (hex_val(pair[0]), hex_val(pair[1])) else {
+      break;
+    };
     buf.push((hi << 4) | lo);
   }
-  Ok(buf)
+  buf
 }
 
-fn hex_val(b: u8) -> Result<u8> {
+fn hex_val(b: u8) -> Option<u8> {
   match b {
-    b'0'..=b'9' => Ok(b - b'0'),
-    b'a'..=b'f' => Ok(b - b'a' + 10),
-    b'A'..=b'F' => Ok(b - b'A' + 10),
-    _ => Err(Error::from_reason(format!(
-      "Invalid hex character: {}",
-      b as char
-    ))),
+    b'0'..=b'9' => Some(b - b'0'),
+    b'a'..=b'f' => Some(b - b'a' + 10),
+    b'A'..=b'F' => Some(b - b'A' + 10),
+    _ => None,
   }
 }
 
@@ -109,6 +103,11 @@ fn write_file_impl(
   };
 
   let mut open_opts = OpenOptions::new();
+  #[cfg(unix)]
+  {
+    use std::os::unix::fs::OpenOptionsExt;
+    open_opts.mode(opts.mode.unwrap_or(0o666));
+  }
   match flag {
     "w" => {
       open_opts.write(true).create(true).truncate(true);
@@ -123,7 +122,10 @@ fn write_file_impl(
       open_opts.append(true).create_new(true);
     }
     _ => {
-      open_opts.write(true).create(true).truncate(true);
+      return Err(Error::from_reason(format!(
+        "ERR_INVALID_ARG_VALUE: invalid flag '{}'",
+        flag
+      )))
     }
   }
 
@@ -146,13 +148,6 @@ fn write_file_impl(
   file
     .write_all(&bytes)
     .map_err(|e| Error::from_reason(e.to_string()))?;
-
-  #[cfg(unix)]
-  if let Some(mode) = opts.mode {
-    use std::fs;
-    use std::os::unix::fs::PermissionsExt;
-    let _ = fs::set_permissions(path, fs::Permissions::from_mode(mode));
-  }
 
   Ok(())
 }
@@ -193,7 +188,7 @@ impl Task for WriteFileTask {
   }
 }
 
-#[napi(js_name = "writeFile")]
+#[napi(js_name = "writeFile", ts_return_type = "Promise<void>")]
 pub fn write_file(
   path: String,
   data: Either<String, Buffer>,
@@ -265,7 +260,7 @@ impl Task for AppendFileTask {
   }
 }
 
-#[napi(js_name = "appendFile")]
+#[napi(js_name = "appendFile", ts_return_type = "Promise<void>")]
 pub fn append_file(
   path: String,
   data: Either<String, Buffer>,

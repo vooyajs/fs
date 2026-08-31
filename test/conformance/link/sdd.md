@@ -8,7 +8,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS path input today: `string` for `existingPath` and `newPath`.
+- Supported Vooya FS path input today: `string` for `existingPath` and `newPath`.
 - Supported behavior: create a hard link for an existing file and fail when the source is missing or destination already exists.
 - Supported return type: promise resolves with `undefined`; sync returns `undefined`.
 - Unsupported Node surface for this SDD: `URL` paths, `Buffer` paths, callback API shape, and exact Node error object metadata.
@@ -23,11 +23,11 @@
 
 ## Known Gaps
 
-| Behavior               | Node oracle                                                             | Current Rush-FS behavior                                                                                | Reason                                                                                    | Follow-up                   |
+| Behavior               | Node oracle                                                             | Current Vooya FS behavior                                                                               | Reason                                                                                    | Follow-up                   |
 | ---------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------- |
 | Error object fields    | Rejects or throws with Node-style `code`, `syscall`, `path`, and `dest` | Message contains Node-like text, but N-API exposes `code: "GenericFailure"` and omits structured fields | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
 | Path-like inputs       | Node accepts strings, Buffers, and file URLs                            | Type surface currently accepts string paths only                                                        | Path input expansion is deferred globally                                                 | API surface expansion       |
-| Windows inode metadata | Node exposes platform-specific stat fields                              | Rush-FS stat inode fields are limited on Windows                                                        | Stats parity is tracked by the stat rollout                                               | Platform parity             |
+| Windows inode metadata | Node exposes platform-specific stat fields                              | Vooya FS stat inode fields are limited on Windows                                                       | Stats parity is tracked by the stat rollout                                               | Platform parity             |
 
 ## Performance Metrics
 

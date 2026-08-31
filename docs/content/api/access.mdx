@@ -5,7 +5,7 @@ Check whether the process can access a file with the given mode (F_OK, R_OK, W_O
 ## Basic usage
 
 ```ts
-import { access } from '@rush-fs/core'
+import { access } from '@vooya/fs'
 import { constants } from 'node:fs'
 
 await access('./file.txt') // F_OK default
@@ -19,9 +19,9 @@ await access('./script.sh', constants.X_OK)
 
 **Async.** Returns `Promise<void>` (rejects on access denied).
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
-| `path`   | string | File path. |
+| Argument | Type   | Description                                                     |
+| -------- | ------ | --------------------------------------------------------------- |
+| `path`   | string | File path.                                                      |
 | `mode`   | number | Optional. `F_OK`, `R_OK`, `W_OK`, `X_OK` (from `fs.constants`). |
 
 ### `accessSync(path, mode?)`
@@ -32,19 +32,19 @@ await access('./script.sh', constants.X_OK)
 
 From repo benchmarks (`pnpm build && pnpm bench`):
 
-| Scenario           | Node.js | Rush-FS | Speedup |
-| ------------------ | ------- | ------- | ------- |
-| access R_OK (directory) | 4.18 µs | 1.55 µs | **2.7x** |
+| Scenario                | Node.js | Vooya FS | Speedup  |
+| ----------------------- | ------- | -------- | -------- |
+| access R_OK (directory) | 4.18 µs | 1.55 µs  | **2.7x** |
 
-| Scenario        | Node.js | Rush-FS | Note        |
-| --------------- | ------- | ------- | ----------- |
-| accessSync F_OK | 456 ns  | 1.46 µs | Node.js fast path |
+| Scenario        | Node.js | Vooya FS | Note              |
+| --------------- | ------- | -------- | ----------------- |
+| accessSync F_OK | 456 ns  | 1.46 µs  | Node.js fast path |
 
-Rush-FS is faster for typical access checks; for F_OK-only sync checks Node.js can be faster due to internal fast path.
+Vooya FS is faster for typical access checks; for F_OK-only sync checks Node.js can be faster due to internal fast path.
 
 ## Notes
 
 - **Prefer exists**: If you only need “file exists”, `exists(path)` is simpler; `access(path, F_OK)` is the lower-level API.
 - **Constants**: Use `constants.F_OK`, `R_OK`, `W_OK`, `X_OK` from `node:fs` (or the numeric values).
 - **Known gap**: Missing-path and permission errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Rush-FS `access` surface.
+- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `access` surface.

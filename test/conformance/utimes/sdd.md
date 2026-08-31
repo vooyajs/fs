@@ -8,7 +8,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS path input today: `string`.
+- Supported Vooya FS path input today: `string`.
 - Supported time input today: numbers representing seconds since the Unix epoch.
 - Supported behavior: update access and modification times for files and directories.
 - Supported return type: promise resolves with `undefined`; sync returns `undefined`.
@@ -24,12 +24,12 @@
 
 ## Known Gaps
 
-| Behavior                    | Node oracle                                                     | Current Rush-FS behavior                                                                                                  | Reason                                                                                    | Follow-up                   |
+| Behavior                    | Node oracle                                                     | Current Vooya FS behavior                                                                                                 | Reason                                                                                    | Follow-up                   |
 | --------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------- |
 | Error object fields         | Rejects or throws with Node-style `code`, `syscall`, and `path` | Message contains Node-like text for missing paths, but N-API exposes `code: "GenericFailure"` and omits structured fields | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
 | Path-like inputs            | Node accepts strings, Buffers, and file URLs                    | Type surface currently accepts string paths only                                                                          | Path input expansion is deferred globally                                                 | API surface expansion       |
 | Date and string time values | Node accepts numbers, numeric strings, and Date values          | Type surface currently accepts numbers only                                                                               | Time input coercion is deferred until broader Node input parity                           | API surface expansion       |
-| File descriptor APIs        | Node exposes `futimes` variants                                 | Rush-FS exports path-based `utimes` only                                                                                  | File descriptor APIs are outside the current promise-first surface                        | API surface expansion       |
+| File descriptor APIs        | Node exposes `futimes` variants                                 | Vooya FS exports path-based `utimes` only                                                                                 | File descriptor APIs are outside the current promise-first surface                        | API surface expansion       |
 
 ## Performance Metrics
 
@@ -38,6 +38,6 @@
 
 ## Docs Alignment
 
-- Docs must state that current Rush-FS time inputs are numeric seconds.
+- Docs must state that current Vooya FS time inputs are numeric seconds.
 - Docs must document unsupported path inputs, Date/string time values, and file descriptor APIs.
 - Docs must keep the error object known gap visible until fixed.

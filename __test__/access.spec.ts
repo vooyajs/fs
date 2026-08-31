@@ -10,7 +10,7 @@ const W_OK = 2
 const X_OK = 1
 
 function tmpFile(name: string): string {
-  const dir = join(tmpdir(), `rush-fs-test-access-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(tmpdir(), `vooya-fs-test-access-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   nodeFs.mkdirSync(dir, { recursive: true })
   const file = join(dir, name)
   nodeFs.writeFileSync(file, 'test')

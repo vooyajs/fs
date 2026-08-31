@@ -5,7 +5,7 @@ Write data to a file, replacing the file if it exists. Supports encodings, `mode
 ## Basic usage
 
 ```ts
-import { writeFile } from '@rush-fs/core'
+import { writeFile } from '@vooya/fs'
 
 await writeFile('./out.txt', 'hello world')
 await writeFile('./out.bin', buffer)
@@ -18,11 +18,11 @@ await writeFile('./out.txt', 'content', { encoding: 'utf8', mode: 0o644 })
 
 **Async.** Returns `Promise<void>`.
 
-| Argument  | Type   | Description |
-| --------- | ------ | ----------- |
-| `path`    | string | File path. |
-| `data`    | string \| Buffer | Data to write. |
-| `options` | object | Optional. See below. |
+| Argument  | Type             | Description          |
+| --------- | ---------------- | -------------------- |
+| `path`    | string           | File path.           |
+| `data`    | string \| Buffer | Data to write.       |
+| `options` | object           | Optional. See below. |
 
 **Options:** `encoding` (utf8, ascii, latin1, base64, base64url, hex), `mode` (number), `flag` (e.g. `'w'`, `'wx'`, `'a'`, `'ax'`).
 
@@ -34,17 +34,17 @@ await writeFile('./out.txt', 'content', { encoding: 'utf8', mode: 0o644 })
 
 From repo benchmarks (`pnpm build && pnpm bench`):
 
-| Scenario              | Node.js | Rush-FS | Ratio |
-| --------------------- | ------- | ------- | ----- |
-| writeFile small (string) | 74 µs  | 66 µs   | 0.9x  |
-| writeFile small (Buffer) | 115 µs | 103 µs  | 0.9x  |
-| writeFile 4 MB string | 2.93 ms | 5.69 ms | Node.js faster (large string over N-API) |
+| Scenario                 | Node.js | Vooya FS | Ratio                                    |
+| ------------------------ | ------- | -------- | ---------------------------------------- |
+| writeFile small (string) | 74 µs   | 66 µs    | 0.9x                                     |
+| writeFile small (Buffer) | 115 µs  | 103 µs   | 0.9x                                     |
+| writeFile 4 MB string    | 2.93 ms | 5.69 ms  | Node.js faster (large string over N-API) |
 
 Single-file writes are on par with Node.js for small payloads; for very large strings Node.js can be faster due to N-API copy cost.
 
 ### Local scale report
 
-{/* rush-fs-perf:start writeFile */}
+{/* vooya-fs-perf:start writeFile */}
 
 _Generated from local performance reports. Do not edit this block by hand._
 
@@ -52,20 +52,21 @@ _Generated from local performance reports. Do not edit this block by hand._
 - Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
-| Scale | Fixture | Node.js | Rush-FS | Ratio | Node RSS | Rush-FS RSS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| small-string | - | 0.24 ms | 0.09 ms | 2.56x faster | 16.0 KB | 0 B |
-| medium-string | - | 0.20 ms | 0.12 ms | 1.64x faster | 0 B | 0 B |
-| large-string | - | 1.82 ms | 1.54 ms | 1.18x faster | 0 B | 0 B |
-| medium-buffer | - | 0.21 ms | 0.13 ms | 1.62x faster | 0 B | 0 B |
+| Scale         | Fixture | Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
+| ------------- | ------: | ------: | -------: | -----------: | -------: | -----------: |
+| small-string  |       - | 0.24 ms |  0.09 ms | 2.56x faster |  16.0 KB |          0 B |
+| medium-string |       - | 0.20 ms |  0.12 ms | 1.64x faster |      0 B |          0 B |
+| large-string  |       - | 1.82 ms |  1.54 ms | 1.18x faster |      0 B |          0 B |
+| medium-buffer |       - | 0.21 ms |  0.13 ms | 1.62x faster |      0 B |          0 B |
 
-{/* rush-fs-perf:end writeFile */}
+{/* vooya-fs-perf:end writeFile */}
 
 ## Notes
 
 - **Encodings**: Same as Node.js (utf8, ascii, latin1, base64, base64url, hex).
-- **Supported input shape**: Rush-FS currently accepts string paths and `string | Buffer` data. Node also accepts `URL` / `Buffer` paths and more typed array data shapes; those are deferred.
+- **Hex compatibility**: Odd trailing nibbles and invalid trailing pairs follow Node's string-encoding behavior.
+- **Mode**: Applies when a file is created and is filtered by the process umask; writing an existing file does not reset its permissions.
+- **Supported input shape**: Vooya FS currently accepts string paths and `string | Buffer` data. Node also accepts `URL` / `Buffer` paths and more typed array data shapes; those are deferred.
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Known gap**: Odd-length hex strings are accepted by Node's encoding path but currently rejected by Rush-FS.
-- **Unsupported Node options**: `AbortSignal` and file-handle targets are not part of the current Rush-FS `writeFile` surface.
+- **Unsupported Node options**: `AbortSignal` and file-handle targets are not part of the current Vooya FS `writeFile` surface.
 - **Large data**: Writing a very large string (e.g. 4 MB) crosses the N-API boundary and can be slower than Node.js; prefer `Buffer` for large binary data where possible.

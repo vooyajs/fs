@@ -2,22 +2,21 @@
 [package]
 authors = []
 edition = "2021"
-name    = "rush_fs"
+name    = "vooya_fs"
 version = "0.1.0"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-chrono         = { version = "0.4", features = ["clock"] }
-ignore         = "0.4.25"
-jwalk          = "0.8.1"
-napi           = { version = "3.0.0", features = ["chrono_date"] }
-napi-derive    = "3.4"
-rayon          = "1.11.0"
-remove_dir_all = "1.0.0"
-serde          = "1.0.228"
-walkdir        = "2.5.0"
+chrono      = { version = "0.4", features = ["clock"] }
+ignore      = "0.4.25"
+jwalk       = "0.8.1"
+napi        = { version = "3.0.0", features = ["chrono_date"] }
+napi-derive = "3.4"
+rayon       = "1.11.0"
+serde       = "1.0.228"
+walkdir     = "2.5.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

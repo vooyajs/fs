@@ -1,58 +1,54 @@
 # API Overview
 
-We are rewriting Node.js `fs` APIs one by one. This page gives an overview; the full list with argument and return types is in the [README](https://github.com/CoderSerio/rush-fs#status--roadmap).
+Vooya FS exposes two related surfaces:
 
-## Legend
+- **Node-aligned operations** keep familiar promise and synchronous shapes for a
+  documented subset of `node:fs`.
+- **Batch extensions** combine work or make native execution policy explicit.
 
-- **✅** — Fully supported
-- **🚧** — Partially supported / WIP
-- **✨** — Extra option or behavior from Rush-FS (e.g. `concurrency`)
-- **❌** — Not supported yet
+Compatibility is defined by the conformance suite, not by “drop-in replacement”
+marketing. Current paths are strings, callback APIs are absent, and some advanced
+Node options are intentionally deferred.
 
-## Supported APIs
+## Batch extensions
 
-| API          | Status | Notes                                      |
-| ------------ | ------ | ------------------------------------------ |
-| `readdir`    | ✅     | `withFileTypes`, `recursive`, `concurrency` ✨ |
-| `readFile`   | ✅     | encodings, `flag`                          |
-| `writeFile`  | ✅     | encodings, `mode`, `flag`                  |
-| `appendFile` | ✅     |                                            |
-| `copyFile`   | ✅     | `COPYFILE_EXCL`                            |
-| `cp`         | ✅     | recursive, `concurrency` ✨                 |
-| `mkdir`      | ✅     | `recursive`, `mode`                        |
-| `rm`         | ✅     | `recursive`, `force`, `concurrency` ✨     |
-| `rmdir`      | ✅     |                                            |
-| `stat`       | ✅     | full `Stats` (dates, methods)              |
-| `lstat`      | ✅     |                                            |
-| `access`     | ✅     | F_OK, R_OK, W_OK, X_OK                      |
-| `exists`     | ✅     |                                            |
-| `unlink`     | ✅     |                                            |
-| `rename`     | ✅     |                                            |
-| `readlink`   | ✅     |                                            |
-| `realpath`   | ✅     |                                            |
-| `chmod`      | ✅     |                                            |
-| `chown`      | ✅     |                                            |
-| `utimes`     | ✅     |                                            |
-| `truncate`   | ✅     |                                            |
-| `symlink`    | ✅     |                                            |
-| `link`       | ✅     |                                            |
-| `mkdtemp`    | ✅     |                                            |
-| `glob`       | ✅     | ✨ `concurrency`, `gitIgnore`              |
+| API / option               | Purpose                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| [`scan`](/api/scan)        | Fuse recursive walk, rooted glob filters, ignore rules, and metadata collection.              |
+| `concurrency`              | Bound native workers for supported recursive `readdir`, `glob`, `cp`, `rm`, and `scan` calls. |
+| `readFile(..., { lines })` | Select a text line range before returning data to JavaScript.                                 |
+| `glob(..., { gitIgnore })` | Apply standard ignore files during traversal.                                                 |
 
-## Not supported yet
+## Node-aligned operations
 
-| API | Description | Main blocker / note |
-| --- | --- | --- |
-| `open` / `close` / `fstat` | File descriptor–based I/O (open returns fd; read/write/fstat/close use it). | Requires a cross-boundary fd mapping table (`Arc<Mutex<HashMap<fd, File>>>`), careful lifecycle and thread-safety; `napi::Env` is main-thread–only while async work runs in the thread pool. |
-| `opendir` | Directory iterator (`Dir` / `DirEnt` stream). | Not implemented yet; use `readdir` (optionally with `recursive` and `withFileTypes`) for directory listing. |
-| `watch` / `watchFile` | File system watching (FSEvents / inotify / ReadDirectoryChangesW). | Needs pushing a Rust event stream (e.g. via `notify` crate) into JS (e.g. `napi::threadsafe_function`); implementation is non-trivial and priority is under evaluation. |
+| API                                          | Status | Current scope                                                                       |
+| -------------------------------------------- | ------ | ----------------------------------------------------------------------------------- |
+| `readdir`                                    | ✅     | `withFileTypes`, `recursive`; adds `concurrency`                                    |
+| `glob`                                       | ✅     | rooted patterns, `cwd`, `exclude`, `withFileTypes`; adds `concurrency`, `gitIgnore` |
+| `readFile` / `writeFile` / `appendFile`      | ✅     | string paths, documented encodings and flags                                        |
+| `copyFile` / `cp`                            | ✅     | recursive copy options; `cp` adds `concurrency`                                     |
+| `mkdir` / `rm` / `rmdir`                     | ✅     | recursive options; `rm` adds `concurrency`                                          |
+| `stat` / `lstat`                             | ✅     | `Stats` dates and type methods                                                      |
+| `access` / `exists`                          | ✅     | string paths; Unix access uses OS permission checks                                 |
+| `link` / `symlink` / `readlink` / `realpath` | ✅     | string paths                                                                        |
+| `rename` / `unlink` / `truncate`             | ✅     | path-based variants                                                                 |
+| `chmod` / `chown` / `utimes`                 | ✅     | platform filesystem semantics                                                       |
+| `mkdtemp`                                    | ✅     | string prefix                                                                       |
 
-Planned extensions (from roadmap): stream APIs such as `createReadStream` / `createWriteStream` are higher difficulty (backpressure, pipe, etc.) and are long-term.
+All APIs above provide promise and sync variants, for example `readdir` and
+`readdirSync`. Async calls run their Rust task away from the JavaScript event-loop
+thread; sync calls block like their Node counterparts.
 
-Each supported API has a **dedicated doc page** in the sidebar (e.g. [readdir](/api/readdir), [readFile](/api/read-file), [glob](/api/glob)) with basic usage, methods, performance (benchmark tables), and notes.
+## Deliberately not implemented
 
-## Sync variants
+| Surface                                                | Reason / current alternative                                                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `open`, `close`, `read`, `write`, `fstat`, `ftruncate` | A safe cross-boundary file-descriptor lifecycle is a separate design problem. Use `node:fs` for fd workflows. |
+| `opendir`                                              | Native directory iterator lifetime and backpressure are not part of the current batch surface. Use `readdir`. |
+| `watch`, `watchFile`                                   | Cross-platform event delivery needs a long-lived event bridge. Use Node watchers.                             |
+| `createReadStream`, `createWriteStream`                | Streams require Node-native backpressure and piping semantics. Use Node streams.                              |
+| callback APIs                                          | The current library is promise-first plus synchronous APIs.                                                   |
+| `URL` / `Buffer` paths                                 | Current path inputs are strings.                                                                              |
 
-Supported APIs expose both async (e.g. `readdir`) and sync (e.g. `readdirSync`) forms. Import the same names from `@rush-fs/core` as you would from `node:fs`.
-
-For full TypeScript signatures and option details, see the [README Status & Roadmap](https://github.com/CoderSerio/rush-fs#status--roadmap) section.
+The SDDs in `test/conformance` record the precise oracle, functional matrix, known
+gaps, and documentation obligations for each supported API.

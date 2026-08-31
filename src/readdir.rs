@@ -6,6 +6,7 @@ use napi::Task;
 use napi_derive::napi;
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
 
 // # nodejs readdir jsdoc:
 /**
@@ -60,7 +61,7 @@ fn ls(
   let skip_hidden = opts.skip_hidden.unwrap_or(false);
   let recursive = opts.recursive.unwrap_or(false);
   let with_file_types = opts.with_file_types.unwrap_or(false);
-  // 'buffer' encoding is not supported in rush-fs (we always return String).
+  // 'buffer' encoding is not supported in vooya-fs (we always return String).
   // All other encoding values are treated as 'utf8'.
   let _encoding = opts.encoding.as_deref().unwrap_or("utf8");
 
@@ -105,21 +106,22 @@ fn ls(
     }
   }
 
+  let parallelism = match opts.concurrency {
+    Some(0 | 1) => Parallelism::Serial,
+    Some(n) => Parallelism::RayonNewPool(n as usize),
+    None => Parallelism::RayonDefaultPool {
+      busy_timeout: Duration::from_secs(1),
+    },
+  };
   let walk_dir = WalkDir::new(path)
     .skip_hidden(skip_hidden)
-    .parallelism(match opts.concurrency {
-      Some(n) => Parallelism::RayonNewPool(n as usize),
-      None => Parallelism::RayonNewPool(0),
-    });
-
-  // TODO: maybe we'd better limit the max number of threads?
+    .parallelism(parallelism);
 
   if with_file_types {
-    let result = walk_dir
-      .into_iter()
-      .filter_map(|e| e.ok())
-      .filter(|e| e.depth() > 0)
-      .map(|e| {
+    let mut result = Vec::new();
+    for entry in walk_dir.into_iter() {
+      let e = entry.map_err(|error| Error::from_reason(error.to_string()))?;
+      if e.depth() > 0 {
         let p = e.path();
         let parent = p
           .parent()
@@ -127,31 +129,30 @@ fn ls(
           .to_string_lossy()
           .to_string();
 
-        Dirent {
+        result.push(Dirent {
           name: e.file_name().to_string_lossy().to_string(),
           parent_path: parent,
           file_type: get_file_type_id(&e.file_type()),
-        }
-      })
-      .collect();
+        });
+      }
+    }
     Ok(Either::B(result))
   } else {
     // When recursive is true and withFileTypes is false, Node.js returns relative paths.
     // But jwalk entries have full paths, We need to strip the root path.
     let root = path;
-    let result = walk_dir
-      .into_iter()
-      .filter_map(|e| e.ok())
-      .filter(|e| e.depth() > 0)
-      .map(|e| {
+    let mut result = Vec::new();
+    for entry in walk_dir.into_iter() {
+      let e = entry.map_err(|error| Error::from_reason(error.to_string()))?;
+      if e.depth() > 0 {
         // Get path relative to root
         let p = e.path();
-        match p.strip_prefix(root) {
+        result.push(match p.strip_prefix(root) {
           Ok(relative) => relative.to_string_lossy().to_string(),
           Err(_) => e.file_name().to_string_lossy().to_string(), // Fallback
-        }
-      })
-      .collect();
+        });
+      }
+    }
     Ok(Either::A(result))
   }
 }
@@ -183,7 +184,10 @@ impl Task for ReaddirTask {
   }
 }
 
-#[napi(js_name = "readdir")]
+#[napi(
+  js_name = "readdir",
+  ts_return_type = "Promise<Array<string> | Array<Dirent>>"
+)]
 pub fn readdir(path: String, options: Option<ReaddirOptions>) -> AsyncTask<ReaddirTask> {
   AsyncTask::new(ReaddirTask { path, options })
 }

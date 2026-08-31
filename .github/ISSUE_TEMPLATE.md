@@ -22,7 +22,7 @@ title: '[FEAT/BUG]'
 
 - **OS:** [e.g. macOS, Windows, Linux]
 - **Node.js Version:** [e.g. v18.16.0]
-- **rush-fs Version:** [e.g. 0.0.1]
+- **vooya-fs Version:** [e.g. 0.0.1]
 
 ## Related Issues:
 

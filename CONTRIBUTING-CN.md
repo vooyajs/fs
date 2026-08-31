@@ -1,6 +1,6 @@
 # 贡献指南
 
-欢迎参与 rush-fs 开发！本文档将引导你从零开始搭建环境、理解项目架构、实现新 API、编写测试，直到提交一个完整的 PR。
+欢迎参与 vooya-fs 开发！本文档将引导你从零开始搭建环境、理解项目架构、实现新 API、编写测试，直到提交一个完整的 PR。
 
 ## 目录
 
@@ -33,7 +33,7 @@
 ```bash
 # 1. 克隆仓库
 git clone <repo-url>
-cd rush-fs
+cd vooya-fs
 
 # 2. 确保 Rust 工具链就绪
 rustup default stable
@@ -67,7 +67,7 @@ pnpm format          # 格式化所有代码（Prettier + cargo fmt + taplo）
 ## 项目架构
 
 ```
-rush-fs/
+vooya-fs/
 ├── src/                    # Rust 源码（核心实现）
 │   ├── lib.rs              # 模块注册入口
 │   ├── types.rs            # 共享类型（Dirent, Stats）
@@ -225,7 +225,7 @@ pnpm build:debug
 
 ## 性能优化：并行化
 
-rush-fs 的核心优势是利用 Rust 的并行能力。以下是常用的并行化手段：
+vooya-fs 的核心优势是利用 Rust 的并行能力。以下是常用的并行化手段：
 
 ### 1. jwalk — 并行目录遍历
 
@@ -294,7 +294,7 @@ import { tmpdir } from 'node:os'
 
 // 辅助函数：创建临时目录
 function tmpDir(): string {
-  const dir = join(tmpdir(), `rush-fs-test-symlink-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(tmpdir(), `vooya-fs-test-symlink-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -334,7 +334,7 @@ test('symlinkSync: should match node:fs behavior', (t) => {
 
 #### 2. 双跑对比测试
 
-同时调用 `node:fs` 和 `rush-fs`，对比返回值。这是确保行为一致性的关键：
+同时调用 `node:fs` 和 `vooya-fs`，对比返回值。这是确保行为一致性的关键：
 
 ```typescript
 import * as nodeFs from 'node:fs'
@@ -416,11 +416,11 @@ import { someSync } from '../index.js'
 // 对标 Node.js 原生实现
 group('Some API', () => {
   bench('Node.js', () => fs.someSync(args)).baseline()
-  bench('Rush-FS', () => someSync(args))
+  bench('Vooya FS', () => someSync(args))
 })
 
 // 如果有并发选项，做并发对比
-group('Rush-FS Concurrency', () => {
+group('Vooya FS Concurrency', () => {
   bench('Default', () => someSync(args)).baseline()
   bench('4 Threads', () => someSync(args, { concurrency: 4 }))
   bench('8 Threads', () => someSync(args, { concurrency: 8 }))
@@ -515,5 +515,5 @@ GitHub Actions 会在 push / PR 时自动执行：
    - `package.json` → `"version": "x.y.z"`
    - `Cargo.toml` → `version = "x.y.z"`
    - npm 不允许覆盖已发布版本；若上次发布半途失败但版本已上 npm（例如 0.0.4 已存在），需先改为新版本号（如 0.0.5）再重新发布。
-2. **更新 [CHANGELOG.md](CHANGELOG.md)**：将 **\[Unreleased]** 下的条目移到新的 `## [x.y.z] - YYYY-MM-DD` 小节，并在文末补充该版本的链接（`[x.y.z]: https://github.com/CoderSerio/rush-fs/compare/vA.B.C...vx.y.z`）。
+2. **更新 [CHANGELOG.md](CHANGELOG.md)**：将 **\[Unreleased]** 下的条目移到新的 `## [x.y.z] - YYYY-MM-DD` 小节，并在文末补充该版本的链接（`[x.y.z]: https://github.com/vooyajs/fs/compare/vA.B.C...vx.y.z`）。
 3. **执行发布**：推送到 `main` 后，在 **Actions → Release → Run workflow** 中运行，或执行 `git tag vx.y.z && git push origin vx.y.z`。

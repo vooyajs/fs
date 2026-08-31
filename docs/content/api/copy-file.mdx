@@ -5,7 +5,7 @@ Copy a file from `src` to `dest`. Does not copy directory trees.
 ## Basic usage
 
 ```ts
-import { copyFile } from '@rush-fs/core'
+import { copyFile } from '@vooya/fs'
 import { constants } from 'node:fs'
 
 await copyFile('./a.txt', './b.txt')
@@ -18,10 +18,10 @@ await copyFile('./a.txt', './b.txt', constants.COPYFILE_EXCL) // fail if dest ex
 
 **Async.** Returns `Promise<void>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
-| `src`    | string | Source file path. |
-| `dest`   | string | Destination file path. |
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `src`    | string | Source file path.                                      |
+| `dest`   | string | Destination file path.                                 |
 | `mode`   | number | Optional. e.g. `COPYFILE_EXCL` to fail if dest exists. |
 
 ### `copyFileSync(src, dest, mode?)`
@@ -32,15 +32,15 @@ await copyFile('./a.txt', './b.txt', constants.COPYFILE_EXCL) // fail if dest ex
 
 From repo benchmarks (`pnpm build && pnpm bench`):
 
-| Scenario        | Node.js | Rush-FS | Speedup |
-| --------------- | ------- | ------- | ------- |
-| copyFile 4 MB   | 4.67 ms | 0.09 ms | **50x** |
+| Scenario      | Node.js | Vooya FS | Speedup |
+| ------------- | ------- | -------- | ------- |
+| copyFile 4 MB | 4.67 ms | 0.09 ms  | **50x** |
 
-Rush-FS is much faster for single-file copy due to efficient native I/O.
+Vooya FS is much faster for single-file copy due to efficient native I/O.
 
 ### Local scale report
 
-{/* rush-fs-perf:start copyFile */}
+{/* vooya-fs-perf:start copyFile */}
 
 _Generated from local performance reports. Do not edit this block by hand._
 
@@ -48,18 +48,18 @@ _Generated from local performance reports. Do not edit this block by hand._
 - Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
-| Scale | Fixture | Node.js | Rush-FS | Ratio | Node RSS | Rush-FS RSS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| small-4kb | - | 0.22 ms | 0.15 ms | 1.47x faster | 19.2 KB | 0 B |
-| medium-1mb | - | 0.77 ms | 0.15 ms | 5.18x faster | 0 B | 3.2 KB |
-| large-8mb | - | 4.22 ms | 0.13 ms | 32.30x faster | 0 B | 0 B |
+| Scale      | Fixture | Node.js | Vooya FS |         Ratio | Node RSS | Vooya FS RSS |
+| ---------- | ------: | ------: | -------: | ------------: | -------: | -----------: |
+| small-4kb  |       - | 0.22 ms |  0.15 ms |  1.47x faster |  19.2 KB |          0 B |
+| medium-1mb |       - | 0.77 ms |  0.15 ms |  5.18x faster |      0 B |       3.2 KB |
+| large-8mb  |       - | 4.22 ms |  0.13 ms | 32.30x faster |      0 B |          0 B |
 
-{/* rush-fs-perf:end copyFile */}
+{/* vooya-fs-perf:end copyFile */}
 
 ## Notes
 
 - **Directories**: Use `cp` with `recursive: true` for directory trees. `copyFile` only copies a single file.
 - **COPYFILE_EXCL**: Use `constants.COPYFILE_EXCL` from `node:fs` (or the numeric value) to avoid overwriting an existing destination.
 - **Known gap**: Missing-path and existing-destination errors currently have Node-like messages, but do not expose Node-style `code`, `path`, `dest`, and `syscall` fields yet.
-- **Unsupported Node inputs**: `Buffer` paths and `URL` paths are not part of the current Rush-FS `copyFile` surface.
+- **Unsupported Node inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `copyFile` surface.
 - **Unsupported reflink guarantee**: `COPYFILE_FICLONE_FORCE` currently falls back to ordinary copy instead of requiring copy-on-write support.

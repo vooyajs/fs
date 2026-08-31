@@ -8,7 +8,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS path input today: `string`.
+- Supported Vooya FS path input today: `string`.
 - Supported modes: Node numeric `fs.constants.F_OK`, `R_OK`, `W_OK`, `X_OK`, and bitwise combinations.
 - Supported return type: promise resolves with `undefined`; sync returns `undefined`.
 - Unsupported Node surface for this SDD: `URL` paths, `Buffer` paths, callback API shape, and exact Node error object metadata.
@@ -24,11 +24,11 @@
 
 ## Known Gaps
 
-| Behavior                     | Node oracle                                                     | Current Rush-FS behavior                                                                                 | Reason                                                                                    | Follow-up                   |
+| Behavior                     | Node oracle                                                     | Current Vooya FS behavior                                                                                | Reason                                                                                    | Follow-up                   |
 | ---------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------- |
 | Error object fields          | Rejects or throws with Node-style `code`, `syscall`, and `path` | Message contains Node-like text, but N-API exposes `code: "GenericFailure"` and omits `syscall` / `path` | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
 | Path-like inputs             | Node accepts strings, Buffers, and file URLs                    | Type surface currently accepts string paths only                                                         | Path input expansion is deferred globally                                                 | API surface expansion       |
-| Windows permission semantics | Node delegates to platform access checks                        | Rush-FS approximates readonly checks for `W_OK` and treats other checks as existence-oriented            | Cross-platform permission modeling is intentionally minimal in v1                         | Platform parity             |
+| Windows permission semantics | Node delegates to platform access checks                        | Vooya FS approximates readonly checks for `W_OK` and treats other checks as existence-oriented           | Cross-platform permission modeling is intentionally minimal in v1                         | Platform parity             |
 
 ## Performance Metrics
 

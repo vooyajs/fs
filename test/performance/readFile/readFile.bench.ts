@@ -13,16 +13,27 @@ const scenarios = [
 ]
 
 async function main(): Promise<void> {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-perf-readFile-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-perf-readFile-'))
   try {
     for (const scenario of scenarios) {
       const file = path.join(root, scenario.file)
       await nodeFs.writeFile(file, Buffer.alloc(scenario.size, 'x'))
       const options = scenario.encoding ? { encoding: scenario.encoding } : undefined
       const node = await measure(`node readFile ${scenario.name}`, () => nodeFs.readFile(file, options))
-      const rush = await measure(`rush readFile ${scenario.name}`, () => readFile(file, options))
-      printComparison('readFile', scenario.name, node, rush)
+      const vooya = await measure(`vooya readFile ${scenario.name}`, () => readFile(file, options))
+      printComparison('readFile', scenario.name, node, vooya)
     }
+
+    const lineFile = path.join(root, 'large-lines.txt')
+    const line = '0123456789abcdef0123456789abcdef\n'
+    await nodeFs.writeFile(lineFile, line.repeat(Math.ceil((16 * 1024 * 1024) / line.length)))
+    const nodeLines = () =>
+      nodeFs.readFile(lineFile, 'utf8').then((text: string) => text.split(/\r?\n/).slice(0, 100).join('\n'))
+    const node = await measure('node readFile and select first 100 lines', nodeLines)
+    const vooya = await measure('vooya readFile lines 1-100', () =>
+      readFile(lineFile, { encoding: 'utf8', lines: { from: 1, to: 100 } }),
+    )
+    printComparison('readFile', 'large-lines-head', node, vooya)
   } finally {
     await removeFixture(root)
   }

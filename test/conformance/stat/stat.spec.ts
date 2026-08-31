@@ -8,26 +8,26 @@ import { stat, statSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-stat-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-stat-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
 
 function assertStatsMatch(
   t: { is(actual: unknown, expected: unknown, message?: string): void; true(value: boolean, message?: string): void },
-  rushStats: any,
+  vooyaStats: any,
   nodeStats: nodeFsSync.Stats,
 ) {
-  t.is(rushStats.size, nodeStats.size)
-  t.is(rushStats.mode, nodeStats.mode)
-  t.is(rushStats.uid, nodeStats.uid)
-  t.is(rushStats.gid, nodeStats.gid)
-  t.is(rushStats.nlink, nodeStats.nlink)
-  t.is(rushStats.isFile(), nodeStats.isFile())
-  t.is(rushStats.isDirectory(), nodeStats.isDirectory())
-  t.is(rushStats.isSymbolicLink(), nodeStats.isSymbolicLink())
-  t.true(rushStats.mtime instanceof Date)
-  t.true(Math.abs(rushStats.mtime.getTime() - nodeStats.mtime.getTime()) < 2)
+  t.is(vooyaStats.size, nodeStats.size)
+  t.is(vooyaStats.mode, nodeStats.mode)
+  t.is(vooyaStats.uid, nodeStats.uid)
+  t.is(vooyaStats.gid, nodeStats.gid)
+  t.is(vooyaStats.nlink, nodeStats.nlink)
+  t.is(vooyaStats.isFile(), nodeStats.isFile())
+  t.is(vooyaStats.isDirectory(), nodeStats.isDirectory())
+  t.is(vooyaStats.isSymbolicLink(), nodeStats.isSymbolicLink())
+  t.true(vooyaStats.mtime instanceof Date)
+  t.true(Math.abs(vooyaStats.mtime.getTime() - nodeStats.mtime.getTime()) < 2)
 }
 
 test('stat: promise file stats match node:fs/promises stable fields', async (t) => {
@@ -44,11 +44,11 @@ test('stat: promise directory predicates match node:fs/promises', async (t) => {
   await nodeFs.mkdir(child)
 
   const nodeStats = await nodeFs.stat(child)
-  const rushStats: any = await stat(child)
+  const vooyaStats: any = await stat(child)
 
-  t.is(rushStats.isDirectory(), nodeStats.isDirectory())
-  t.is(rushStats.isFile(), nodeStats.isFile())
-  t.is(rushStats.isSymbolicLink(), nodeStats.isSymbolicLink())
+  t.is(vooyaStats.isDirectory(), nodeStats.isDirectory())
+  t.is(vooyaStats.isFile(), nodeStats.isFile())
+  t.is(vooyaStats.isSymbolicLink(), nodeStats.isSymbolicLink())
 })
 
 test('stat: sync file stats match node:fs stable fields', async (t) => {
@@ -72,11 +72,11 @@ test('stat: follows symlinks like node:fs', async (t) => {
   await nodeFs.symlink(target, link)
 
   const nodeStats = await nodeFs.stat(link)
-  const rushStats: any = await stat(link)
+  const vooyaStats: any = await stat(link)
 
-  t.true(rushStats.isFile())
-  t.is(rushStats.isFile(), nodeStats.isFile())
-  t.is(rushStats.isSymbolicLink(), nodeStats.isSymbolicLink())
+  t.true(vooyaStats.isFile())
+  t.is(vooyaStats.isFile(), nodeStats.isFile())
+  t.is(vooyaStats.isSymbolicLink(), nodeStats.isSymbolicLink())
 })
 
 test('stat: date getters align with node:fs at millisecond precision', async (t) => {
@@ -87,12 +87,12 @@ test('stat: date getters align with node:fs at millisecond precision', async (t)
   nodeFsSync.utimesSync(file, time, time)
 
   const nodeStats = nodeFsSync.statSync(file)
-  const rushStats: any = statSync(file)
+  const vooyaStats: any = statSync(file)
 
-  t.true(rushStats.atime instanceof Date)
-  t.true(rushStats.mtime instanceof Date)
-  t.true(Math.abs(rushStats.atime.getTime() - nodeStats.atime.getTime()) < 2)
-  t.true(Math.abs(rushStats.mtime.getTime() - nodeStats.mtime.getTime()) < 2)
+  t.true(vooyaStats.atime instanceof Date)
+  t.true(vooyaStats.mtime instanceof Date)
+  t.true(Math.abs(vooyaStats.atime.getTime() - nodeStats.atime.getTime()) < 2)
+  t.true(Math.abs(vooyaStats.mtime.getTime() - nodeStats.mtime.getTime()) < 2)
 })
 
 test('stat: missing path rejects in both implementations', async (t) => {
@@ -100,8 +100,8 @@ test('stat: missing path rejects in both implementations', async (t) => {
   const missing = path.join(root, 'missing.txt')
 
   const nodeResult = await capture(() => nodeFs.stat(missing))
-  const rushResult = await capture(() => stat(missing) as Promise<unknown>)
+  const vooyaResult = await capture(() => stat(missing) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
 })

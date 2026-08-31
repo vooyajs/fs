@@ -8,7 +8,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS path input today: `string`.
+- Supported Vooya FS path input today: `string`.
 - Supported return type: promise resolves with the symlink target string; sync returns the symlink target string.
 - Supported behavior: return the raw symlink target exactly as stored, not a resolved absolute path.
 - Unsupported Node surface for this SDD: `Buffer` paths, `URL` paths, `encoding` options including `encoding: "buffer"`, callback API shape, and exact Node error object metadata.
@@ -23,11 +23,11 @@
 
 ## Known Gaps
 
-| Behavior            | Node oracle                                                     | Current Rush-FS behavior                                                                                | Reason                                                                                    | Follow-up                   |
+| Behavior            | Node oracle                                                     | Current Vooya FS behavior                                                                               | Reason                                                                                    | Follow-up                   |
 | ------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------- |
 | Error object fields | Rejects or throws with Node-style `code`, `syscall`, and `path` | Message contains Node-like text, but N-API exposes `code: "GenericFailure"` and omits structured fields | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
 | Path-like inputs    | Node accepts strings, Buffers, and file URLs                    | Type surface currently accepts string paths only                                                        | Path input expansion is deferred globally                                                 | API surface expansion       |
-| Encoding option     | Node can return a Buffer when `encoding: "buffer"`              | Rush-FS always returns a string                                                                         | Encoding option is not part of the current Rush-FS surface                                | API surface expansion       |
+| Encoding option     | Node can return a Buffer when `encoding: "buffer"`              | Vooya FS always returns a string                                                                        | Encoding option is not part of the current Vooya FS surface                               | API surface expansion       |
 
 ## Performance Metrics
 

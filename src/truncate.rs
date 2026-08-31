@@ -6,6 +6,7 @@ use std::path::Path;
 
 fn truncate_impl(path_str: String, len: Option<i64>) -> Result<()> {
   let path = Path::new(&path_str);
+  // Node 24 clamps negative path-based truncate lengths to zero.
   let len = len.unwrap_or(0).max(0) as u64;
 
   let file = OpenOptions::new().write(true).open(path).map_err(|e| {
@@ -50,7 +51,7 @@ impl Task for TruncateTask {
   }
 }
 
-#[napi(js_name = "truncate")]
+#[napi(js_name = "truncate", ts_return_type = "Promise<void>")]
 pub fn truncate(path: String, len: Option<i64>) -> AsyncTask<TruncateTask> {
   AsyncTask::new(TruncateTask { path, len })
 }

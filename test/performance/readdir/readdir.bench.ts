@@ -3,17 +3,19 @@ const { readdir } = require('../../../index.js')
 const { createScaleFixture, removeFixture } = require('../../fixtures/fs-scale.ts')
 const { measure, printComparison } = require('../_helpers/measure.ts')
 
-const scales = process.env.RUSH_FS_EXTREME
+const scales = process.env.VOOYA_FS_PERF_EXTREME
   ? ['tiny', 'small', 'medium', 'large', 'extreme']
-  : ['tiny', 'small', 'medium', 'large']
+  : process.env.VOOYA_FS_PERF_LARGE
+    ? ['tiny', 'small', 'medium', 'large']
+    : ['tiny', 'small', 'medium']
 
 async function main(): Promise<void> {
   for (const scale of scales) {
     const fixture = await createScaleFixture('perf-readdir', scale)
     try {
       const node = await measure('node readdir recursive', () => nodeFs.readdir(fixture.root, { recursive: true }))
-      const rush = await measure('rush readdir recursive', () => readdir(fixture.root, { recursive: true }))
-      printComparison('readdir', scale, node, rush, fixture)
+      const vooya = await measure('vooya readdir recursive', () => readdir(fixture.root, { recursive: true }))
+      printComparison('readdir', scale, node, vooya, fixture)
     } finally {
       await removeFixture(fixture.root)
     }

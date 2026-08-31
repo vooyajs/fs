@@ -32,8 +32,8 @@ test('summarizeSamples reports median and trimmed mean', (t) => {
   t.is(summary.trimmedMean, 5.5)
 })
 
-test('createComparison records a faster Rush-FS ratio label', (t) => {
-  const comparison = createComparison('readdir', 'medium', measurement('node', [10, 10]), measurement('rush', [5, 5]))
+test('createComparison records a faster Vooya FS ratio label', (t) => {
+  const comparison = createComparison('readdir', 'medium', measurement('node', [10, 10]), measurement('vooya', [5, 5]))
 
   t.is(comparison.api, 'readdir')
   t.is(comparison.ratio, 0.5)

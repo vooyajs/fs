@@ -1,23 +1,20 @@
 # About
 
-Rush-FS is an API-aligned, drop-in replacement for the Node.js `fs` module, powered by Rust. It aims for painless migration and multi-fold performance in heavy file operations.
+Vooya FS is maintained as part of the Vooya project family.
 
-## Links
+- [Vooya](https://github.com/vooyajs/vooya) builds browser components with Rust and
+  WebAssembly while preserving framework-native integration.
+- [Vooya Lab](https://github.com/vooyajs/vooya-lab) contains reproducible boundary,
+  ABI, rendering, memory, and runtime experiments.
+- [Vooya FS](https://github.com/vooyajs/fs) applies the same boundary-first,
+  evidence-gated approach to native Node.js filesystem workloads.
 
-- [GitHub](https://github.com/CoderSerio/rush-fs)
-- [npm](https://www.npmjs.com/package/@rush-fs/core)
-- [API Overview](/api)
-- [Benchmarks](/benchmarks)
+The shared idea is not “rewrite everything in Rust.” It is to identify a coherent
+workload, give it a typed boundary, measure the crossing cost, and keep the host
+ecosystem in charge of the work it already does well.
 
-## Contributing
+Vooya FS was previously named Rush-FS. The new name makes that relationship clear
+and gives the project a stronger product boundary: Node-compatible primitives plus
+high-value batch extensions.
 
-We welcome contributions. Full guides:
-
-- [CONTRIBUTING.md](https://github.com/CoderSerio/rush-fs/blob/main/CONTRIBUTING.md) (English)
-- [CONTRIBUTING-CN.md](https://github.com/CoderSerio/rush-fs/blob/main/CONTRIBUTING-CN.md) (中文)
-
-Before submitting a PR, run `pnpm build:debug` and `pnpm test` in the repo root, and check the [PR template](https://github.com/CoderSerio/rush-fs/blob/main/.github/PULL_REQUEST_TEMPLATE.md).
-
-## License
-
-MIT
+Licensed under MIT.

@@ -5,7 +5,7 @@ Create a symbolic link at `path` pointing to `target`. On Windows, `type` can be
 ## Basic usage
 
 ```ts
-import { symlink } from '@rush-fs/core'
+import { symlink } from '@vooya/fs'
 
 await symlink('./target.txt', './link.txt')
 await symlink('./target-dir', './link-dir', 'dir') // Windows: directory symlink
@@ -17,10 +17,10 @@ await symlink('./target-dir', './link-dir', 'dir') // Windows: directory symlink
 
 **Async.** Returns `Promise<void>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
-| `target` | string | Target path (stored in the link). |
-| `path`   | string | Symlink path to create. |
+| Argument | Type                          | Description                              |
+| -------- | ----------------------------- | ---------------------------------------- |
+| `target` | string                        | Target path (stored in the link).        |
+| `path`   | string                        | Symlink path to create.                  |
 | `type`   | 'file' \| 'dir' \| 'junction' | Optional. Windows only; ignored on Unix. |
 
 ### `symlinkSync(target, path, type?)`
@@ -38,4 +38,4 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 - **Relative target**: Stored as-is; resolution is at read time (e.g. via `readlink`/`realpath`).
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, `dest`, and `syscall` fields yet.
 - **Current type gap**: The TypeScript surface currently accepts any string for `type`; Node documents `file`, `dir`, and `junction`.
-- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Rush-FS `symlink` surface.
+- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `symlink` surface.

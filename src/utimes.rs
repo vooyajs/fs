@@ -178,7 +178,7 @@ impl Task for UtimesTask {
   }
 }
 
-#[napi(js_name = "utimes")]
+#[napi(js_name = "utimes", ts_return_type = "Promise<void>")]
 pub fn utimes(path: String, atime: f64, mtime: f64) -> AsyncTask<UtimesTask> {
   AsyncTask::new(UtimesTask { path, atime, mtime })
 }

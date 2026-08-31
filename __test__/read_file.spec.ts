@@ -15,7 +15,7 @@ test('readFileSync: should read file as Buffer by default', (t) => {
 test('readFileSync: should read file as string with encoding=utf8', (t) => {
   const result = readFileSync('./package.json', { encoding: 'utf8' })
   t.is(typeof result, 'string')
-  t.true((result as string).includes('rush-fs'))
+  t.true((result as string).includes('vooya-fs'))
 })
 
 test('readFileSync: should match node:fs readFileSync', (t) => {
@@ -31,7 +31,7 @@ test('readFileSync: should throw on non-existent file', (t) => {
 test('readFile: async should read file', async (t) => {
   const result = await readFile('./package.json', { encoding: 'utf8' })
   t.is(typeof result, 'string')
-  t.true((result as string).includes('rush-fs'))
+  t.true((result as string).includes('vooya-fs'))
 })
 
 test('readFile: async should throw on non-existent file', async (t) => {
@@ -67,7 +67,7 @@ test('dual-run: readFileSync utf8 string should match node:fs', (t) => {
 })
 
 test('readFile: async should read a line range', async (t) => {
-  const fixturePath = join(tmpdir(), `rush-fs-read-lines-${Date.now()}-range.txt`)
+  const fixturePath = join(tmpdir(), `vooya-fs-read-lines-${Date.now()}-range.txt`)
   writeFileSync(fixturePath, multilineFixture)
 
   const result = await readFile(fixturePath, { encoding: 'utf8', lines: { from: 1, to: 5 } })
@@ -76,7 +76,7 @@ test('readFile: async should read a line range', async (t) => {
 })
 
 test('readFile: async should return empty string when line range starts beyond file length', async (t) => {
-  const fixturePath = join(tmpdir(), `rush-fs-read-lines-${Date.now()}-empty.txt`)
+  const fixturePath = join(tmpdir(), `vooya-fs-read-lines-${Date.now()}-empty.txt`)
   writeFileSync(fixturePath, multilineFixture)
 
   const result = await readFile(fixturePath, { encoding: 'utf8', lines: { from: 20, to: 25 } })
@@ -85,7 +85,7 @@ test('readFile: async should return empty string when line range starts beyond f
 })
 
 test('readFile: async should read a single line when from equals to', async (t) => {
-  const fixturePath = join(tmpdir(), `rush-fs-read-lines-${Date.now()}-single.txt`)
+  const fixturePath = join(tmpdir(), `vooya-fs-read-lines-${Date.now()}-single.txt`)
   writeFileSync(fixturePath, multilineFixture)
 
   const result = await readFile(fixturePath, { encoding: 'utf8', lines: { from: 7, to: 7 } })
@@ -94,7 +94,7 @@ test('readFile: async should read a single line when from equals to', async (t) 
 })
 
 test('readFile: async should clamp line range to file length', async (t) => {
-  const fixturePath = join(tmpdir(), `rush-fs-read-lines-${Date.now()}-clamp.txt`)
+  const fixturePath = join(tmpdir(), `vooya-fs-read-lines-${Date.now()}-clamp.txt`)
   writeFileSync(fixturePath, multilineFixture)
 
   const result = await readFile(fixturePath, { encoding: 'utf8', lines: { from: 10, to: 20 } })
@@ -103,7 +103,7 @@ test('readFile: async should clamp line range to file length', async (t) => {
 })
 
 test('readFile: async should ignore line range in Buffer mode', async (t) => {
-  const fixturePath = join(tmpdir(), `rush-fs-read-lines-${Date.now()}-buffer.txt`)
+  const fixturePath = join(tmpdir(), `vooya-fs-read-lines-${Date.now()}-buffer.txt`)
   writeFileSync(fixturePath, multilineFixture)
 
   const result = await readFile(fixturePath, { lines: { from: 1, to: 2 } })

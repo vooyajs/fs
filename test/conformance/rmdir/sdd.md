@@ -9,7 +9,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS path input today: `string`.
+- Supported Vooya FS path input today: `string`.
 - Supported behavior: remove an empty directory and fail for non-empty directories, file paths, and missing paths.
 - Supported return type: promise resolves with `undefined`; sync returns `undefined`.
 - Unsupported Node surface for this SDD: `Buffer` paths, `URL` paths, options object, callback API shape, deprecated recursive rmdir behavior, and exact Node error object metadata.
@@ -24,11 +24,11 @@
 
 ## Known Gaps
 
-| Behavior            | Node oracle                                                     | Current Rush-FS behavior                                                                                                 | Reason                                                                                    | Follow-up                   |
+| Behavior            | Node oracle                                                     | Current Vooya FS behavior                                                                                                | Reason                                                                                    | Follow-up                   |
 | ------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | --------------------------- |
 | Error object fields | Rejects or throws with Node-style `code`, `syscall`, and `path` | Message contains Node-like text for common cases, but N-API exposes `code: "GenericFailure"` and omits structured fields | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
 | Path-like inputs    | Node accepts strings, Buffers, and file URLs                    | Type surface currently accepts string paths only                                                                         | Path input expansion is deferred globally                                                 | API surface expansion       |
-| Options object      | Node still accepts legacy/deprecated options                    | Rush-FS exports no `rmdir` options; recursive removal is covered by `rm`                                                 | Keep deprecated recursive rmdir out of the promise-first target                           | Non-goal                    |
+| Options object      | Node still accepts legacy/deprecated options                    | Vooya FS exports no `rmdir` options; recursive removal is covered by `rm`                                                | Keep deprecated recursive rmdir out of the promise-first target                           | Non-goal                    |
 
 ## Performance Metrics
 

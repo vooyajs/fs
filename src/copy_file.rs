@@ -68,7 +68,7 @@ impl Task for CopyFileTask {
   }
 }
 
-#[napi(js_name = "copyFile")]
+#[napi(js_name = "copyFile", ts_return_type = "Promise<void>")]
 pub fn copy_file(src: String, dest: String, mode: Option<u32>) -> AsyncTask<CopyFileTask> {
   AsyncTask::new(CopyFileTask { src, dest, mode })
 }

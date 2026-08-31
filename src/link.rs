@@ -56,7 +56,7 @@ impl Task for LinkTask {
   }
 }
 
-#[napi(js_name = "link")]
+#[napi(js_name = "link", ts_return_type = "Promise<void>")]
 pub fn link(existing_path: String, new_path: String) -> AsyncTask<LinkTask> {
   AsyncTask::new(LinkTask {
     existing_path,

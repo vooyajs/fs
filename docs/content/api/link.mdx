@@ -5,7 +5,7 @@ Create a hard link from `existingPath` to `newPath`. Both paths refer to the sam
 ## Basic usage
 
 ```ts
-import { link } from '@rush-fs/core'
+import { link } from '@vooya/fs'
 
 await link('./existing.txt', './hardlink.txt')
 ```
@@ -16,8 +16,8 @@ await link('./existing.txt', './hardlink.txt')
 
 **Async.** Returns `Promise<void>`.
 
-| Argument       | Type   | Description |
-| -------------- | ------ | ----------- |
+| Argument       | Type   | Description         |
+| -------------- | ------ | ------------------- |
 | `existingPath` | string | Existing file path. |
 | `newPath`      | string | New hard link path. |
 
@@ -34,4 +34,4 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 - **Filesystems**: Hard links may not be supported (e.g. FAT, some network drives); same as Node.js.
 - **Directories**: Typically not allowed for directories; use symlinks for directory “aliases”.
 - **Known gap**: Missing-source and existing-destination errors currently have Node-like messages, but do not expose Node-style `code`, `path`, `dest`, and `syscall` fields yet.
-- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Rush-FS `link` surface.
+- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `link` surface.

@@ -8,7 +8,7 @@ import { chmod, chmodSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-chmod-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-chmod-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -25,14 +25,14 @@ test('chmod: promise file mode matches node:fs/promises on unix', async (t) => {
 
   const root = await withFixture(t)
   const nodeFile = path.join(root, 'node.txt')
-  const rushFile = path.join(root, 'rush.txt')
+  const vooyaFile = path.join(root, 'vooya.txt')
   await nodeFs.writeFile(nodeFile, 'node')
-  await nodeFs.writeFile(rushFile, 'rush')
+  await nodeFs.writeFile(vooyaFile, 'vooya')
 
   await nodeFs.chmod(nodeFile, 0o640)
-  await chmod(rushFile, 0o640)
+  await chmod(vooyaFile, 0o640)
 
-  t.is(fileMode(rushFile), fileMode(nodeFile))
+  t.is(fileMode(vooyaFile), fileMode(nodeFile))
 })
 
 test('chmod: promise directory mode matches node:fs/promises on unix', async (t) => {
@@ -43,14 +43,14 @@ test('chmod: promise directory mode matches node:fs/promises on unix', async (t)
 
   const root = await withFixture(t)
   const nodeDir = path.join(root, 'node-dir')
-  const rushDir = path.join(root, 'rush-dir')
+  const vooyaDir = path.join(root, 'vooya-dir')
   await nodeFs.mkdir(nodeDir)
-  await nodeFs.mkdir(rushDir)
+  await nodeFs.mkdir(vooyaDir)
 
   await nodeFs.chmod(nodeDir, 0o750)
-  await chmod(rushDir, 0o750)
+  await chmod(vooyaDir, 0o750)
 
-  t.is(fileMode(rushDir), fileMode(nodeDir))
+  t.is(fileMode(vooyaDir), fileMode(nodeDir))
 })
 
 test('chmod: sync file mode matches node:fs on unix', async (t) => {
@@ -61,14 +61,14 @@ test('chmod: sync file mode matches node:fs on unix', async (t) => {
 
   const root = await withFixture(t)
   const nodeFile = path.join(root, 'node-sync.txt')
-  const rushFile = path.join(root, 'rush-sync.txt')
+  const vooyaFile = path.join(root, 'vooya-sync.txt')
   await nodeFs.writeFile(nodeFile, 'node')
-  await nodeFs.writeFile(rushFile, 'rush')
+  await nodeFs.writeFile(vooyaFile, 'vooya')
 
   nodeFsSync.chmodSync(nodeFile, 0o600)
-  chmodSync(rushFile, 0o600)
+  chmodSync(vooyaFile, 0o600)
 
-  t.is(fileMode(rushFile), fileMode(nodeFile))
+  t.is(fileMode(vooyaFile), fileMode(nodeFile))
 })
 
 test('chmod: missing paths reject or throw in both implementations', async (t) => {
@@ -76,10 +76,10 @@ test('chmod: missing paths reject or throw in both implementations', async (t) =
   const missing = path.join(root, 'missing.txt')
 
   const nodeResult = await capture(() => nodeFs.chmod(missing, 0o644))
-  const rushResult = await capture(() => chmod(missing, 0o644) as Promise<unknown>)
+  const vooyaResult = await capture(() => chmod(missing, 0o644) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.chmodSync(missing, 0o644))
   t.throws(() => chmodSync(missing, 0o644))
 })

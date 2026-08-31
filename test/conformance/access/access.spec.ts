@@ -8,7 +8,7 @@ import { access, accessSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-access-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-access-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -19,14 +19,14 @@ async function assertPromiseAccessMatches(
   mode?: number,
 ) {
   const nodeResult = await capture(() => nodeFs.access(file, mode))
-  const rushResult = await capture(() => access(file, mode) as Promise<unknown>)
+  const vooyaResult = await capture(() => access(file, mode) as Promise<unknown>)
 
-  t.is(rushResult.ok, nodeResult.ok)
+  t.is(vooyaResult.ok, nodeResult.ok)
 }
 
 function assertSyncAccessMatches(t: { is(actual: unknown, expected: unknown): void }, file: string, mode?: number) {
   let nodeOk = true
-  let rushOk = true
+  let vooyaOk = true
 
   try {
     nodeFsSync.accessSync(file, mode)
@@ -37,10 +37,10 @@ function assertSyncAccessMatches(t: { is(actual: unknown, expected: unknown): vo
   try {
     accessSync(file, mode)
   } catch {
-    rushOk = false
+    vooyaOk = false
   }
 
-  t.is(rushOk, nodeOk)
+  t.is(vooyaOk, nodeOk)
 }
 
 test('access: promise default mode matches node:fs/promises', async (t) => {

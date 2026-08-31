@@ -1,5 +1,5 @@
 # Release: Maintainer-only; builds four platforms and publishes to npm.
-# Main package: @rush-fs/core (see package.json). Platform packages: @rush-fs/rush-fs-darwin-arm64, etc.
+# Main package: @vooya/fs (see package.json). Platform packages: @vooya/fs-darwin-arm64, etc.
 # Trigger:
 #   1. Manual: Actions → Release → Run workflow (uses current main's package.json version)
 #   2. Tag: git tag v0.x.x && git push origin v0.x.x (bump version in package.json / Cargo.toml and push first)
@@ -7,7 +7,7 @@
 name: Release
 env:
   DEBUG: napi:*
-  APP_NAME: rush-fs
+  APP_NAME: vooya-fs
   MACOSX_DEPLOYMENT_TARGET: '10.13'
   CARGO_INCREMENTAL: '1'
   NODE_VERSION: '24'
@@ -158,7 +158,7 @@ jobs:
       - name: List packages
         run: ls -R ./npm
         shell: bash
-      - name: Update platform package names to use scope (@rush-fs/xxx)
+      - name: Scope platform package names under @vooya
         run: |
           for dir in npm/*/; do
             if [ -f "$dir/package.json" ]; then
@@ -168,9 +168,10 @@ jobs:
                 const fs = require('fs');
                 const pkgPath = process.env.PKG_PATH;
                 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-                console.log('Updating package name from', pkg.name, 'to @rush-fs/' + pkg.name);
-                if (!pkg.name.startsWith('@rush-fs/')) {
-                  pkg.name = '@rush-fs/' + pkg.name;
+                if (!pkg.name.startsWith('@vooya/')) {
+                  const nextName = pkg.name.replace(/^vooya-fs-/, '@vooya/fs-');
+                  console.log('Updating package name from', pkg.name, 'to', nextName);
+                  pkg.name = nextName;
                   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
                 }
               "
@@ -200,27 +201,28 @@ jobs:
                 const fs = require('fs');
                 const pkgPath = process.env.PKG_PATH;
                 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-                if (!pkg.name.startsWith('@rush-fs/')) {
-                  console.log('Fixing package name:', pkg.name, '-> @rush-fs/' + pkg.name);
-                  pkg.name = '@rush-fs/' + pkg.name;
+                if (!pkg.name.startsWith('@vooya/')) {
+                  const nextName = pkg.name.replace(/^vooya-fs-/, '@vooya/fs-');
+                  console.log('Fixing package name:', pkg.name, '->', nextName);
+                  pkg.name = nextName;
                   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
                 }
               "
             fi
           done
-          # 主包 index.js 里 require 的是 rush-fs-xxx，改为 @rush-fs/rush-fs-xxx 才能找到已发布的平台包
-          sed -i "s/require('rush-fs-/require('@rush-fs\/rush-fs-/g" index.js
-          sed -i 's/require(\"rush-fs-/require(\"@rush-fs\/rush-fs-/g' index.js
-          # optionalDependencies 必须在 prepublish 之后注入，否则会被 prepublish 覆盖，导致用户 pnpm i rush-fs 时不会自动安装平台包
+          # 主包 index.js 里 require 的是 vooya-fs-xxx，改为 @vooya/fs-xxx 才能找到已发布的平台包
+          sed -i "s/require('vooya-fs-/require('@vooya\/fs-/g" index.js
+          sed -i 's/require(\"vooya-fs-/require(\"@vooya\/fs-/g' index.js
+          # optionalDependencies 必须在 prepublish 之后注入，否则会被 prepublish 覆盖，导致用户 pnpm i vooya-fs 时不会自动安装平台包
           node -e "
           const fs = require('fs');
           const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const v = p.version;
           p.optionalDependencies = {
-            '@rush-fs/rush-fs-win32-x64-msvc': v,
-            '@rush-fs/rush-fs-darwin-x64': v,
-            '@rush-fs/rush-fs-linux-x64-gnu': v,
-            '@rush-fs/rush-fs-darwin-arm64': v
+            '@vooya/fs-win32-x64-msvc': v,
+            '@vooya/fs-darwin-x64': v,
+            '@vooya/fs-linux-x64-gnu': v,
+            '@vooya/fs-darwin-arm64': v
           };
           fs.writeFileSync('package.json', JSON.stringify(p, null, 2));
           "

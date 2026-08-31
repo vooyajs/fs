@@ -8,7 +8,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS path input today: `string`.
+- Supported Vooya FS path input today: `string`.
 - Supported options: `recursive?: boolean` and numeric `mode`.
 - Supported return type: with `recursive: true`, resolves or returns the first directory path created, or `undefined`/`null` when no new directory was needed; without recursive, resolves or returns no value.
 - Unsupported Node surface for this SDD: string mode values, `URL` paths, `Buffer` paths, callback API shape, and exact Node error object metadata.
@@ -27,7 +27,7 @@
 
 ## Known Gaps
 
-| Behavior                           | Node oracle                                                     | Current Rush-FS behavior                                                                                | Reason                                                                                    | Follow-up                    |
+| Behavior                           | Node oracle                                                     | Current Vooya FS behavior                                                                               | Reason                                                                                    | Follow-up                    |
 | ---------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------- |
 | Error object fields                | Rejects or throws with Node-style `code`, `syscall`, and `path` | Message contains Node-like text, but N-API exposes `code: "GenericFailure"` and omits structured fields | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility  |
 | Non-recursive success return value | Promise and sync APIs return `undefined`                        | Current N-API `Option<String>` mapping returns `null` when no directory path is returned                | Return-value mapping is shared with recursive first-created path handling                 | Runtime return compatibility |

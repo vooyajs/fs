@@ -67,7 +67,7 @@ impl Task for ChownTask {
   }
 }
 
-#[napi(js_name = "chown")]
+#[napi(js_name = "chown", ts_return_type = "Promise<void>")]
 pub fn chown(path: String, uid: u32, gid: u32) -> AsyncTask<ChownTask> {
   AsyncTask::new(ChownTask { path, uid, gid })
 }

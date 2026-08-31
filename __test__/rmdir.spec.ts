@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 function tmpDir(name: string): string {
-  const dir = join(tmpdir(), `rush-fs-test-rmdir-${Date.now()}-${name}`)
+  const dir = join(tmpdir(), `vooya-fs-test-rmdir-${Date.now()}-${name}`)
   nodeMkdirSync(dir, { recursive: true })
   return dir
 }
@@ -28,7 +28,7 @@ test('rmdirSync: should throw on non-empty directory', (t) => {
 })
 
 test('rmdirSync: should throw on non-existent path', (t) => {
-  t.throws(() => rmdirSync('/tmp/rush-fs-no-such-dir-' + Date.now()), { message: /ENOENT/ })
+  t.throws(() => rmdirSync('/tmp/vooya-fs-no-such-dir-' + Date.now()), { message: /ENOENT/ })
 })
 
 test('rmdir: async should remove empty directory', async (t) => {

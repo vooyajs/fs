@@ -64,7 +64,7 @@ impl Task for RealpathTask {
   }
 }
 
-#[napi(js_name = "realpath")]
+#[napi(js_name = "realpath", ts_return_type = "Promise<string>")]
 pub fn realpath(path: String) -> AsyncTask<RealpathTask> {
   AsyncTask::new(RealpathTask { path })
 }

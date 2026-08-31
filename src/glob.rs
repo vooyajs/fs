@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 /// Extract leading path prefix from pattern so we can walk from that directory.
-/// e.g. ".rush-fs-glob-check/**/*.txt" -> (".rush-fs-glob-check", "**/*.txt")
+/// e.g. ".vooya-fs-glob-check/**/*.txt" -> (".vooya-fs-glob-check", "**/*.txt")
 ///      "**/*.txt" -> None (no prefix)
 /// This aligns with Node.js: pattern with path prefix uses that path as the search root.
 /// We scan for the first of * ? [ so that patterns like "dir?/sub/**/*.ts" use "dir?" as prefix
@@ -73,16 +73,35 @@ pub fn glob_sync(
     None => (cwd.clone(), pattern.clone(), None),
   };
 
+  // Node treats a missing cwd or a missing literal pattern prefix as a
+  // successful no-match. Avoid turning the walker's root ENOENT into a rejected
+  // glob while still propagating errors encountered after traversal begins.
+  match Path::new(&walk_root).try_exists() {
+    Ok(false) => {
+      return Ok(if with_file_types {
+        Either::B(Vec::new())
+      } else {
+        Either::A(Vec::new())
+      });
+    }
+    Err(error) => return Err(Error::from_reason(error.to_string())),
+    Ok(true) => {}
+  }
+
   // Build override (whitelist) relative to walk_root
   let mut override_builder = OverrideBuilder::new(&walk_root);
+  // `ignore` treats a pattern without a leading slash as matching at any depth,
+  // while Node's glob patterns are rooted at `cwd` (or the extracted literal
+  // prefix). Anchor every pattern; `**` still opts into recursive matching.
+  let anchored_pattern = format!("/{}", pattern_for_override.trim_start_matches('/'));
   override_builder
-    .add(&pattern_for_override)
+    .add(&anchored_pattern)
     .map_err(|e| Error::from_reason(e.to_string()))?;
 
   if let Some(ref excludes) = opts.exclude {
     for ex in excludes {
       override_builder
-        .add(&format!("!{}", ex))
+        .add(&format!("!/{}", ex.trim_start_matches('/')))
         .map_err(|e| Error::from_reason(e.to_string()))?;
     }
   }
@@ -102,22 +121,28 @@ pub fn glob_sync(
   // We use two vectors to avoid enum overhead in the lock if possible, but Mutex<Vec<T>> is easier
   let result_strings = Arc::new(Mutex::new(Vec::new()));
   let result_dirents = Arc::new(Mutex::new(Vec::new()));
+  let walk_error = Arc::new(Mutex::new(None));
 
   let result_strings_clone = result_strings.clone();
   let result_dirents_clone = result_dirents.clone();
+  let walk_error_clone = walk_error.clone();
 
   let root_path = Path::new(&walk_root).to_path_buf();
 
   builder.build_parallel().run(move || {
     let result_strings = result_strings_clone.clone();
     let result_dirents = result_dirents_clone.clone();
+    let walk_error = walk_error_clone.clone();
     let root = root_path.clone();
     let dir_matcher = dir_matcher.clone();
 
     Box::new(move |entry| {
       let entry = match entry {
         Ok(e) => e,
-        Err(_) => return ignore::WalkState::Continue,
+        Err(error) => {
+          *walk_error.lock().unwrap() = Some(error.to_string());
+          return ignore::WalkState::Quit;
+        }
       };
 
       // 跳过 cwd 根节点自身（depth 0）
@@ -174,6 +199,14 @@ pub fn glob_sync(
     })
   });
 
+  if let Some(error) = walk_error
+    .lock()
+    .map_err(|_| Error::from_reason("glob error lock poisoned"))?
+    .take()
+  {
+    return Err(Error::from_reason(error));
+  }
+
   if with_file_types {
     let mut final_results = Arc::try_unwrap(result_dirents)
       .map_err(|_| Error::from_reason("Lock error"))?
@@ -218,7 +251,10 @@ impl Task for GlobTask {
   }
 }
 
-#[napi(js_name = "glob")]
+#[napi(
+  js_name = "glob",
+  ts_return_type = "Promise<Array<string> | Array<Dirent>>"
+)]
 pub fn glob(pattern: String, options: Option<GlobOptions>) -> AsyncTask<GlobTask> {
   AsyncTask::new(GlobTask { pattern, options })
 }

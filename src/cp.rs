@@ -2,6 +2,7 @@ use napi::bindgen_prelude::*;
 use napi::Task;
 use napi_derive::napi;
 use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
 use std::fs;
 use std::path::Path;
 
@@ -14,7 +15,7 @@ pub struct CpOptions {
   pub preserve_timestamps: Option<bool>,
   pub dereference: Option<bool>,
   pub verbatim_symlinks: Option<bool>,
-  /// Rush-FS extension: number of parallel threads for recursive copy.
+  /// Vooya FS extension: number of parallel threads for recursive copy.
   /// 0 or 1 means sequential; > 1 enables rayon parallel traversal.
   pub concurrency: Option<u32>,
 }
@@ -41,7 +42,10 @@ fn set_timestamps(src: &Path, dest: &Path) -> std::io::Result<()> {
         tv_nsec: mtime_nsecs,
       },
     ];
-    libc::utimensat(libc::AT_FDCWD, c_path.as_ptr(), times.as_ptr(), 0);
+    let result = libc::utimensat(libc::AT_FDCWD, c_path.as_ptr(), times.as_ptr(), 0);
+    if result != 0 {
+      return Err(std::io::Error::last_os_error());
+    }
   }
   Ok(())
 }
@@ -51,14 +55,13 @@ fn set_timestamps(_src: &Path, _dest: &Path) -> std::io::Result<()> {
   Ok(())
 }
 
-fn cp_impl(src: &Path, dest: &Path, opts: &CpOptions) -> Result<()> {
+fn cp_impl(src: &Path, dest: &Path, opts: &CpOptions, parallel: bool) -> Result<()> {
   let force = opts.force.unwrap_or(true);
   let error_on_exist = opts.error_on_exist.unwrap_or(false);
   let recursive = opts.recursive.unwrap_or(false);
   let preserve_timestamps = opts.preserve_timestamps.unwrap_or(false);
   let dereference = opts.dereference.unwrap_or(false);
   let verbatim_symlinks = opts.verbatim_symlinks.unwrap_or(false);
-  let concurrency = opts.concurrency.unwrap_or(0);
 
   let meta = if dereference {
     fs::metadata(src)
@@ -143,13 +146,13 @@ fn cp_impl(src: &Path, dest: &Path, opts: &CpOptions) -> Result<()> {
       .collect::<std::io::Result<_>>()
       .map_err(|e| Error::from_reason(e.to_string()))?;
 
-    if concurrency > 1 {
+    if parallel {
       entries.par_iter().try_for_each(|entry| -> Result<()> {
-        cp_impl(&entry.path(), &dest.join(entry.file_name()), opts)
+        cp_impl(&entry.path(), &dest.join(entry.file_name()), opts, true)
       })?;
     } else {
       for entry in &entries {
-        cp_impl(&entry.path(), &dest.join(entry.file_name()), opts)?;
+        cp_impl(&entry.path(), &dest.join(entry.file_name()), opts, false)?;
       }
     }
 
@@ -198,7 +201,16 @@ fn cp_entry(src_str: String, dest_str: String, options: Option<CpOptions>) -> Re
     verbatim_symlinks: None,
     concurrency: None,
   });
-  cp_impl(src, dest, &opts)
+  let concurrency = opts.concurrency.unwrap_or(1);
+  if concurrency > 1 {
+    let pool = ThreadPoolBuilder::new()
+      .num_threads(concurrency as usize)
+      .build()
+      .map_err(|e| Error::from_reason(format!("failed to create copy worker pool: {}", e)))?;
+    pool.install(|| cp_impl(src, dest, &opts, true))
+  } else {
+    cp_impl(src, dest, &opts, false)
+  }
 }
 
 #[napi(js_name = "cpSync")]
@@ -227,7 +239,7 @@ impl Task for CpTask {
   }
 }
 
-#[napi(js_name = "cp")]
+#[napi(js_name = "cp", ts_return_type = "Promise<void>")]
 pub fn cp(src: String, dest: String, options: Option<CpOptions>) -> AsyncTask<CpTask> {
   AsyncTask::new(CpTask { src, dest, options })
 }
