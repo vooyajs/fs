@@ -88,11 +88,6 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
-      - name: Cache Rust toolchain
-        uses: actions/cache@v4
-        with:
-          path: ~/.rustup
-          key: rustup-${{ matrix.settings.host }}-${{ matrix.settings.target }}-stable
       - name: Install pnpm
         uses: pnpm/action-setup@v4
       - name: Setup node
