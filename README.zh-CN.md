@@ -142,11 +142,13 @@ corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
 
 ## 从 Rush-FS 迁移
 
-计划中的正式包名是 `@vooya/fs`，Rust crate 和原生二进制已分别改为
-`vooya_fs`、`vooya-fs`。未来真正发布 npm 版本时，应保留一个 deprecated
-的 `@rush-fs/core` 兼容包，在明确的迁移窗口内转发到 `@vooya/fs`。
+正式包名是 `@vooya/fs`，Rust crate 和原生二进制分别为 `vooya_fs`、
+`vooya-fs`。旧的 `@rush-fs/core` 和 `rush-fs` 版本仍可安装，但会在 npm
+上标记 deprecated，并给出明确的迁移提示。
 
-当前开发分支不会发布兼容包，也不会操作 npm deprecation。
+npm deprecation 是警告，不是包名重定向。这里有意不发布兼容转接包：
+旧包支持 Node.js 18，而 `@vooya/fs` 从 Node.js 22 起步；静默转发会让一次
+patch 更新改变运行时要求。
 
 ## 与 Vooya 项目的关系
 

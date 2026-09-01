@@ -1,8 +1,7 @@
 # Migrating from Rush-FS
 
-The project and repository are now **Vooya FS**. The planned canonical npm package
-is `@vooya/fs`; no npm release or deprecation is performed by this development
-branch.
+The project and repository are now **Vooya FS**. The canonical npm package is
+`@vooya/fs`.
 
 ## Planned import change
 
@@ -15,15 +14,19 @@ The Rust crate becomes `vooya_fs`, and the native binary basename becomes
 `vooya-fs`. Repository and documentation links move to
 `https://github.com/vooyajs/fs`.
 
-## Release sequence
+## Package transition
 
-1. Stabilize this branch and publish `@vooya/fs` only after CI, conformance, package
-   installation, and platform artifact checks pass.
-2. Publish a final `@rush-fs/core` compatibility version that depends on and
-   re-exports `@vooya/fs`.
-3. Mark the old package deprecated with a direct migration message and keep the
-   compatibility window documented.
-4. Remove the bridge only in a later major release after observing actual adoption.
+1. Publish `@vooya/fs` only after CI, conformance, package installation, and
+   platform artifact checks pass.
+2. Verify fresh installs of the published package before changing legacy package
+   metadata.
+3. Mark `@rush-fs/core` and `rush-fs` deprecated with a direct migration message,
+   while keeping every existing version installable.
+
+npm deprecation displays a warning; it does not redirect one package name to
+another. We do not publish a compatibility wrapper because the legacy packages
+support Node.js 18 while `@vooya/fs` requires Node.js 22 or newer. A wrapper would
+silently change the runtime requirement for users who update the old package.
 
 ## Behavioral review
 

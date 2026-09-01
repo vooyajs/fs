@@ -152,12 +152,14 @@ fixture scale, samples, wall-clock summaries, and memory deltas.
 
 ## Migration from Rush-FS
 
-The planned canonical package is `@vooya/fs`; the Rust crate and native binary
-are now named `vooya_fs` and `vooya-fs`. A later npm release should keep
-`@rush-fs/core` as a deprecated compatibility package that re-exports
-`@vooya/fs` for a documented transition window.
+The canonical package is `@vooya/fs`; the Rust crate and native binary are named
+`vooya_fs` and `vooya-fs`. The previous `@rush-fs/core` and `rush-fs` releases
+remain installable, but are deprecated on npm with a direct migration message.
 
-No compatibility package or npm deprecation is published from this branch.
+npm deprecation is a warning, not a package redirect. We intentionally do not
+publish a compatibility wrapper: the legacy packages support Node.js 18, while
+`@vooya/fs` starts at Node.js 22, so silently forwarding would turn a patch update
+into a runtime requirement change.
 
 ## Project relationship
 
