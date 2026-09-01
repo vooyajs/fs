@@ -177,7 +177,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: pnpm test
+        run: pnpm test:bindings
       - name: Test Node fs conformance
         run: pnpm test:conformance
   test-linux-binding:
@@ -250,7 +250,7 @@ jobs:
             -w "${{ github.workspace }}" \
             --platform "${{ steps.docker.outputs.PLATFORM }}" \
             "${{ steps.docker.outputs.IMAGE }}" \
-            sh -lc "corepack enable && pnpm test"
+            sh -lc "corepack enable && pnpm test:bindings"
       - name: Test Node fs conformance
         run: |
           docker run --rm \

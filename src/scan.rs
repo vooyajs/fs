@@ -66,6 +66,14 @@ fn anchored(pattern: &str) -> String {
   format!("/{}", pattern.trim_start_matches('/'))
 }
 
+fn normalized_relative_path(path: &Path) -> String {
+  path
+    .iter()
+    .map(|component| component.to_string_lossy())
+    .collect::<Vec<_>>()
+    .join("/")
+}
+
 fn modified_ms(metadata: &fs::Metadata) -> f64 {
   use std::time::UNIX_EPOCH;
   metadata.modified().map_or(0.0, |time| {
@@ -201,7 +209,7 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
       };
 
       batch.local.push(ScanEntry {
-        path: relative.to_string_lossy().to_string(),
+        path: normalized_relative_path(relative),
         name: path
           .file_name()
           .unwrap_or_default()

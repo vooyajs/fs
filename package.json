@@ -73,6 +73,7 @@
     "perf:fs": "node --expose-gc --import @oxc-node/core/register scripts/run-performance.mjs",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
+    "test:bindings": "ava \"__test__/**/*.spec.ts\"",
     "test:conformance": "ava \"test/conformance/**/*.spec.ts\"",
     "test:governance": "ava \"test/governance/**/*.spec.ts\"",
     "test:performance-tools": "ava \"test/performance/**/*.spec.ts\" \"test/docs/**/*.spec.ts\"",
