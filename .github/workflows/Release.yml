@@ -2,8 +2,8 @@
 # Main package: @vooya/fs (see package.json). Platform packages: @vooya/fs-darwin-arm64, etc.
 # Trigger:
 #   1. Manual: Actions → Release → Run workflow (uses current main's package.json version)
-#   2. Tag: git tag v0.x.x && git push origin v0.x.x (bump version in package.json / Cargo.toml and push first)
-# Required: Secrets → NPM_TOKEN (npm Automation token with Publish permission)
+#   2. The workflow creates an fs-v0.x.x tag only after npm publishing succeeds.
+# Required: Secrets → NPM_TOKEN (granular token with @vooya package/org write permission)
 name: Release
 env:
   DEBUG: napi:*
@@ -11,16 +11,7 @@ env:
   MACOSX_DEPLOYMENT_TARGET: '10.13'
   CARGO_INCREMENTAL: '1'
   NODE_VERSION: '24'
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g. 0.1.1). Leave empty to use current package.json version.'
-        required: false
-        type: string
-  push:
-    tags:
-      - 'v*'
+on: workflow_dispatch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -113,31 +104,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+          registry-url: https://registry.npmjs.org
+          scope: '@vooya'
       - name: Install dependencies
         run: pnpm install
-      - name: Bump version (if input provided)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
-        run: |
-          VERSION="${{ inputs.version }}"
-          echo "Bumping version to $VERSION"
-          # Update package.json
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '$VERSION';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('package.json →', pkg.version);
-          "
-          # Update Cargo.toml
-          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
-          echo "Cargo.toml → $(grep '^version' Cargo.toml)"
-          # Commit and tag
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json Cargo.toml
-          git commit -m "chore: bump version to $VERSION [skip ci]"
-          git tag "v$VERSION"
-          git push origin "v$VERSION"
       - name: Create npm dirs
         run: pnpm napi create-npm-dirs
       - name: Download all artifacts
@@ -171,18 +141,13 @@ jobs:
       - name: Publish to npm
         run: |
           npm config set provenance true
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-          # 先 fetch tags，然后检查对应的 tag 是否已存在
-          git fetch --tags --force
           VERSION=$(node -p "require('./package.json').version")
-          TAG="v$VERSION"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists, skipping GitHub Release creation"
-            pnpm napi prepublish -t npm --no-gh-release
-          else
-            echo "Tag $TAG does not exist, will create GitHub Release"
-            pnpm prepublishOnly
+          npm whoami
+          if npm view "@vooya/fs@$VERSION" version >/dev/null 2>&1; then
+            echo "@vooya/fs@$VERSION already exists; refusing to overwrite an immutable npm release"
+            exit 1
           fi
+          pnpm napi prepublish -t npm --no-gh-release
           # prepublish 之后再次更新包名（因为 prepublish 可能会更新 package.json）
           for dir in npm/*/; do
             if [ -f "$dir/package.json" ]; then
@@ -217,7 +182,16 @@ jobs:
           };
           fs.writeFileSync('package.json', JSON.stringify(p, null, 2));
           "
-          npm publish --access public
+          npm publish --access public --ignore-scripts
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create GitHub release
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="fs-v$VERSION"
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "@vooya/fs v$VERSION" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
