@@ -57,8 +57,8 @@ fn base64_decode(s: &str, url_safe: bool) -> Result<Vec<u8>> {
 fn hex_decode(s: &str) -> Vec<u8> {
   let mut buf = Vec::with_capacity(s.len() / 2);
   let bytes = s.as_bytes();
-  for pair in bytes.chunks_exact(2) {
-    let (Some(hi), Some(lo)) = (hex_val(pair[0]), hex_val(pair[1])) else {
+  for &[hi_byte, lo_byte] in bytes.as_chunks::<2>().0 {
+    let (Some(hi), Some(lo)) = (hex_val(hi_byte), hex_val(lo_byte)) else {
       break;
     };
     buf.push((hi << 4) | lo);
