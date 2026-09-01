@@ -5,34 +5,38 @@ const { cp } = require('../../../index.js')
 const { createScaleFixture, removeFixture } = require('../../fixtures/fs-scale.ts')
 const { measure, printComparison } = require('../_helpers/measure.ts')
 
-const scales = process.env.RUSH_FS_EXTREME
+type MeasureContext = { index: number; warmup: boolean }
+
+const scales = process.env.VOOYA_FS_PERF_EXTREME
   ? ['tiny', 'small', 'medium', 'large', 'extreme']
-  : ['tiny', 'small', 'medium', 'large']
+  : process.env.VOOYA_FS_PERF_LARGE
+    ? ['tiny', 'small', 'medium', 'large']
+    : ['tiny', 'small', 'medium']
 
 async function main(): Promise<void> {
   for (const scale of scales) {
     const fixture = await createScaleFixture('perf-cp', scale)
-    const destRoot = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-perf-cp-'))
+    const destRoot = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-perf-cp-'))
     try {
       let nodeDest = ''
-      let rushDest = ''
+      let vooyaDest = ''
       const node = await measure('node cp recursive', () => nodeFs.cp(fixture.root, nodeDest, { recursive: true }), {
-        beforeEach: ({ index, warmup }) => {
+        beforeEach: ({ index, warmup }: MeasureContext) => {
           nodeDest = path.join(destRoot, `node-${warmup ? 'warmup' : 'sample'}-${index}`)
         },
         afterEach: () => removeFixture(nodeDest),
       })
-      const rush = await measure(
-        'rush cp recursive',
-        () => cp(fixture.root, rushDest, { recursive: true, concurrency: 4 }),
+      const vooya = await measure(
+        'vooya cp recursive',
+        () => cp(fixture.root, vooyaDest, { recursive: true, concurrency: 4 }),
         {
-          beforeEach: ({ index, warmup }) => {
-            rushDest = path.join(destRoot, `rush-${warmup ? 'warmup' : 'sample'}-${index}`)
+          beforeEach: ({ index, warmup }: MeasureContext) => {
+            vooyaDest = path.join(destRoot, `vooya-${warmup ? 'warmup' : 'sample'}-${index}`)
           },
-          afterEach: () => removeFixture(rushDest),
+          afterEach: () => removeFixture(vooyaDest),
         },
       )
-      printComparison('cp', scale, node, rush, fixture)
+      printComparison('cp', scale, node, vooya, fixture)
     } finally {
       await removeFixture(fixture.root)
       await removeFixture(destRoot)

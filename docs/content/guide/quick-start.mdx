@@ -1,49 +1,55 @@
 # Quick Start
 
-## Install
+The canonical package name planned for the next release is `@vooya/fs`. This
+development branch is not yet published, so install from a checkout while testing
+the migration.
 
 ```bash
-npm install @rush-fs/core
-# or
-pnpm add @rush-fs/core
+git clone https://github.com/vooyajs/fs.git
+cd fs
+git switch feat/vooya-fs-next
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
 ```
 
-## Use
+## Choose the right side of the boundary
 
-Import the APIs you need from `@rush-fs/core` — same names as `node:fs`:
+Keep tiny, isolated operations in `node:fs`:
 
 ```ts
-import { readdir, stat, readFile, writeFile, mkdir, rm } from '@rush-fs/core'
+import { existsSync } from 'node:fs'
 
-// Read directory
-const files = await readdir('./src')
-
-// Recursive with file types
-const entries = await readdir('./src', {
-  recursive: true,
-  withFileTypes: true,
-})
-
-// Read / write files
-const content = await readFile('./package.json', { encoding: 'utf8' })
-await writeFile('./output.txt', 'hello world')
-
-// File stats
-const s = await stat('./package.json')
-console.log(s.size, s.isFile())
-
-// Create directory
-await mkdir('./new-dir', { recursive: true })
-
-// Remove
-await rm('./temp', { recursive: true, force: true })
+if (existsSync('./package.json')) {
+  // The native bridge would add work here, not remove it.
+}
 ```
 
-## Async and sync
+Use Vooya FS when one call represents substantial or combined work:
 
-- **Async** — All APIs are Promise-based; use `await` or `.then()`.
-- **Sync** — Supported APIs expose a sync variant with the `Sync` suffix (e.g. `readdirSync`, `statSync`). See [API Overview](/api) for the full list.
+```ts
+import { glob, readdir, scan } from '@vooya/fs'
 
-## Compatibility
+const entries = await readdir('./node_modules', { recursive: true })
+const manifests = await glob('**/package.json', { cwd: './node_modules' })
+const sources = await scan('./packages', {
+  include: ['**/*.{js,ts,rs}'],
+  exclude: ['**/dist/**'],
+})
+```
 
-Rush-FS targets **Node.js 18+**. Prebuilt binaries are provided for Windows (x64), macOS (x64, arm64), and Linux (x64).
+Every supported operation also has a synchronous variant such as `scanSync` or
+`readdirSync`. Prefer async APIs in servers and interactive applications so native
+work does not block the JavaScript thread.
+
+## Verify a local checkout
+
+```bash
+corepack pnpm typecheck
+corepack pnpm lint
+cargo clippy --all-targets --all-features -- -D warnings
+corepack pnpm test
+corepack pnpm doc:build
+```
+
+Continue with the [execution model](/guide/execution-model) before selecting
+operations solely from headline benchmark ratios.

@@ -6,12 +6,13 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 function tmpPath(name: string): string {
-  return join(tmpdir(), `rush-fs-test-mkdir-${Date.now()}-${name}`)
+  return join(tmpdir(), `vooya-fs-test-mkdir-${Date.now()}-${name}`)
 }
 
 test('mkdirSync: should create a directory', (t) => {
   const dir = tmpPath('basic')
-  mkdirSync(dir)
+  const result = mkdirSync(dir)
+  t.is(result, undefined)
   t.true(existsSync(dir))
   rmdirSync(dir)
 })
@@ -69,7 +70,8 @@ test('mkdirSync: recursive should throw ENOTDIR when ancestor is a file', (t) =>
 
 test('mkdir: async should create a directory', async (t) => {
   const dir = tmpPath('async')
-  await mkdir(dir)
+  const result = await mkdir(dir)
+  t.is(result, undefined)
   t.true(existsSync(dir))
   rmdirSync(dir)
 })
@@ -108,7 +110,7 @@ test('dual-run: mkdirSync should return first created path like node:fs', (t) =>
   const hyperResult = mkdirSync(join(hyperDir, 'a', 'b'), { recursive: true })
 
   t.is(typeof hyperResult, typeof nodeResult)
-  if (nodeResult !== undefined && hyperResult !== undefined) {
+  if (nodeResult !== undefined && hyperResult != null) {
     t.true(nodeResult.endsWith('node-return'))
     t.true(hyperResult.endsWith('hyper-return'))
   }

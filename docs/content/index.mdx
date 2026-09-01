@@ -1,33 +1,61 @@
-# Rush-FS
+# Vooya FS
 
-API-aligned with Node.js `fs` for **painless drop-in replacement** in existing projects. Get **multi-fold performance** in heavy file operations, powered by Rust.
+Vooya FS is a Rust-powered execution engine for **batch filesystem work in Node.js**.
+It continues the former Rush-FS project under the Vooya name, with a narrower and
+more honest promise: keep Node-compatible APIs where useful, and cross into Rust
+only when a recursive or fused operation can amortize the native boundary.
 
-## Why Rush-FS?
+> The `@vooya/fs` rename and the APIs on this development branch have not been
+> published to npm.
 
-- **Drop-in replacement** — Same API as Node.js `fs`; swap the import and go.
-- **Faster where it matters** — Recursive `readdir`, `glob`, `rm`, and `cp` are 2–70× faster thanks to Rust's parallel walkers.
-- **Prebuilt binaries** — No build step for users; we ship native binaries per platform.
+## One boundary, one batch
 
-## Quick example
-
-```ts
-import { readdir, readFile, writeFile, rm } from '@rush-fs/core'
-
-const files = await readdir('./src', { recursive: true, withFileTypes: true })
-const content = await readFile('./package.json', { encoding: 'utf8' })
-await writeFile('./out.txt', content)
-await rm('./temp', { recursive: true, force: true })
+```text
+Node application
+  ├─ tiny / one-off filesystem call ─────────────── node:fs
+  └─ recursive or combined workload
+                    │ one Node-API call
+                    ▼
+             Rust traversal engine
+                    │ walk · filter · metadata · I/O
+                    ▼
+               one batched result
 ```
 
-## Next steps
+That means Vooya FS is a good candidate for repository indexing, build-tool input
+discovery, cache cleanup, package scanning, and large recursive copy/removal. It is
+usually not the right tool for an isolated `existsSync` or a tiny directory.
 
-- [Quick Start](/guide/quick-start) — Install and first usage
-- [What is Rush-FS](/guide/what-is-rush-fs) — Purpose and design
-- [Use Cases](/guide/use-cases) — When to use Rush-FS (and when not)
-- [Benchmarks](/benchmarks) — Performance numbers
-- [API](/api) — Overview and per-API docs (e.g. [readdir](/api/readdir), [readFile](/api/read-file), [rm](/api/rm))
+## Start with a fused scan
 
-## Links
+```ts
+import { scan } from '@vooya/fs'
 
-- [GitHub](https://github.com/CoderSerio/rush-fs)
-- [npm](https://www.npmjs.com/package/@rush-fs/core)
+const sources = await scan('./packages', {
+  include: ['**/*.{ts,tsx,rs}'],
+  exclude: ['**/node_modules/**', '**/dist/**'],
+  skipHidden: true,
+  concurrency: 4,
+})
+```
+
+`scan` walks, filters, and collects metadata inside one native task. It is a Vooya
+FS extension; compatibility-oriented operations such as `readdir`, `glob`, `cp`,
+and `rm` remain available separately.
+
+On the local Apple M4 Pro / Node 22.22 development fixture, `scan` processed 2,728
+files and 341 directories in about **10.7 ms**, versus **34.0 ms** for recursive
+Node `readdir` plus per-entry `lstat`. On the 8-file fixture Node was faster. Read
+[Benchmarks](/benchmarks) for the method and scale boundary.
+
+## Where it fits
+
+- [Quick start](/guide/quick-start)
+- [Execution model](/guide/execution-model)
+- [Use cases](/guide/use-cases)
+- [Migration from Rush-FS](/guide/migration)
+- [API reference](/api)
+- [Vooya](https://github.com/vooyajs/vooya), the browser component compiler and
+  runtime that applies the same boundary-first design through WebAssembly
+- [Vooya Lab](https://github.com/vooyajs/vooya-lab), the evidence and experiments
+  behind Rust, WASM, and host-runtime decisions

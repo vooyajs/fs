@@ -8,7 +8,7 @@ import { readlink, readlinkSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-readlink-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-readlink-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -65,10 +65,10 @@ test('readlink: missing paths reject or throw in both implementations', async (t
   const missing = path.join(root, 'missing-link.txt')
 
   const nodeResult = await capture(() => nodeFs.readlink(missing))
-  const rushResult = await capture(() => readlink(missing) as Promise<unknown>)
+  const vooyaResult = await capture(() => readlink(missing) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.readlinkSync(missing))
   t.throws(() => readlinkSync(missing))
 })
@@ -79,10 +79,10 @@ test('readlink: non-symlink paths reject or throw in both implementations', asyn
   await nodeFs.writeFile(file, 'not a link')
 
   const nodeResult = await capture(() => nodeFs.readlink(file))
-  const rushResult = await capture(() => readlink(file) as Promise<unknown>)
+  const vooyaResult = await capture(() => readlink(file) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.readlinkSync(file))
   t.throws(() => readlinkSync(file))
 })

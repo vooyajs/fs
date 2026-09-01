@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 
 // Helper function to create a temporary directory
 function createTempDir(): string {
-  const tempDir = join(tmpdir(), `rush-fs-test-${Date.now()}-${Math.random().toString(36).substring(7)}`)
+  const tempDir = join(tmpdir(), `vooya-fs-test-${Date.now()}-${Math.random().toString(36).substring(7)}`)
   mkdirSync(tempDir, { recursive: true })
   return tempDir
 }

@@ -53,7 +53,7 @@ impl Task for RmdirTask {
   }
 }
 
-#[napi(js_name = "rmdir")]
+#[napi(js_name = "rmdir", ts_return_type = "Promise<void>")]
 pub fn rmdir(path: String) -> AsyncTask<RmdirTask> {
   AsyncTask::new(RmdirTask { path })
 }

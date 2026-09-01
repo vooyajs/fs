@@ -1,11 +1,11 @@
 # glob
 
-Match files and directories by glob pattern (e.g. `**/*.js`). Supports **concurrency** and **gitIgnore** (Rush-FS extensions). Rush-FS uses [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore) for matching, while compatibility tests use Node's built-in `fs.promises.glob` / `fs.globSync` as the oracle.
+Match files and directories by glob pattern (e.g. `**/*.js`). Supports **concurrency** and **gitIgnore** (Vooya FS extensions). Vooya FS uses [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore) for matching, while compatibility tests use Node's built-in `fs.promises.glob` / `fs.globSync` as the oracle.
 
 ## Basic usage
 
 ```ts
-import { glob } from '@rush-fs/core'
+import { glob } from '@vooya/fs'
 
 const files = await glob('**/*.ts', { cwd: './src' })
 const entries = await glob('**/*.rs', { cwd: './crate', withFileTypes: true, concurrency: 4, gitIgnore: true })
@@ -17,10 +17,10 @@ const entries = await glob('**/*.rs', { cwd: './crate', withFileTypes: true, con
 
 **Async.** Returns `Promise<string[]>` or `Promise<Array<{ name, parentPath, isDir }>>` when `withFileTypes: true`.
 
-| Argument  | Type   | Description |
-| --------- | ------ | ----------- |
+| Argument  | Type   | Description                    |
+| --------- | ------ | ------------------------------ |
 | `pattern` | string | Glob pattern (e.g. `**/*.js`). |
-| `options` | object | Optional. See below. |
+| `options` | object | Optional. See below.           |
 
 **Options:** `cwd` (string), `withFileTypes` (boolean), `exclude` (string[]), **`concurrency`** (number, default 4), **`gitIgnore`** (boolean, respect .gitignore).
 
@@ -30,20 +30,38 @@ const entries = await glob('**/*.rs', { cwd: './crate', withFileTypes: true, con
 
 ## Performance
 
-From repo benchmarks (`pnpm build && pnpm bench glob`), Apple Silicon, Node 24, release build. `node:fs` glob is the compatibility target; `fast-glob` and `node-glob` are competitive benchmark references.
+The first table is a historical Apple Silicon release-build comparison against ecosystem packages. `node:fs` glob is the compatibility target; `fast-glob` and `node-glob` are competitive references. Prefer the generated Node 22.22 scale report below for the current implementation.
 
-| Scenario | Baseline | Rush-FS | Note |
-| -------- | -------- | ------- | ---- |
-| Large tree `node_modules/**/*.json` (~30k entries) | fast-glob 303 ms | 30 ms | **10x** faster |
-| Recursive `**/*.rs` (small/medium tree) | node-glob 22 ms | 40 ms | node-glob faster at this scale |
-| Simple `src/*.rs` | node-glob 46 µs | 1.5 ms | Rush-FS has fixed startup cost; use for large trees |
+| Scenario                                           | Baseline         | Vooya FS | Note                                                 |
+| -------------------------------------------------- | ---------------- | -------- | ---------------------------------------------------- |
+| Large tree `node_modules/**/*.json` (~30k entries) | fast-glob 303 ms | 30 ms    | **10x** faster on that fixture                       |
+| Recursive `**/*.rs` (small/medium tree)            | node-glob 22 ms  | 40 ms    | node-glob faster at this scale                       |
+| Simple `src/*.rs`                                  | node-glob 46 µs  | 1.5 ms   | Vooya FS has fixed startup cost; use for large trees |
 
-Rush-FS excels at **large, deep trees** (e.g. node_modules); tune `concurrency` for very large directories.
+Vooya FS excels at **large, deep trees** (e.g. node_modules); tune `concurrency` for very large directories.
+
+### Local scale report
+
+{/* vooya-fs-perf:start glob */}
+
+_Generated from local performance reports. Do not edit this block by hand._
+
+- Runtime: v22.22.0 on darwin/arm64
+- Samples: 2 warmup runs, 10 measured runs
+- Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
+
+| Scale  |               Fixture |  Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
+| ------ | --------------------: | -------: | -------: | -----------: | -------: | -----------: |
+| tiny   |      8 files / 2 dirs |  0.42 ms |  2.37 ms | 5.58x slower |  35.2 KB |       3.2 KB |
+| small  |   104 files / 13 dirs |  1.01 ms |  2.59 ms | 2.57x slower |  17.6 KB |       4.8 KB |
+| medium | 2728 files / 341 dirs | 21.55 ms |  6.12 ms | 3.52x faster |   1.4 MB |       6.4 KB |
+
+{/* vooya-fs-perf:end glob */}
 
 ## Notes
 
-- **gitIgnore**: When true, respects .gitignore (and similar) for exclusion; Rush-FS extension.
-- **concurrency**: Rush-FS extension; default 4. Increase for very large directories.
+- **gitIgnore**: When true, respects .gitignore (and similar) for exclusion; Vooya FS extension.
+- **concurrency**: Vooya FS extension; default 4. Increase for very large directories.
 - **exclude**: Additional patterns to exclude; applied with the same semantics as the ignore crate.
-- **Known gap**: Root-only patterns such as `*.txt` are under conformance investigation because current Rush-FS behavior may include nested matches where Node only returns root-level matches.
+- **Rooted matching**: `*.txt` only matches entries at `cwd`; use `**/*.txt` for recursive matches.
 - **Scale guidance**: `test/performance/glob` tracks tiny/small/medium/large behavior so the docs can keep the bridge-overhead and large-tree benefit boundaries visible.

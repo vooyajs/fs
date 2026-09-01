@@ -8,7 +8,7 @@ import { readlinkSync, symlink, symlinkSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-symlink-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-symlink-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -27,14 +27,14 @@ test('symlink: promise creates file symlinks like node:fs/promises', async (t) =
   const root = await withFixture(t)
   const target = path.join(root, 'target.txt')
   const nodeLink = path.join(root, 'node-link.txt')
-  const rushLink = path.join(root, 'rush-link.txt')
+  const vooyaLink = path.join(root, 'vooya-link.txt')
   await nodeFs.writeFile(target, 'target')
 
   await nodeFs.symlink(target, nodeLink)
-  await symlink(target, rushLink)
+  await symlink(target, vooyaLink)
 
-  t.is(readlinkSync(rushLink), nodeFsSync.readlinkSync(nodeLink, 'utf8'))
-  t.true(nodeFsSync.lstatSync(rushLink).isSymbolicLink())
+  t.is(readlinkSync(vooyaLink), nodeFsSync.readlinkSync(nodeLink, 'utf8'))
+  t.true(nodeFsSync.lstatSync(vooyaLink).isSymbolicLink())
 })
 
 test('symlink: promise stores relative targets like node:fs/promises', async (t) => {
@@ -44,14 +44,14 @@ test('symlink: promise stores relative targets like node:fs/promises', async (t)
   const targetName = 'target.txt'
   const target = path.join(root, targetName)
   const nodeLink = path.join(root, 'node-relative.txt')
-  const rushLink = path.join(root, 'rush-relative.txt')
+  const vooyaLink = path.join(root, 'vooya-relative.txt')
   await nodeFs.writeFile(target, 'target')
 
   await nodeFs.symlink(targetName, nodeLink)
-  await symlink(targetName, rushLink)
+  await symlink(targetName, vooyaLink)
 
-  t.is(readlinkSync(rushLink), nodeFsSync.readlinkSync(nodeLink, 'utf8'))
-  t.is(readlinkSync(rushLink), targetName)
+  t.is(readlinkSync(vooyaLink), nodeFsSync.readlinkSync(nodeLink, 'utf8'))
+  t.is(readlinkSync(vooyaLink), targetName)
 })
 
 test('symlink: sync creates directory symlinks like node:fs', async (t) => {
@@ -60,14 +60,14 @@ test('symlink: sync creates directory symlinks like node:fs', async (t) => {
   const root = await withFixture(t)
   const target = path.join(root, 'target-dir')
   const nodeLink = path.join(root, 'node-dir-link')
-  const rushLink = path.join(root, 'rush-dir-link')
+  const vooyaLink = path.join(root, 'vooya-dir-link')
   await nodeFs.mkdir(target)
 
   nodeFsSync.symlinkSync(target, nodeLink, 'dir')
-  symlinkSync(target, rushLink, 'dir')
+  symlinkSync(target, vooyaLink, 'dir')
 
-  t.is(readlinkSync(rushLink), nodeFsSync.readlinkSync(nodeLink, 'utf8'))
-  t.true(nodeFsSync.lstatSync(rushLink).isSymbolicLink())
+  t.is(readlinkSync(vooyaLink), nodeFsSync.readlinkSync(nodeLink, 'utf8'))
+  t.true(nodeFsSync.lstatSync(vooyaLink).isSymbolicLink())
 })
 
 test('symlink: existing link paths reject or throw in both implementations', async (t) => {
@@ -76,18 +76,18 @@ test('symlink: existing link paths reject or throw in both implementations', asy
   const root = await withFixture(t)
   const target = path.join(root, 'target.txt')
   const nodeLink = path.join(root, 'node-existing.txt')
-  const rushLink = path.join(root, 'rush-existing.txt')
+  const vooyaLink = path.join(root, 'vooya-existing.txt')
   await nodeFs.writeFile(target, 'target')
   await nodeFs.writeFile(nodeLink, 'existing')
-  await nodeFs.writeFile(rushLink, 'existing')
+  await nodeFs.writeFile(vooyaLink, 'existing')
 
   const nodeResult = await capture(() => nodeFs.symlink(target, nodeLink))
-  const rushResult = await capture(() => symlink(target, rushLink) as Promise<unknown>)
+  const vooyaResult = await capture(() => symlink(target, vooyaLink) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.symlinkSync(target, nodeLink))
-  t.throws(() => symlinkSync(target, rushLink))
+  t.throws(() => symlinkSync(target, vooyaLink))
 })
 
 test('symlink: missing parent paths reject or throw in both implementations', async (t) => {
@@ -96,14 +96,14 @@ test('symlink: missing parent paths reject or throw in both implementations', as
   const root = await withFixture(t)
   const target = path.join(root, 'target.txt')
   const nodeLink = path.join(root, 'missing-node', 'link.txt')
-  const rushLink = path.join(root, 'missing-rush', 'link.txt')
+  const vooyaLink = path.join(root, 'missing-vooya', 'link.txt')
   await nodeFs.writeFile(target, 'target')
 
   const nodeResult = await capture(() => nodeFs.symlink(target, nodeLink))
-  const rushResult = await capture(() => symlink(target, rushLink) as Promise<unknown>)
+  const vooyaResult = await capture(() => symlink(target, vooyaLink) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.symlinkSync(target, nodeLink))
-  t.throws(() => symlinkSync(target, rushLink))
+  t.throws(() => symlinkSync(target, vooyaLink))
 })

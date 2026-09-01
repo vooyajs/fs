@@ -50,7 +50,7 @@ impl Task for UnlinkTask {
   }
 }
 
-#[napi(js_name = "unlink")]
+#[napi(js_name = "unlink", ts_return_type = "Promise<void>")]
 pub fn unlink(path: String) -> AsyncTask<UnlinkTask> {
   AsyncTask::new(UnlinkTask { path })
 }

@@ -62,7 +62,7 @@ impl Task for ChmodTask {
   }
 }
 
-#[napi(js_name = "chmod")]
+#[napi(js_name = "chmod", ts_return_type = "Promise<void>")]
 pub fn chmod(path: String, mode: u32) -> AsyncTask<ChmodTask> {
   AsyncTask::new(ChmodTask { path, mode })
 }

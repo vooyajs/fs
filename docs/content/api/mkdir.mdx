@@ -5,7 +5,7 @@ Create a directory. With `recursive: true`, creates all parent directories; retu
 ## Basic usage
 
 ```ts
-import { mkdir } from '@rush-fs/core'
+import { mkdir } from '@vooya/fs'
 
 await mkdir('./new-dir')
 await mkdir('./a/b/c', { recursive: true })
@@ -18,9 +18,9 @@ const first = await mkdir('./x/y/z', { recursive: true, mode: 0o755 }) // first 
 
 **Async.** Returns `Promise<string | undefined>` (`recursive: true`: first created path when a directory was created).
 
-| Argument  | Type   | Description |
-| --------- | ------ | ----------- |
-| `path`    | string | Directory path. |
+| Argument  | Type   | Description                                       |
+| --------- | ------ | ------------------------------------------------- |
+| `path`    | string | Directory path.                                   |
 | `options` | object | Optional: `recursive` (boolean), `mode` (number). |
 
 ### `mkdirSync(path, options?)`
@@ -34,7 +34,6 @@ Single-directory and recursive mkdir are atomic/serial operations. No specific b
 ## Notes
 
 - **recursive**: When true, creates parent directories as needed; does not fail if the path already exists (same as Node.js).
-- **mode**: Applied to created directories; default is platform-dependent. Use octal (e.g. `0o755`).
-- **Known return gap**: Non-recursive success currently returns `null` from Rush-FS where Node returns `undefined`; treat the value as falsy unless using `recursive: true`.
+- **mode**: Applied when directories are created and filtered by the process umask. Use octal (e.g. `0o755`).
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs**: String mode values, `Buffer` paths, and `URL` paths are not part of the current Rush-FS `mkdir` surface.
+- **Unsupported Node inputs**: String mode values, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `mkdir` surface.

@@ -1,502 +1,174 @@
-<div align="center">
-
-# Rush-FS
-
-[English](./README.md) | [中文](./README.zh-CN.md)
+<h1 align="center">Vooya FS</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Written%20in-Rust-orange?style=flat-square" alt="Written in Rust">
-  <img src="https://img.shields.io/npm/v/@rush-fs/core?style=flat-square" alt="NPM Version">
-  <img src="https://img.shields.io/npm/l/@rush-fs/core?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/status-beta-orange?style=flat-square" alt="Beta">
-  <a href="https://github.com/CoderSerio/rush-fs/graphs/contributors"><img src="https://img.shields.io/github/contributors/CoderSerio/rush-fs?style=flat-square" alt="Contributors"></a>
+  <strong>Native batch filesystem operations for Node.js, powered by Rust.</strong>
 </p>
 
 <p align="center">
-  API-aligned with Node.js <code>fs</code> for painless drop-in replacement in existing projects; get multi-fold performance in heavy file operations, powered by Rust.
+  <a href="./README.zh-CN.md">中文</a> ·
+  <a href="https://github.com/vooyajs/fs">Repository</a> ·
+  <a href="https://vooyajs.com/">Vooya</a> ·
+  <a href="https://vooyajs.github.io/vooya-lab/">Vooya Lab</a>
 </p>
 
-</div>
+Vooya FS is the continuation of **Rush-FS** under the Vooya project. It keeps a
+Node-compatible filesystem surface where that compatibility is useful, and adds
+bounded batch operations for workloads where one native Rust call can replace
+thousands of JavaScript-to-filesystem round trips.
 
-## Installation
+It is not intended to make every `node:fs` call faster. Tiny operations such as
+`existsSync` are normally best left to Node. Vooya FS focuses on large directory
+walks, globbing, recursive copy/removal, and combined traversal + metadata work.
 
-```bash
-npm install @rush-fs/core
-# or
-pnpm add @rush-fs/core
+> [!IMPORTANT]
+> The `@vooya/fs` rename and the APIs documented on this branch are under
+> development. No npm package is published by this change.
+
+## The boundary
+
+```text
+application code
+      │
+      ├── tiny / one-off operation ───────────────→ node:fs
+      │
+      └── recursive or batch operation
+                    │ one N-API call
+                    ▼
+              Rust traversal engine
+                    │ parallel walk, filter, metadata, I/O
+                    ▼
+              one batched JS result
 ```
 
-When you install `@rush-fs/core`, the package manager should automatically install the **platform-specific native binding** for your OS/arch via `optionalDependencies` (e.g. `@rush-fs/rush-fs-darwin-arm64` on macOS ARM). If the native binding is missing and you see "Cannot find native binding", try:
+This is the same boundary-first idea used by Vooya on the web: keep the host
+application and its ecosystem, then move a measured, self-contained workload
+behind a typed Rust boundary. Vooya FS targets Node through stable Node-API;
+Vooya components target browsers through WebAssembly. Neither project claims
+that Rust or WASM makes ordinary host work universally faster.
 
-1. Remove `node_modules` and the lockfile (`package-lock.json` or `pnpm-lock.yaml`), then run `pnpm install` (or `npm i`) again.
-2. Or install the platform package explicitly:  
-   **macOS ARM:** `pnpm add @rush-fs/rush-fs-darwin-arm64`  
-   **macOS x64:** `pnpm add @rush-fs/rush-fs-darwin-x64`  
-   **Windows x64:** `pnpm add @rush-fs/rush-fs-win32-x64-msvc`  
-   **Linux x64 (glibc):** `pnpm add @rush-fs/rush-fs-linux-x64-gnu`
+## Example: scan once
 
-**Migration from `rush-fs`:** The package was renamed to `@rush-fs/core`. See [CHANGELOG.md](./CHANGELOG.md#010) for details.
-
-## Usage
+`scan` combines recursive traversal, glob filtering, and metadata collection.
+It is a Vooya FS extension rather than a Node compatibility API.
 
 ```ts
-import { readdir, stat, readFile, writeFile, mkdir, rm } from '@rush-fs/core'
+import { scan } from '@vooya/fs'
 
-// Read directory
-const files = await readdir('./src')
+const sources = await scan('./packages', {
+  include: ['**/*.{ts,tsx,rs}'],
+  exclude: ['**/node_modules/**', '**/dist/**'],
+  skipHidden: true,
+  concurrency: 4,
+})
 
-// Recursive with file types
-const entries = await readdir('./src', {
+for (const source of sources) {
+  console.log(source.path, source.size, source.mtimeMs)
+}
+```
+
+On the local Apple M4 Pro / Node 22.22 development benchmark, scanning a fixture
+with 2,728 files and 341 directories took about **10.7 ms** with Vooya FS versus
+**34.0 ms** for recursive `node:fs.readdir` followed by `lstat` calls. On a tiny
+8-file fixture, Node was faster. The scale boundary is part of the API story,
+not a footnote.
+
+The existing `readFile(..., { lines })` extension shows the same fusion principle:
+selecting the first 100 lines of a 16 MB text file took about **0.08 ms**, versus
+**17.36 ms** for Node reading, decoding, splitting, and slicing the whole file. This
+is an API-shape advantage, not evidence that every single-file read is 200x faster.
+
+## Node-aligned operations
+
+```ts
+import { cp, glob, readdir, rm } from '@vooya/fs'
+
+const entries = await readdir('./node_modules', {
   recursive: true,
   withFileTypes: true,
 })
 
-// Read / write files
-const content = await readFile('./package.json', { encoding: 'utf8' })
-await writeFile('./output.txt', 'hello world')
+const manifests = await glob('**/package.json', {
+  cwd: './node_modules',
+  concurrency: 4,
+})
 
-// File stats
-const s = await stat('./package.json')
-console.log(s.size, s.isFile())
-
-// Create directory
-await mkdir('./new-dir', { recursive: true })
-
-// Remove
-await rm('./temp', { recursive: true, force: true })
+await cp('./cache', './cache-copy', { recursive: true, concurrency: 4 })
+await rm('./cache-copy', { recursive: true, force: true, concurrency: 4 })
 ```
 
-## Benchmarks
+The package also exposes promise and sync variants for `access`, `appendFile`,
+`chmod`, `chown`, `copyFile`, `exists`, `link`, `lstat`, `mkdir`, `mkdtemp`,
+`readFile`, `readlink`, `realpath`, `rename`, `rmdir`, `stat`, `symlink`,
+`truncate`, `unlink`, `utimes`, and `writeFile`.
 
-> Tested on Apple Silicon (arm64), Node.js 24.0.2, release build with LTO.
-> Run `pnpm build && pnpm bench` to reproduce.
+Compatibility is deliberately scoped. Current paths are strings, callback APIs
+are not provided, and some advanced Node options remain unsupported. See the
+[API documentation](./docs/content/api/index.mdx) and conformance SDDs under
+[`test/conformance`](./test/conformance) for exact boundaries.
 
-### Where Rush-FS Shines
+## Native first; WASM optional later
 
-These are the scenarios where Rust's parallelism and zero-copy I/O make a real difference:
+The production path remains Rust compiled as a Node-API native addon:
 
-| Scenario                                                                | Node.js   | Rush-FS  | Speedup   |
-| ----------------------------------------------------------------------- | --------- | -------- | --------- |
-| `readdir` recursive (node_modules, ~30k entries)                        | 281 ms    | 23 ms    | **12x**   |
-| `copyFile` 4 MB                                                         | 4.67 ms   | 0.09 ms  | **50x**   |
-| `readFile` 4 MB utf8                                                    | 1.86 ms   | 0.92 ms  | **2x**    |
-| `readFile` 64 KB utf8                                                   | 42 µs     | 18 µs    | **2.4x**  |
-| `rm` 2000 files (4 threads)                                             | 92 ms     | 53 ms    | **1.75x** |
-| `access` R_OK (directory)                                               | 4.18 µs   | 1.55 µs  | **2.7x**  |
-| `cp` 500-file flat dir (4 threads)                                      | 86.45 ms  | 32.88 ms | **2.6x**  |
-| `cp` tree dir ~363 nodes (4 threads)                                    | 108.73 ms | 46.88 ms | **2.3x**  |
-| `glob` large tree (`node_modules/**/*.json`, ~30k entries) vs fast-glob | 303 ms    | 30 ms    | **10x**   |
+- native code has direct operating-system filesystem semantics;
+- Rayon and walker libraries use real host threads;
+- Node-API keeps the JavaScript ABI stable across supported Node versions.
 
-### On Par with Node.js
+WASI remains a possible explicit portability package, not an automatic fallback.
+The current code has Unix-specific permission, ownership, symlink, and timestamp
+semantics that cannot be silently represented by a generic WASI build. A WASI
+package must pass its declared conformance suite and throw for unsupported
+capabilities before it can be considered.
 
-Single-file operations have a ~0.3 µs napi bridge overhead. On **large trees** glob wins (see table above); on small/medium trees node-glob is faster (see “Where Node.js Wins”).
+A reproducible Node 24.20 probe under [`experiments/node-wasi`](./experiments/node-wasi)
+measured the native `scanSync` path at **9.86 ms** versus **15.96 ms** for a
+count-only WASI traversal on the same 2,728-file tree. The module was instantiated
+once, and the comparison favors WASI because it returns one integer while native
+returns sorted metadata. WASM is useful here for portability/isolation, not as the
+default performance path.
 
-| Scenario                   | Node.js | Rush-FS | Ratio |
-| -------------------------- | ------- | ------- | ----- |
-| `stat` (single file)       | 1.45 µs | 1.77 µs | 1.2x  |
-| `readFile` small (Buffer)  | 8.86 µs | 9.46 µs | 1.1x  |
-| `writeFile` small (string) | 74 µs   | 66 µs   | 0.9x  |
-| `writeFile` small (Buffer) | 115 µs  | 103 µs  | 0.9x  |
-| `appendFile`               | 30 µs   | 27 µs   | 0.9x  |
+## Development
 
-### Where Node.js Wins
+Requirements: Node.js 22 or 24, pnpm, and a current stable Rust toolchain.
 
-Lightweight built-in calls where napi overhead dominates; on small/medium trees, node-glob is faster than Rush-FS glob:
-
-| Scenario                                              | Node.js | Rush-FS | Note                              |
-| ----------------------------------------------------- | ------- | ------- | --------------------------------- |
-| `existsSync` (existing file)                          | 444 ns  | 1.34 µs | Node.js internal fast path        |
-| `accessSync` F_OK                                     | 456 ns  | 1.46 µs | Same — napi overhead dominates    |
-| `writeFile` 4 MB string                               | 2.93 ms | 5.69 ms | Large string crossing napi bridge |
-| `glob` recursive (`**/*.rs`, small tree) vs node-glob | 22 ms   | 40 ms   | node-glob faster at this scale    |
-
-### Parallelism
-
-Rush-FS uses multi-threaded parallelism for operations that traverse the filesystem:
-
-| API                   | Library                                                                   | `concurrency` option | Default |
-| --------------------- | ------------------------------------------------------------------------- | -------------------- | ------- |
-| `readdir` (recursive) | [jwalk](https://github.com/Byron/jwalk)                                   | ✅                   | auto    |
-| `glob`                | [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore) | ✅                   | 4       |
-| `rm` (recursive)      | [rayon](https://github.com/rayon-rs/rayon)                                | ✅                   | 1       |
-| `cp` (recursive)      | [rayon](https://github.com/rayon-rs/rayon)                                | ✅                   | 1       |
-
-Single-file operations (`stat`, `readFile`, `writeFile`, `chmod`, etc.) are atomic syscalls — parallelism does not apply.
-
-### Key Takeaway
-
-**Rush-FS excels at recursive / batch filesystem operations** (readdir, glob, rm, cp) where Rust's parallel walkers deliver significant speedups (e.g. 12x readdir, 50x copyFile). For single-file operations it performs on par with Node.js. The napi bridge adds a fixed ~0.3 µs overhead per call, which only matters for sub-microsecond operations like `existsSync`.
-
-**`cp` benchmark detail** (Apple Silicon, release build):
-
-| Scenario                                  | Node.js   | Rush-FS 1T | Rush-FS 4T | Rush-FS 8T |
-| ----------------------------------------- | --------- | ---------- | ---------- | ---------- |
-| Flat dir (500 files)                      | 86.45 ms  | 61.56 ms   | 32.88 ms   | 36.67 ms   |
-| Tree dir (breadth=4, depth=3, ~84 nodes)  | 23.80 ms  | 16.94 ms   | 10.62 ms   | 9.76 ms    |
-| Tree dir (breadth=3, depth=5, ~363 nodes) | 108.73 ms | 75.39 ms   | 46.88 ms   | 46.18 ms   |
-
-Optimal concurrency for `cp` is **4 threads** on Apple Silicon — beyond that, I/O bandwidth becomes the bottleneck and diminishing returns set in.
-
-## How it works
-
-For the original Node.js, **for example** on `readdir`, directory reads run serially in the native layer, and each entry is turned into a JS string on the V8 main thread, which adds GC pressure:
-
-```mermaid
-graph TD
-    A["JS: readdir"] -->|Call| B("Node.js C++ Binding")
-    B -->|Submit Task| C{"Libuv Thread Pool"}
-
-    subgraph "Native Layer (Serial)"
-    C -->|"Syscall: getdents"| D[OS Kernel]
-    D -->|"Return File List"| C
-    C -->|"Process Paths"| C
-    end
-
-    C -->|"Results Ready"| E("V8 Main Thread")
-
-    subgraph "V8 Interaction (Heavy)"
-    E -->|"Create JS String 1"| F[V8 Heap]
-    E -->|"String 2"| F
-    E -->|"String N..."| F
-    F -->|"GC Pressure Rising"| F
-    end
-
-    E -->|"Return Array"| G["JS Callback/Promise"]
+```bash
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+corepack pnpm typecheck
+corepack pnpm lint
+cargo clippy --all-targets --all-features -- -D warnings
+corepack pnpm test
+corepack pnpm doc:build
 ```
 
-With Rush-FS, **for example** on `readdir`, the hot path stays in Rust: build a `Vec<String>` (or use Rayon for **recursive** readdir), then hand one array to JS. No per-entry V8 allocation during the walk:
+Run evidence-oriented benchmarks with:
 
-```mermaid
-graph TD
-    A["JS: readdir"] -->|"N-API Call"| B("Rust Wrapper")
-    B -->|"Spawn Task"| C{"Rust (or Rayon pool if recursive)"}
-
-    subgraph "Rust 'Black Box'"
-    C -->|"Syscall: getdents"| D[OS Kernel]
-    D -->|"Return file list"| C
-    C -->|"Store as Rust Vec<String>"| H[Rust Heap]
-    H -->|"No V8 yet"| H
-    end
-
-    C -->|"All Done"| I("Convert to JS")
-
-    subgraph "N-API Bridge"
-    I -->|"Batch create JS array"| J[V8 Heap]
-    end
-
-    J -->|Return| K["JS Result"]
+```bash
+corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
 ```
 
-Other sources of speed in Rush-FS: **recursive `readdir`** uses [jwalk](https://github.com/Byron/jwalk) with a Rayon thread pool for parallel directory traversal; **`cp`** and **`rm`** (recursive) can use Rayon for parallel tree walk and I/O; **`glob`** runs with a configurable number of threads. Across APIs, keeping the hot path in Rust and handing a single result (or batched data) to JS avoids repeated V8/GC overhead compared to Node’s C++ binding.
-
-## Status & Roadmap
-
-We are rewriting `fs` APIs one by one.
-
-> **Legend**
->
-> - ✅: Fully Supported
-> - 🚧: Partially Supported / WIP
-> - ✨: New feature from @rush-fs/core
-> - ❌: Not Supported Yet
-
-### `readdir`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  options?: {
-    encoding?: string; // 🚧 ('utf8' default; 'buffer' not supported)
-    withFileTypes?: boolean; // ✅
-    recursive?: boolean; // ✅
-    concurrency?: number; // ✨
-  };
-  ```
-- **Return Type**:
-  ```ts
-    string[]
-    | {
-      name: string, // ✅
-      parentPath: string, // ✅
-      isDir: boolean // ✅
-    }[]
-  ```
-
-### `readFile`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  options?: {
-    encoding?: string; // ✅ (utf8, ascii, latin1, base64, base64url, hex)
-    flag?: string; // ✅ (r, r+, w+, a+, etc.)
-  };
-  ```
-- **Return Type**: `string | Buffer`
-
-### `writeFile`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  data: string | Buffer; // ✅
-  options?: {
-    encoding?: string; // ✅ (utf8, ascii, latin1, base64, base64url, hex)
-    mode?: number; // ✅
-    flag?: string; // ✅ (w, wx, a, ax)
-  };
-  ```
-
-### `appendFile`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  data: string | Buffer; // ✅
-  options?: {
-    encoding?: string; // ✅ (utf8, ascii, latin1, base64, base64url, hex)
-    mode?: number; // ✅
-    flag?: string; // ✅
-  };
-  ```
-
-### `copyFile`
-
-- **Node.js Arguments**:
-  ```ts
-  src: string; // ✅
-  dest: string; // ✅
-  mode?: number; // ✅ (COPYFILE_EXCL)
-  ```
-
-### `cp`
-
-- **Node.js Arguments** (Node 16.7+):
-  ```ts
-  src: string; // ✅
-  dest: string; // ✅
-  options?: {
-    recursive?: boolean; // ✅
-    force?: boolean; // ✅ (default: true)
-    errorOnExist?: boolean; // ✅
-    preserveTimestamps?: boolean; // ✅
-    dereference?: boolean; // ✅
-    verbatimSymlinks?: boolean; // ✅
-    concurrency?: number; // ✨
-  };
-  ```
-
-### `mkdir`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  options?: {
-    recursive?: boolean; // ✅
-    mode?: number; // ✅
-  };
-  ```
-- **Return Type**: `string | undefined` (first created path when recursive)
-
-### `rm`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  options?: {
-    force?: boolean; // ✅
-    maxRetries?: number; // ✅
-    recursive?: boolean; // ✅
-    retryDelay?: number; // ✅ (default: 100ms)
-    concurrency?: number; // ✨
-  };
-  ```
-
-### `rmdir`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  ```
-
-### `stat`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  ```
-- **Return Type**: `Stats`
-  - Numeric fields: `dev`, `mode`, `nlink`, `uid`, `gid`, `rdev`, `blksize`, `ino`, `size`, `blocks`, `atimeMs`, `mtimeMs`, `ctimeMs`, `birthtimeMs`
-  - **Date fields**: `atime`, `mtime`, `ctime`, `birthtime` → `Date` objects ✅
-  - Methods: `isFile()`, `isDirectory()`, `isSymbolicLink()`, ...
-- **Error distinction**: `ENOENT` vs `EACCES` ✅
-
-### `lstat`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  ```
-- **Return Type**: `Stats`
-
-### `fstat`
-
-- **Status**: ❌
-
-### `access`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  mode?: number; // ✅ (F_OK, R_OK, W_OK, X_OK)
-  ```
-
-### `exists`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  ```
-- **Return Type**: `boolean`
-
-### `open`
-
-- **Status**: ❌
-
-### `opendir`
-
-- **Status**: ❌
-
-### `close`
-
-- **Status**: ❌
-
-### `unlink`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  ```
-
-### `rename`
-
-- **Node.js Arguments**:
-  ```ts
-  oldPath: string // ✅
-  newPath: string // ✅
-  ```
-
-### `readlink`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  ```
-- **Return Type**: `string`
-
-### `realpath`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  ```
-- **Return Type**: `string`
-
-### `chmod`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  mode: number // ✅
-  ```
-
-### `chown`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  uid: number // ✅
-  gid: number // ✅
-  ```
-
-### `utimes`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string // ✅
-  atime: number // ✅
-  mtime: number // ✅
-  ```
-
-### `truncate`
-
-- **Node.js Arguments**:
-  ```ts
-  path: string; // ✅
-  len?: number; // ✅
-  ```
-
-### `glob`
-
-- **Node.js Arguments**:
-  ```ts
-  pattern: string; // ✅
-  options?: {
-    cwd?: string; // ✅
-    withFileTypes?: boolean; // ✅
-    exclude?: string[]; // ✅
-    concurrency?: number; // ✨
-    gitIgnore?: boolean; // ✨ default false (align with Node.js fs.globSync)
-  };
-  ```
-
-### `symlink`
-
-- **Node.js Arguments**:
-  ```ts
-  target: string // ✅
-  path: string // ✅
-  type?: 'file' | 'dir' | 'junction' // ✅ (Windows only, ignored on Unix)
-  ```
-
-### `link`
-
-- **Node.js Arguments**:
-  ```ts
-  existingPath: string // ✅
-  newPath: string // ✅
-  ```
-
-### `mkdtemp`
-
-- **Node.js Arguments**:
-  ```ts
-  prefix: string // ✅
-  ```
-- **Return Type**: `string`
-- Uses OS-level random source (`/dev/urandom` on Unix, `BCryptGenRandom` on Windows) with up to 10 retries ✅
-
-### `watch`
-
-- **Status**: ❌
-
-## Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for a summary of changes in each version. Release tags are listed in [GitHub Releases](https://github.com/CoderSerio/rush-fs/releases).
-
-## Contributing
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full development guide: environment setup, Node.js reference, Rust implementation, testing, and benchmarking.
-
-## Publishing (Maintainers Only)
-
-Releases are handled by the [Release workflow](.github/workflows/Release.yml): it builds native binaries for macOS (x64/arm64), Windows, and Linux, then publishes the platform packages and the main package to npm.
-
-1. **Secrets:** In the repo **Settings → Secrets and variables → Actions**, add **NPM_TOKEN** (npm Classic or Automation token with Publish permission).
-2. **Release:** Either run **Actions → Release → Run workflow** (uses the current `package.json` version on `main`), or bump version in `package.json` and `Cargo.toml`, push to `main`, then create and push a tag: `git tag v<version> && git push origin v<version>`.
-3. **Changelog:** Update [CHANGELOG.md](./CHANGELOG.md) before or right after the release (move entries from `[Unreleased]` to a new version heading and add the compare link).
-
-The workflow injects `optionalDependencies` and publishes all packages; no need to edit `package.json` manually for release.
+Performance output is evidence, not a test assertion. Reports record runtime,
+fixture scale, samples, wall-clock summaries, and memory deltas.
+
+## Migration from Rush-FS
+
+The canonical package is `@vooya/fs`; the Rust crate and native binary are named
+`vooya_fs` and `vooya-fs`. The previous `@rush-fs/core` and `rush-fs` releases
+remain installable, but are deprecated on npm with a direct migration message.
+
+npm deprecation is a warning, not a package redirect. We intentionally do not
+publish a compatibility wrapper: the legacy packages support Node.js 18, while
+`@vooya/fs` starts at Node.js 22, so silently forwarding would turn a patch update
+into a runtime requirement change.
+
+## Project relationship
+
+- [Vooya](https://github.com/vooyajs/vooya) owns the browser component compiler,
+  runtime contracts, and framework adapters.
+- [Vooya Lab](https://github.com/vooyajs/vooya-lab) demonstrates measured Rust,
+  WASM, and host-framework boundaries.
+- [Vooya FS](https://github.com/vooyajs/fs) applies the same evidence-gated
+  boundary design to Node filesystem workloads with a native Rust runtime.
 
 ## License
 

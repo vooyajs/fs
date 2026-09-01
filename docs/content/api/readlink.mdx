@@ -5,7 +5,7 @@ Read the target path of a symbolic link. Fails for non-symlinks.
 ## Basic usage
 
 ```ts
-import { readlink } from '@rush-fs/core'
+import { readlink } from '@vooya/fs'
 
 const target = await readlink('./mylink')
 console.log(target) // raw stored target path
@@ -17,8 +17,8 @@ console.log(target) // raw stored target path
 
 **Async.** Returns `Promise<string>` (the link target path).
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
+| Argument | Type   | Description   |
+| -------- | ------ | ------------- |
 | `path`   | string | Symlink path. |
 
 ### `readlinkSync(path)`
@@ -33,4 +33,4 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 
 - **Resolution**: Returns the raw target string; use `realpath` to resolve to an absolute path and follow nested symlinks.
 - **Known gap**: Missing-path and non-symlink errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, and the `encoding` option are not part of the current Rush-FS `readlink` surface.
+- **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, and the `encoding` option are not part of the current Vooya FS `readlink` surface.

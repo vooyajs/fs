@@ -5,10 +5,10 @@ Truncate or extend a file to the given length. If the file is longer, extra byte
 ## Basic usage
 
 ```ts
-import { truncate } from '@rush-fs/core'
+import { truncate } from '@vooya/fs'
 
 await truncate('./file.txt', 100) // trim or extend to 100 bytes
-await truncate('./file.txt')      // truncate to 0
+await truncate('./file.txt') // truncate to 0
 ```
 
 ## Methods
@@ -17,9 +17,9 @@ await truncate('./file.txt')      // truncate to 0
 
 **Async.** Returns `Promise<void>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
-| `path`   | string | File path. |
+| Argument | Type   | Description                                  |
+| -------- | ------ | -------------------------------------------- |
+| `path`   | string | File path.                                   |
 | `len`    | number | Optional. Target length in bytes; default 0. |
 
 ### `truncateSync(path, len?)`
@@ -33,6 +33,6 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 ## Notes
 
 - **Extension**: When extending, behavior may be platform-dependent (zero-fill or sparse); same as Node.js.
-- **Known length gap**: Node rejects negative or out-of-range lengths; Rush-FS currently clamps negative lengths to `0`.
+- **Negative lengths**: Current supported Node versions clamp negative values to `0`; Vooya FS matches that observed behavior.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs/APIs**: `Buffer` paths, `URL` paths, and file-descriptor `ftruncate` APIs are not part of the current Rush-FS `truncate` surface.
+- **Unsupported Node inputs/APIs**: `Buffer` paths, `URL` paths, and file-descriptor `ftruncate` APIs are not part of the current Vooya FS `truncate` surface.

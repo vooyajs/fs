@@ -5,6 +5,8 @@ const { writeFile } = require('../../../index.js')
 const { removeFixture } = require('../../fixtures/fs-scale.ts')
 const { measure, printComparison } = require('../_helpers/measure.ts')
 
+type MeasureContext = { index: number; warmup: boolean }
+
 const scenarios = [
   { name: 'small-string', size: 128, data: () => 'x'.repeat(128) },
   { name: 'medium-string', size: 64 * 1024, data: () => 'x'.repeat(64 * 1024) },
@@ -13,24 +15,24 @@ const scenarios = [
 ]
 
 async function main(): Promise<void> {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-perf-writeFile-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-perf-writeFile-'))
   try {
     for (const scenario of scenarios) {
       let nodeFile = ''
-      let rushFile = ''
+      let vooyaFile = ''
       const node = await measure(`node writeFile ${scenario.name}`, () => nodeFs.writeFile(nodeFile, scenario.data()), {
-        beforeEach: ({ index, warmup }) => {
+        beforeEach: ({ index, warmup }: MeasureContext) => {
           nodeFile = path.join(root, `node-${scenario.name}-${warmup ? 'warmup' : 'sample'}-${index}`)
         },
         afterEach: () => removeFixture(nodeFile),
       })
-      const rush = await measure(`rush writeFile ${scenario.name}`, () => writeFile(rushFile, scenario.data()), {
-        beforeEach: ({ index, warmup }) => {
-          rushFile = path.join(root, `rush-${scenario.name}-${warmup ? 'warmup' : 'sample'}-${index}`)
+      const vooya = await measure(`vooya writeFile ${scenario.name}`, () => writeFile(vooyaFile, scenario.data()), {
+        beforeEach: ({ index, warmup }: MeasureContext) => {
+          vooyaFile = path.join(root, `vooya-${scenario.name}-${warmup ? 'warmup' : 'sample'}-${index}`)
         },
-        afterEach: () => removeFixture(rushFile),
+        afterEach: () => removeFixture(vooyaFile),
       })
-      printComparison('writeFile', scenario.name, node, rush)
+      printComparison('writeFile', scenario.name, node, vooya)
     }
   } finally {
     await removeFixture(root)

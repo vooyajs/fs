@@ -129,7 +129,7 @@ impl Task for MkdtempTask {
   }
 }
 
-#[napi(js_name = "mkdtemp")]
+#[napi(js_name = "mkdtemp", ts_return_type = "Promise<string>")]
 pub fn mkdtemp(prefix: String) -> AsyncTask<MkdtempTask> {
   AsyncTask::new(MkdtempTask { prefix })
 }

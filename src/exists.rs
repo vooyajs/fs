@@ -27,7 +27,7 @@ impl Task for ExistsTask {
   }
 }
 
-#[napi(js_name = "exists")]
+#[napi(js_name = "exists", ts_return_type = "Promise<boolean>")]
 pub fn exists(path: String) -> AsyncTask<ExistsTask> {
   AsyncTask::new(ExistsTask { path })
 }

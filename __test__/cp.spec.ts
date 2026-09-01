@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 function tmpDir(name: string): string {
-  const dir = join(tmpdir(), `rush-fs-test-cp-${Date.now()}-${Math.random().toString(36).slice(2)}-${name}`)
+  const dir = join(tmpdir(), `vooya-fs-test-cp-${Date.now()}-${Math.random().toString(36).slice(2)}-${name}`)
   mkdirSync(dir, { recursive: true })
   return dir
 }

@@ -8,7 +8,7 @@
 
 ## Value Hypothesis
 
-Rush-FS should lose or be close to Node on tiny directories because N-API bridge cost dominates. It should approach parity on medium trees and win on large recursive directory walks by keeping traversal and batching in Rust.
+Vooya FS should lose or be close to Node on tiny directories because N-API bridge cost dominates. It should approach parity on medium trees and win on large recursive directory walks by keeping traversal and batching in Rust.
 
 ## Functional Matrix
 
@@ -23,14 +23,14 @@ Rush-FS should lose or be close to Node on tiny directories because N-API bridge
 - `tiny`: exposes bridge overhead.
 - `small`: typical small project directory.
 - `medium`: expected break-even search zone.
-- `large`: expected Rush-FS advantage zone.
+- `large`: expected Vooya FS advantage zone.
 - `extreme`: manual-only traversal stress case.
 
 ## Performance Metrics
 
 - Promise and sync results are reported separately.
 - Report wall-clock duration, `rss`, `heapUsed`, and `external`.
-- Report Node/Rush-FS ratio without failing on performance.
+- Report Node/Vooya FS ratio without failing on performance.
 
 ## Docs Alignment
 

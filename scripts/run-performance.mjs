@@ -11,7 +11,7 @@ const { getPerformanceReport, resetPerformanceReport } = require('../test/perfor
 function parseArgs(argv) {
   const options = {
     filter: undefined,
-    json: process.env.RUSH_FS_PERF_JSON,
+    json: process.env.VOOYA_FS_PERF_JSON,
   }
 
   for (let i = 0; i < argv.length; i++) {
@@ -25,19 +25,27 @@ function parseArgs(argv) {
       continue
     }
     if (arg === '--iterations') {
-      process.env.RUSH_FS_PERF_ITERATIONS = argv[++i]
+      process.env.VOOYA_FS_PERF_ITERATIONS = argv[++i]
       continue
     }
     if (arg.startsWith('--iterations=')) {
-      process.env.RUSH_FS_PERF_ITERATIONS = arg.slice('--iterations='.length)
+      process.env.VOOYA_FS_PERF_ITERATIONS = arg.slice('--iterations='.length)
       continue
     }
     if (arg === '--warmup') {
-      process.env.RUSH_FS_PERF_WARMUP = argv[++i]
+      process.env.VOOYA_FS_PERF_WARMUP = argv[++i]
       continue
     }
     if (arg.startsWith('--warmup=')) {
-      process.env.RUSH_FS_PERF_WARMUP = arg.slice('--warmup='.length)
+      process.env.VOOYA_FS_PERF_WARMUP = arg.slice('--warmup='.length)
+      continue
+    }
+    if (arg === '--large') {
+      process.env.VOOYA_FS_PERF_LARGE = '1'
+      continue
+    }
+    if (arg === '--extreme') {
+      process.env.VOOYA_FS_PERF_EXTREME = '1'
       continue
     }
     if (!arg.startsWith('--') && !options.filter) {

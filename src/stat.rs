@@ -182,7 +182,7 @@ impl Task for StatTask {
   }
 }
 
-#[napi(js_name = "stat")]
+#[napi(js_name = "stat", ts_return_type = "Promise<Stats>")]
 pub fn stat(path: String) -> AsyncTask<StatTask> {
   AsyncTask::new(StatTask {
     path,
@@ -190,7 +190,7 @@ pub fn stat(path: String) -> AsyncTask<StatTask> {
   })
 }
 
-#[napi(js_name = "lstat")]
+#[napi(js_name = "lstat", ts_return_type = "Promise<Stats>")]
 pub fn lstat(path: String) -> AsyncTask<StatTask> {
   AsyncTask::new(StatTask {
     path,

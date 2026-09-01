@@ -1,0 +1,36 @@
+# What is Vooya FS?
+
+Vooya FS is the next phase of **Rush-FS**: a Node.js filesystem library whose
+implementation is written primarily in Rust and exposed through stable Node-API.
+
+The rename is more than packaging. The project now follows three constraints:
+
+1. **Compatibility is tested, not implied.** Node 22/24 behavior is the oracle for
+   supported APIs, and unsupported input shapes are documented.
+2. **Native code must earn the boundary.** We target recursive, batched, parallel,
+   or fused work—not every small syscall.
+3. **Performance claims carry scale.** Tiny, small, medium, and large fixtures are
+   reported separately, including cases where Node wins.
+
+## Node-compatible surface and Vooya extensions
+
+Operations such as `readFile`, `writeFile`, `readdir`, `glob`, `cp`, and `rm` keep
+familiar Node-style promise and synchronous APIs. Options including bounded
+`concurrency` are explicitly marked as Vooya FS extensions.
+
+`scan` goes further: it deliberately combines traversal, include/exclude matching,
+hidden and ignore filtering, and metadata collection so those intermediate results
+never need to bounce through JavaScript.
+
+## Native Node-API, not browser WASM
+
+The production filesystem engine is a native addon because it needs direct host
+filesystem semantics, OS threads, and platform-specific permission, ownership,
+symlink, and timestamp behavior. Node-API gives the JavaScript surface ABI
+stability across supported Node versions.
+
+WebAssembly is central to the browser-facing [Vooya](https://github.com/vooyajs/vooya)
+project, but it is not automatically faster for Node filesystem work. A future WASI
+build may make sense as an explicit, portability-oriented package with a smaller
+declared capability set. It will not be a silent fallback until that capability set
+has its own conformance suite.

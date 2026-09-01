@@ -1,0 +1,13 @@
+[package]
+edition = "2021"
+name    = "vooya-fs-wasi-probe"
+publish = false
+version = "0.0.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+lto       = true
+opt-level = 3
+strip     = "symbols"

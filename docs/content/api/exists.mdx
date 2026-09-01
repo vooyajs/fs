@@ -5,7 +5,7 @@ Check if a path exists (file, directory, or symlink). Returns a boolean; does no
 ## Basic usage
 
 ```ts
-import { exists } from '@rush-fs/core'
+import { exists } from '@vooya/fs'
 
 const ok = await exists('./package.json')
 if (ok) await doSomething()
@@ -15,10 +15,10 @@ if (ok) await doSomething()
 
 ### `exists(path)`
 
-**Async.** Returns `Promise<boolean>`. This is a Rush-FS convenience API; Node does not expose `fs.promises.exists`.
+**Async.** Returns `Promise<boolean>`. This is a Vooya FS convenience API; Node does not expose `fs.promises.exists`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
+| Argument | Type   | Description    |
+| -------- | ------ | -------------- |
 | `path`   | string | Path to check. |
 
 ### `existsSync(path)`
@@ -29,15 +29,15 @@ if (ok) await doSomething()
 
 From repo benchmarks (`pnpm build && pnpm bench`):
 
-| Scenario                | Node.js | Rush-FS | Note                 |
-| ----------------------- | ------- | ------- | -------------------- |
-| existsSync (existing file) | 444 ns  | 1.34 µs | Node.js internal fast path |
+| Scenario                   | Node.js | Vooya FS | Note                       |
+| -------------------------- | ------- | -------- | -------------------------- |
+| existsSync (existing file) | 444 ns  | 1.34 µs  | Node.js internal fast path |
 
-For sync “exists” checks on hot paths, Node.js can be faster; for async or batch use Rush-FS is fine.
+For sync “exists” checks on hot paths, Node.js can be faster; for async or batch use Vooya FS is fine.
 
 ## Notes
 
 - **Race**: Between `exists()` and a subsequent operation the file may be deleted; prefer `stat` or try the operation and handle `ENOENT` when robustness matters.
 - **Type**: Use `stat`/`lstat` if you need to know whether the path is a file, directory, or symlink.
 - **Symlinks**: Broken symlinks return `false`, matching `node:fs.existsSync`.
-- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Rush-FS `exists` surface.
+- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `exists` surface.

@@ -8,14 +8,14 @@ import { capture } from '../_helpers/normalize.ts'
 
 test('cp: promise recursive copy matches node:fs/promises side effects', async (t) => {
   const fixture = await createScaleFixture('cp', 'tiny')
-  const destRoot = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-cp-dest-'))
+  const destRoot = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-cp-dest-'))
   const nodeDest = path.join(destRoot, 'node')
-  const rushDest = path.join(destRoot, 'rush')
+  const vooyaDest = path.join(destRoot, 'vooya')
 
   try {
     await nodeFs.cp(fixture.root, nodeDest, { recursive: true })
-    await cp(fixture.root, rushDest, { recursive: true })
-    t.deepEqual(await listTree(rushDest), await listTree(nodeDest))
+    await cp(fixture.root, vooyaDest, { recursive: true })
+    t.deepEqual(await listTree(vooyaDest), await listTree(nodeDest))
   } finally {
     await removeFixture(fixture.root)
     await removeFixture(destRoot)
@@ -23,11 +23,11 @@ test('cp: promise recursive copy matches node:fs/promises side effects', async (
 })
 
 test('cp: missing source rejects in both implementations', async (t) => {
-  const dest = path.join(os.tmpdir(), `rush-fs-cp-missing-${Date.now()}`)
-  const missing = path.join(os.tmpdir(), `rush-fs-cp-source-${Date.now()}`)
+  const dest = path.join(os.tmpdir(), `vooya-fs-cp-missing-${Date.now()}`)
+  const missing = path.join(os.tmpdir(), `vooya-fs-cp-source-${Date.now()}`)
   const nodeResult = await capture(() => nodeFs.cp(missing, dest, { recursive: true }))
-  const rushResult = await capture(() => cp(missing, dest, { recursive: true }) as Promise<unknown>)
+  const vooyaResult = await capture(() => cp(missing, dest, { recursive: true }) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
 })

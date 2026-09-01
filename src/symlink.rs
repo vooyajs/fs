@@ -95,7 +95,7 @@ impl Task for SymlinkTask {
   }
 }
 
-#[napi(js_name = "symlink")]
+#[napi(js_name = "symlink", ts_return_type = "Promise<void>")]
 pub fn symlink(
   target: String,
   path: String,

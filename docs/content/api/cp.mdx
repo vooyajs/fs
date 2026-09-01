@@ -1,11 +1,11 @@
 # cp
 
-Copy files and directories recursively (Node.js 16.7+). Supports **concurrency** (Rush-FS extension) for faster tree copy.
+Copy files and directories recursively (Node.js 16.7+). Supports **concurrency** (Vooya FS extension) for faster tree copy.
 
 ## Basic usage
 
 ```ts
-import { cp } from '@rush-fs/core'
+import { cp } from '@vooya/fs'
 
 await cp('./src', './dest', { recursive: true })
 await cp('./src', './dest', { recursive: true, force: true, concurrency: 4 })
@@ -17,13 +17,13 @@ await cp('./src', './dest', { recursive: true, force: true, concurrency: 4 })
 
 **Async.** Returns `Promise<void>`.
 
-| Argument  | Type   | Description |
-| --------- | ------ | ----------- |
+| Argument  | Type   | Description                      |
+| --------- | ------ | -------------------------------- |
 | `src`     | string | Source path (file or directory). |
-| `dest`    | string | Destination path. |
-| `options` | object | Optional. See below. |
+| `dest`    | string | Destination path.                |
+| `options` | object | Optional. See below.             |
 
-**Options:** `recursive` (boolean), `force` (boolean, default true), `errorOnExist`, `preserveTimestamps`, `dereference`, `verbatimSymlinks`, **`concurrency`** (number, Rush-FS, default 1).
+**Options:** `recursive` (boolean), `force` (boolean, default true), `errorOnExist`, `preserveTimestamps`, `dereference`, `verbatimSymlinks`, **`concurrency`** (number, Vooya FS, default 1).
 
 ### `cpSync(src, dest, options?)`
 
@@ -33,20 +33,38 @@ await cp('./src', './dest', { recursive: true, force: true, concurrency: 4 })
 
 From repo benchmarks (`pnpm build && pnpm bench`), Apple Silicon, release build:
 
-| Scenario                    | Node.js   | Rush-FS 4T | Speedup |
-| -------------------------- | --------- | ---------- | ------- |
-| Flat dir (500 files)       | 86.45 ms  | 32.88 ms   | **2.6x** |
-| Tree dir (~363 nodes)      | 108.73 ms | 46.88 ms   | **2.3x** |
+| Scenario              | Node.js   | Vooya FS 4T | Speedup  |
+| --------------------- | --------- | ----------- | -------- |
+| Flat dir (500 files)  | 86.45 ms  | 32.88 ms    | **2.6x** |
+| Tree dir (~363 nodes) | 108.73 ms | 46.88 ms    | **2.3x** |
 
-| Scenario                    | Rush-FS 1T | Rush-FS 4T | Rush-FS 8T |
-| --------------------------- | ---------- | ---------- | ---------- |
-| Flat dir (500 files)        | 61.56 ms   | 32.88 ms   | 36.67 ms   |
-| Tree dir (~84 nodes)        | 16.94 ms   | 10.62 ms   | 9.76 ms    |
-| Tree dir (~363 nodes)       | 75.39 ms   | 46.88 ms   | 46.18 ms   |
+| Scenario              | Vooya FS 1T | Vooya FS 4T | Vooya FS 8T |
+| --------------------- | ----------- | ----------- | ----------- |
+| Flat dir (500 files)  | 61.56 ms    | 32.88 ms    | 36.67 ms    |
+| Tree dir (~84 nodes)  | 16.94 ms    | 10.62 ms    | 9.76 ms     |
+| Tree dir (~363 nodes) | 75.39 ms    | 46.88 ms    | 46.18 ms    |
 
 Optimal **concurrency** on Apple Silicon is about **4 threads**; beyond that I/O becomes the bottleneck.
 
+### Local scale report
+
+{/* vooya-fs-perf:start cp */}
+
+_Generated from local performance reports. Do not edit this block by hand._
+
+- Runtime: v22.22.0 on darwin/arm64
+- Samples: 2 warmup runs, 7 measured runs
+- Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
+
+| Scale  |               Fixture |   Node.js |  Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
+| ------ | --------------------: | --------: | --------: | -----------: | -------: | -----------: |
+| tiny   |      8 files / 2 dirs |   2.24 ms |   0.76 ms | 2.95x faster |  36.6 KB |       2.3 KB |
+| small  |   104 files / 13 dirs |  20.18 ms |   6.80 ms | 2.97x faster |  16.0 KB |       4.6 KB |
+| medium | 2728 files / 341 dirs | 513.46 ms | 182.18 ms | 2.82x faster | 989.7 KB |          0 B |
+
+{/* vooya-fs-perf:end cp */}
+
 ## Notes
 
-- **concurrency**: Rush-FS extension. Increase (e.g. 4) for large directory trees; default is 1.
+- **concurrency**: Vooya FS extension. Increase (e.g. 4) for large directory trees; default is 1.
 - **Symlinks**: Options `dereference` and `verbatimSymlinks` behave like Node.js. Recursive copy does not follow symlinks by default.

@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 function tmpFile(name: string, content?: string | Buffer): string {
-  const dir = join(tmpdir(), `rush-fs-test-enc-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(tmpdir(), `vooya-fs-test-enc-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   mkdirSync(dir, { recursive: true })
   const file = join(dir, name)
   if (content !== undefined) {

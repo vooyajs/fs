@@ -8,7 +8,7 @@ import { readFile, readFileSync, writeFileSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-readFile-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-readFile-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -27,20 +27,20 @@ test('readFile: promise Buffer output matches node:fs/promises byte-for-byte', a
   await nodeFs.writeFile(file, content)
 
   const nodeResult = await nodeFs.readFile(file)
-  const rushResult = await readFile(file)
+  const vooyaResult = await readFile(file)
 
-  t.deepEqual(asBuffer(rushResult), nodeResult)
+  t.deepEqual(asBuffer(vooyaResult), nodeResult)
 })
 
 test('readFile: promise text encodings match node:fs/promises', async (t) => {
   const root = await withFixture(t)
   const file = path.join(root, 'text.txt')
-  await nodeFs.writeFile(file, 'hello rush-fs\nline 2\n', 'utf8')
+  await nodeFs.writeFile(file, 'hello vooya-fs\nline 2\n', 'utf8')
 
   for (const encoding of ['utf8', 'utf-8', 'ascii', 'latin1', 'base64', 'base64url', 'hex']) {
     const nodeResult = await nodeFs.readFile(file, { encoding: encoding as BufferEncoding })
-    const rushResult = await readFile(file, { encoding })
-    t.is(rushResult, nodeResult, encoding)
+    const vooyaResult = await readFile(file, { encoding })
+    t.is(vooyaResult, nodeResult, encoding)
   }
 })
 
@@ -53,7 +53,7 @@ test('readFile: sync Buffer and utf8 output match node:fs', async (t) => {
   t.is(readFileSync(file, { encoding: 'utf8' }), nodeFsSync.readFileSync(file, 'utf8'))
 })
 
-test('readFile: Rush-FS lines extension reads a documented text range', async (t) => {
+test('readFile: Vooya FS lines extension reads a documented text range', async (t) => {
   const root = await withFixture(t)
   const file = path.join(root, 'lines.txt')
   const text = ['line 1', 'line 2', 'line 3', 'line 4'].join('\n')
@@ -67,18 +67,27 @@ test('readFile: missing file rejects in both implementations', async (t) => {
   const missing = path.join(root, 'missing.txt')
 
   const nodeResult = await capture(() => nodeFs.readFile(missing))
-  const rushResult = await capture(() => readFile(missing) as Promise<unknown>)
+  const vooyaResult = await capture(() => readFile(missing) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
 })
 
 test('readFile: directory input rejects in both implementations', async (t) => {
   const root = await withFixture(t)
 
   const nodeResult = await capture(() => nodeFs.readFile(root))
-  const rushResult = await capture(() => readFile(root) as Promise<unknown>)
+  const vooyaResult = await capture(() => readFile(root) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
+})
+
+test('readFile: invalid flags reject instead of silently reading', async (t) => {
+  const root = await withFixture(t)
+  const file = path.join(root, 'invalid-flag.txt')
+  await nodeFs.writeFile(file, 'data')
+
+  await t.throwsAsync(() => nodeFs.readFile(file, { flag: 'invalid' as never }))
+  await t.throwsAsync(() => readFile(file, { flag: 'invalid' }) as Promise<unknown>)
 })

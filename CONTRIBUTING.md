@@ -1,6 +1,6 @@
 # Contributing Guide
 
-Welcome to contributing to rush-fs! This document walks you through environment setup, project structure, implementing new APIs, writing tests, and opening a PR.
+Welcome to contributing to vooya-fs! This document walks you through environment setup, project structure, implementing new APIs, writing tests, and opening a PR.
 
 ## Table of contents
 
@@ -33,7 +33,7 @@ Welcome to contributing to rush-fs! This document walks you through environment 
 ```bash
 # 1. Clone the repo
 git clone <repo-url>
-cd rush-fs
+cd vooya-fs
 
 # 2. Ensure Rust toolchain is ready
 rustup default stable
@@ -71,7 +71,7 @@ pnpm format          # Format all code (Prettier + cargo fmt + taplo)
 ## Project structure
 
 ```
-rush-fs/
+vooya-fs/
 ├── src/                    # Rust source (core implementation)
 │   ├── lib.rs              # Module registration entry
 │   ├── types.rs            # Shared types (Dirent, Stats)
@@ -235,7 +235,7 @@ Before implementing any API, search for the function name in these files and und
 
 ## Performance: parallelism
 
-rush-fs uses Rust’s parallelism for heavy operations. Common approaches:
+vooya-fs uses Rust’s parallelism for heavy operations. Common approaches:
 
 ### 1. jwalk — parallel directory walk
 
@@ -309,7 +309,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 function tmpDir(): string {
-  const dir = join(tmpdir(), `rush-fs-test-symlink-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(tmpdir(), `vooya-fs-test-symlink-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -345,7 +345,7 @@ Verify correct behavior for sync and async in normal cases.
 
 #### 2. Parity tests
 
-Call both `node:fs` and rush-fs and compare results. Essential for API compatibility:
+Call both `node:fs` and vooya-fs and compare results. Essential for API compatibility:
 
 ```typescript
 import * as nodeFs from 'node:fs'
@@ -406,7 +406,7 @@ npx ava __test__/stat.spec.ts    # Single file
 
 Benchmarks live in `benchmark/`. Read-only operations (stat, readFile, exists) use [mitata](https://github.com/evanwashere/mitata) for micro-benchmarks; destructive or side-effectful ones (writeFile, copyFile, mkdir, rm) use manual iterations and `process.hrtime`, with test data recreated per run.
 
-The SDD/TDD performance reports live in `test/performance/`. They are report-only and do not fail on speed or memory results. Use them to attach evidence to PRs for APIs where Rush-FS is expected to improve on Node.js.
+The SDD/TDD performance reports live in `test/performance/`. They are report-only and do not fail on speed or memory results. Use them to attach evidence to PRs for APIs where Vooya FS is expected to improve on Node.js.
 
 ### Existing benchmarks
 
@@ -447,10 +447,10 @@ import { someSync } from '../index.js'
 
 group('Some API', () => {
   bench('Node.js', () => fs.someSync(args)).baseline()
-  bench('Rush-FS', () => someSync(args))
+  bench('Vooya FS', () => someSync(args))
 })
 
-group('Rush-FS Concurrency', () => {
+group('Vooya FS Concurrency', () => {
   bench('Default', () => someSync(args)).baseline()
   bench('4 Threads', () => someSync(args, { concurrency: 4 }))
   bench('8 Threads', () => someSync(args, { concurrency: 8 }))
@@ -465,10 +465,10 @@ await run({ colors: true })
 - Mark Node.js as `.baseline()` for comparison
 - Prefer real-world data (e.g. `node_modules`) where useful
 - mitata warms up automatically; for manual benches, run a warmup first
-- For `test/performance/`, defaults are 2 warmup runs and 10 measured runs; override with `--warmup`, `--iterations`, `RUSH_FS_PERF_WARMUP`, or `RUSH_FS_PERF_ITERATIONS`
+- For `test/performance/`, defaults are 2 warmup runs and 10 measured runs; override with `--warmup`, `--iterations`, `VOOYA_FS_PERF_WARMUP`, or `VOOYA_FS_PERF_ITERATIONS`
 - Manual performance reports record wall-clock time plus `rss`, `heapUsed`, and `external`; generated docs use trimmed mean for time and average per-run memory deltas
-- For `test/performance/`, default scales are `tiny`, `small`, `medium`, and `large`; set `RUSH_FS_EXTREME=1` to include `extreme`
-- Performance reports should expose both wins and losses. Tiny cases may show Rush-FS losing because bridge overhead dominates.
+- For `test/performance/`, default scales stop at `medium`; pass `--large` for the 156k-file fixture or `--extreme` for the manual stress fixture
+- Performance reports should expose both wins and losses. Tiny cases may show Vooya FS losing because bridge overhead dominates.
 - Use `--json <path>` when results should be reviewed or synced into API docs.
 
 ---
@@ -595,5 +595,5 @@ When cutting a new version (before running the Release workflow):
    - `package.json` → `"version": "x.y.z"`
    - `Cargo.toml` → `version = "x.y.z"`
    - npm does not allow re-publishing the same version; if a previous run partially published (e.g. 0.0.4 already on npm), bump to the next version (e.g. 0.0.5) and release again.
-2. **Update [CHANGELOG.md](CHANGELOG.md):** move items from **\[Unreleased]** into a new `## [x.y.z] - YYYY-MM-DD` section, and add the version link at the bottom (`[x.y.z]: https://github.com/CoderSerio/rush-fs/compare/vA.B.C...vx.y.z`).
+2. **Update [CHANGELOG.md](CHANGELOG.md):** move items from **\[Unreleased]** into a new `## [x.y.z] - YYYY-MM-DD` section, and add the version link at the bottom (`[x.y.z]: https://github.com/vooyajs/fs/compare/vA.B.C...vx.y.z`).
 3. **Run Release:** push to `main`, then either **Actions → Release → Run workflow** or `git tag vx.y.z && git push origin vx.y.z`.

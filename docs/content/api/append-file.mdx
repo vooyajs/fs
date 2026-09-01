@@ -5,7 +5,7 @@ Append data to a file, creating the file if it does not exist.
 ## Basic usage
 
 ```ts
-import { appendFile } from '@rush-fs/core'
+import { appendFile } from '@vooya/fs'
 
 await appendFile('./log.txt', 'new line\n')
 await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
@@ -17,11 +17,11 @@ await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
 
 **Async.** Returns `Promise<void>`.
 
-| Argument  | Type   | Description |
-| --------- | ------ | ----------- |
-| `path`    | string | File path. |
-| `data`    | string \| Buffer | Data to append. |
-| `options` | object | Optional: `encoding`, `mode`, `flag`. |
+| Argument  | Type             | Description                           |
+| --------- | ---------------- | ------------------------------------- |
+| `path`    | string           | File path.                            |
+| `data`    | string \| Buffer | Data to append.                       |
+| `options` | object           | Optional: `encoding`, `mode`, `flag`. |
 
 ### `appendFileSync(path, data, options?)`
 
@@ -31,9 +31,9 @@ await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
 
 From repo benchmarks (`pnpm build && pnpm bench`):
 
-| Scenario     | Node.js | Rush-FS | Ratio |
-| ------------ | ------- | ------- | ----- |
-| appendFile   | 30 µs   | 27 µs   | 0.9x  |
+| Scenario   | Node.js | Vooya FS | Ratio |
+| ---------- | ------- | -------- | ----- |
+| appendFile | 30 µs   | 27 µs    | 0.9x  |
 
 On par with Node.js; single-file append is an atomic syscall.
 
@@ -41,4 +41,4 @@ On par with Node.js; single-file append is an atomic syscall.
 
 - **Encodings**: utf8, ascii, latin1, base64, base64url, hex. Same semantics as Node.js.
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, TypedArray/DataView data, `AbortSignal`, and newer `flush` behavior are not part of the current Rush-FS `appendFile` surface.
+- **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, TypedArray/DataView data, `AbortSignal`, and newer `flush` behavior are not part of the current Vooya FS `appendFile` surface.

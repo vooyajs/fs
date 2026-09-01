@@ -20,8 +20,7 @@ fn mkdir_impl(path_str: String, options: Option<MkdirOptions>) -> Result<Option<
   });
   let recursive = opts.recursive.unwrap_or(false);
 
-  #[cfg(unix)]
-  let _mode = opts.mode.unwrap_or(0o777);
+  let mode = opts.mode.unwrap_or(0o777);
 
   if recursive {
     // Node.js returns the first directory path created, or undefined if it already existed
@@ -53,29 +52,28 @@ fn mkdir_impl(path_str: String, options: Option<MkdirOptions>) -> Result<Option<
       )));
     }
 
-    fs::create_dir_all(path).map_err(|e| mkdir_error(path, e))?;
-
-    #[cfg(unix)]
-    {
-      use std::os::unix::fs::PermissionsExt;
-      for ancestor in &ancestors {
-        let _ = fs::set_permissions(ancestor, fs::Permissions::from_mode(_mode));
-      }
-    }
+    create_dir(path, true, mode).map_err(|e| mkdir_error(path, e))?;
 
     let first_created = ancestors.last().map(|p| p.to_string_lossy().to_string());
     Ok(first_created)
   } else {
-    fs::create_dir(path).map_err(|e| mkdir_error(path, e))?;
-
-    #[cfg(unix)]
-    {
-      use std::os::unix::fs::PermissionsExt;
-      let _ = fs::set_permissions(path, fs::Permissions::from_mode(_mode));
-    }
+    create_dir(path, false, mode).map_err(|e| mkdir_error(path, e))?;
 
     Ok(None)
   }
+}
+
+fn create_dir(path: &Path, recursive: bool, mode: u32) -> std::io::Result<()> {
+  let mut builder = fs::DirBuilder::new();
+  builder.recursive(recursive);
+  #[cfg(unix)]
+  {
+    use std::os::unix::fs::DirBuilderExt;
+    builder.mode(mode);
+  }
+  #[cfg(not(unix))]
+  let _ = mode;
+  builder.create(path)
 }
 
 fn mkdir_error(path: &Path, err: std::io::Error) -> Error {
@@ -104,8 +102,11 @@ fn mkdir_error(path: &Path, err: std::io::Error) -> Error {
 }
 
 #[napi(js_name = "mkdirSync")]
-pub fn mkdir_sync(path: String, options: Option<MkdirOptions>) -> Result<Option<String>> {
-  mkdir_impl(path, options)
+pub fn mkdir_sync(
+  path: String,
+  options: Option<MkdirOptions>,
+) -> Result<Either<String, Undefined>> {
+  mkdir_impl(path, options).map(Either::from)
 }
 
 // ========= async version =========
@@ -117,18 +118,18 @@ pub struct MkdirTask {
 
 impl Task for MkdirTask {
   type Output = Option<String>;
-  type JsValue = Option<String>;
+  type JsValue = Either<String, Undefined>;
 
   fn compute(&mut self) -> Result<Self::Output> {
     mkdir_impl(self.path.clone(), self.options.clone())
   }
 
   fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
-    Ok(output)
+    Ok(Either::from(output))
   }
 }
 
-#[napi(js_name = "mkdir")]
+#[napi(js_name = "mkdir", ts_return_type = "Promise<string | undefined>")]
 pub fn mkdir(path: String, options: Option<MkdirOptions>) -> AsyncTask<MkdirTask> {
   AsyncTask::new(MkdirTask { path, options })
 }

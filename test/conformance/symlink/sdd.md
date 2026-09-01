@@ -8,7 +8,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS path input today: `string` for `target` and `path`.
+- Supported Vooya FS path input today: `string` for `target` and `path`.
 - Supported type input today: optional string; on Windows the implementation handles `file`, `dir`, and `junction`, and on Unix it is ignored.
 - Supported behavior: create symlinks and store relative targets as-is.
 - Unsupported Node surface for this SDD: `Buffer` paths, `URL` paths, strict type union typing/validation, callback API shape, and exact Node error object metadata.
@@ -24,7 +24,7 @@
 
 ## Known Gaps
 
-| Behavior                   | Node oracle                                                             | Current Rush-FS behavior                                                                                                 | Reason                                                                                    | Follow-up                   |
+| Behavior                   | Node oracle                                                             | Current Vooya FS behavior                                                                                                | Reason                                                                                    | Follow-up                   |
 | -------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | --------------------------- |
 | Error object fields        | Rejects or throws with Node-style `code`, `syscall`, `path`, and `dest` | Message contains Node-like text for common cases, but N-API exposes `code: "GenericFailure"` and omits structured fields | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
 | Path-like inputs           | Node accepts strings, Buffers, and file URLs                            | Type surface currently accepts string paths only                                                                         | Path input expansion is deferred globally                                                 | API surface expansion       |

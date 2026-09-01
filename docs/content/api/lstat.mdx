@@ -5,7 +5,7 @@ Get file/directory metadata without following symlinks. For the link target, use
 ## Basic usage
 
 ```ts
-import { lstat } from '@rush-fs/core'
+import { lstat } from '@vooya/fs'
 
 const s = await lstat('./some-link')
 console.log(s.isSymbolicLink(), s.size)
@@ -17,8 +17,8 @@ console.log(s.isSymbolicLink(), s.size)
 
 **Async.** Returns `Promise<Stats>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
+| Argument | Type   | Description                       |
+| -------- | ------ | --------------------------------- |
 | `path`   | string | File, directory, or symlink path. |
 
 Return type `Stats` is the same as `stat`; when `path` is a symlink, the returned stats describe the link, not the target.
@@ -33,7 +33,7 @@ Single syscall; same order as `stat`. On par with Node.js (~1.2x in micro-benchm
 
 ### Local scale report
 
-{/* rush-fs-perf:start lstat */}
+{/* vooya-fs-perf:start lstat */}
 
 _Generated from local performance reports. Do not edit this block by hand._
 
@@ -41,17 +41,17 @@ _Generated from local performance reports. Do not edit this block by hand._
 - Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
-| Scale | Fixture | Node.js | Rush-FS | Ratio | Node RSS | Rush-FS RSS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| single-file | - | 0.05 ms | 0.13 ms | 2.62x slower | 30.4 KB | 6.4 KB |
-| directory | - | 0.14 ms | 0.06 ms | 2.56x faster | 0 B | 3.2 KB |
-| symlink | - | 0.04 ms | 0.03 ms | 1.57x faster | 0 B | 0 B |
-| batch-128-files | - | 1.48 ms | 1.34 ms | 1.10x faster | 8.0 KB | 0 B |
+| Scale           | Fixture | Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
+| --------------- | ------: | ------: | -------: | -----------: | -------: | -----------: |
+| single-file     |       - | 0.05 ms |  0.13 ms | 2.62x slower |  30.4 KB |       6.4 KB |
+| directory       |       - | 0.14 ms |  0.06 ms | 2.56x faster |      0 B |       3.2 KB |
+| symlink         |       - | 0.04 ms |  0.03 ms | 1.57x faster |      0 B |          0 B |
+| batch-128-files |       - | 1.48 ms |  1.34 ms | 1.10x faster |   8.0 KB |          0 B |
 
-{/* rush-fs-perf:end lstat */}
+{/* vooya-fs-perf:end lstat */}
 
 ## Notes
 
 - **Symlinks**: Use `lstat` to detect and inspect symlinks; use `stat` to get the resolved file’s stats.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node options**: `bigint`, `throwIfNoEntry`, `Buffer` paths, and `URL` paths are not part of the current Rush-FS `lstat` surface.
+- **Unsupported Node options**: `bigint`, `throwIfNoEntry`, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `lstat` surface.

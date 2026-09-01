@@ -1,0 +1,86 @@
+# scan
+
+Walk a directory tree, apply rooted include/exclude patterns, and return metadata in
+one native operation. `scan` is a Vooya FS extension, not a Node `fs` compatibility
+API.
+
+## Basic usage
+
+```ts
+import { scan } from '@vooya/fs'
+
+const entries = await scan('./packages', {
+  include: ['**/*.{ts,tsx,rs}'],
+  exclude: ['**/node_modules/**', '**/dist/**'],
+  skipHidden: true,
+  gitIgnore: true,
+  concurrency: 4,
+})
+```
+
+## Methods
+
+### `scan(root, options?)`
+
+Returns `Promise<ScanEntry[]>`.
+
+### `scanSync(root, options?)`
+
+Returns `ScanEntry[]` and throws on error.
+
+## Options
+
+| Option            | Type       | Default  | Description                            |
+| ----------------- | ---------- | -------- | -------------------------------------- |
+| `include`         | `string[]` | `['**']` | Rooted glob patterns to include.       |
+| `exclude`         | `string[]` | `[]`     | Rooted glob patterns to omit.          |
+| `withDirectories` | `boolean`  | `false`  | Include matching directories.          |
+| `followSymlinks`  | `boolean`  | `false`  | Follow links and use target metadata.  |
+| `gitIgnore`       | `boolean`  | `false`  | Apply standard ignore files.           |
+| `skipHidden`      | `boolean`  | `false`  | Skip hidden entries and subtrees.      |
+| `concurrency`     | `number`   | auto     | Traversal worker count; `1` is serial. |
+
+## Result
+
+Each result contains:
+
+```ts
+interface ScanEntry {
+  path: string // relative to root
+  name: string
+  kind: 'file' | 'directory' | 'symlink' | 'other'
+  size: number
+  mode: number
+  mtimeMs: number
+  depth: number
+}
+```
+
+Results are sorted by relative path for deterministic builds. Traversal and metadata
+errors reject the entire operation instead of returning an incomplete result.
+
+## When it wins
+
+`scan` is designed to replace recursive `readdir` followed by many `stat`/`lstat`
+calls and JavaScript-side filtering. The current development benchmark is slower on
+8- and 104-file fixtures, but about 3.2x faster on a 2,728-file fixture. Keep tiny
+trees in Node; use `scan` when traversal and metadata work are large enough to
+amortize the boundary.
+
+### Local scale report
+
+{/* vooya-fs-perf:start scan */}
+
+_Generated from local performance reports. Do not edit this block by hand._
+
+- Runtime: v22.22.0 on darwin/arm64
+- Samples: 2 warmup runs, 10 measured runs
+- Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
+
+| Scale  |               Fixture |  Node.js | Vooya FS |         Ratio | Node RSS | Vooya FS RSS |
+| ------ | --------------------: | -------: | -------: | ------------: | -------: | -----------: |
+| tiny   |      8 files / 2 dirs |  0.26 ms |  3.43 ms | 13.44x slower |  20.8 KB |       6.4 KB |
+| small  |   104 files / 13 dirs |  1.43 ms |  3.51 ms |  2.45x slower |  17.6 KB |       4.8 KB |
+| medium | 2728 files / 341 dirs | 33.98 ms | 10.70 ms |  3.18x faster | 718.4 KB |      52.8 KB |
+
+{/* vooya-fs-perf:end scan */}

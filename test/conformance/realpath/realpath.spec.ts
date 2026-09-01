@@ -8,7 +8,7 @@ import { realpath, realpathSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-realpath-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-realpath-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -68,10 +68,10 @@ test('realpath: missing paths reject or throw in both implementations', async (t
   const missing = path.join(root, 'missing.txt')
 
   const nodeResult = await capture(() => nodeFs.realpath(missing))
-  const rushResult = await capture(() => realpath(missing) as Promise<unknown>)
+  const vooyaResult = await capture(() => realpath(missing) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.realpathSync(missing))
   t.throws(() => realpathSync(missing))
 })
@@ -87,10 +87,10 @@ test('realpath: broken symlink paths reject or throw in both implementations', a
   await nodeFs.symlink(path.join(root, 'missing-target.txt'), link)
 
   const nodeResult = await capture(() => nodeFs.realpath(link))
-  const rushResult = await capture(() => realpath(link) as Promise<unknown>)
+  const vooyaResult = await capture(() => realpath(link) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.realpathSync(link))
   t.throws(() => realpathSync(link))
 })

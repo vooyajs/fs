@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 function tmpFile(name: string): string {
-  const dir = join(tmpdir(), `rush-fs-test-utimes-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(tmpdir(), `vooya-fs-test-utimes-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   mkdirSync(dir, { recursive: true })
   const file = join(dir, name)
   writeFileSync(file, 'test')
@@ -13,7 +13,7 @@ function tmpFile(name: string): string {
 }
 
 function tmpDirPath(name: string): string {
-  const dir = join(tmpdir(), `rush-fs-test-utimes-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(tmpdir(), `vooya-fs-test-utimes-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   const target = join(dir, name)
   mkdirSync(target, { recursive: true })
   return target

@@ -45,7 +45,7 @@ export declare class Stats {
   get birthtime(): Date
 }
 
-export declare function access(path: string, mode?: number | undefined | null): Promise<unknown>
+export declare function access(path: string, mode?: number | undefined | null): Promise<void>
 
 export declare function accessSync(path: string, mode?: number | undefined | null): void
 
@@ -53,7 +53,7 @@ export declare function appendFile(
   path: string,
   data: string | Buffer,
   options?: WriteFileOptions | undefined | null,
-): Promise<unknown>
+): Promise<void>
 
 export declare function appendFileSync(
   path: string,
@@ -61,19 +61,19 @@ export declare function appendFileSync(
   options?: WriteFileOptions | undefined | null,
 ): void
 
-export declare function chmod(path: string, mode: number): Promise<unknown>
+export declare function chmod(path: string, mode: number): Promise<void>
 
 export declare function chmodSync(path: string, mode: number): void
 
-export declare function chown(path: string, uid: number, gid: number): Promise<unknown>
+export declare function chown(path: string, uid: number, gid: number): Promise<void>
 
 export declare function chownSync(path: string, uid: number, gid: number): void
 
-export declare function copyFile(src: string, dest: string, mode?: number | undefined | null): Promise<unknown>
+export declare function copyFile(src: string, dest: string, mode?: number | undefined | null): Promise<void>
 
 export declare function copyFileSync(src: string, dest: string, mode?: number | undefined | null): void
 
-export declare function cp(src: string, dest: string, options?: CpOptions | undefined | null): Promise<unknown>
+export declare function cp(src: string, dest: string, options?: CpOptions | undefined | null): Promise<void>
 
 export interface CpOptions {
   recursive?: boolean
@@ -83,7 +83,7 @@ export interface CpOptions {
   dereference?: boolean
   verbatimSymlinks?: boolean
   /**
-   * Rush-FS extension: number of parallel threads for recursive copy.
+   * Vooya FS extension: number of parallel threads for recursive copy.
    * 0 or 1 means sequential; > 1 enables rayon parallel traversal.
    */
   concurrency?: number
@@ -91,11 +91,14 @@ export interface CpOptions {
 
 export declare function cpSync(src: string, dest: string, options?: CpOptions | undefined | null): void
 
-export declare function exists(path: string): Promise<unknown>
+export declare function exists(path: string): Promise<boolean>
 
 export declare function existsSync(path: string): boolean
 
-export declare function glob(pattern: string, options?: GlobOptions | undefined | null): Promise<unknown>
+export declare function glob(
+  pattern: string,
+  options?: GlobOptions | undefined | null,
+): Promise<Array<string> | Array<Dirent>>
 
 export interface GlobOptions {
   cwd?: string
@@ -115,28 +118,31 @@ export interface LineRange {
   to: number
 }
 
-export declare function link(existingPath: string, newPath: string): Promise<unknown>
+export declare function link(existingPath: string, newPath: string): Promise<void>
 
 export declare function linkSync(existingPath: string, newPath: string): void
 
-export declare function lstat(path: string): Promise<unknown>
+export declare function lstat(path: string): Promise<Stats>
 
 export declare function lstatSync(path: string): Stats
 
-export declare function mkdir(path: string, options?: MkdirOptions | undefined | null): Promise<unknown>
+export declare function mkdir(path: string, options?: MkdirOptions | undefined | null): Promise<string | undefined>
 
 export interface MkdirOptions {
   recursive?: boolean
   mode?: number
 }
 
-export declare function mkdirSync(path: string, options?: MkdirOptions | undefined | null): string | null
+export declare function mkdirSync(path: string, options?: MkdirOptions | undefined | null): string | undefined
 
-export declare function mkdtemp(prefix: string): Promise<unknown>
+export declare function mkdtemp(prefix: string): Promise<string>
 
 export declare function mkdtempSync(prefix: string): string
 
-export declare function readdir(path: string, options?: ReaddirOptions | undefined | null): Promise<unknown>
+export declare function readdir(
+  path: string,
+  options?: ReaddirOptions | undefined | null,
+): Promise<Array<string> | Array<Dirent>>
 
 /** * Reads the contents of a directory.
  * @param {string | Buffer | URL} path
@@ -169,7 +175,10 @@ export declare function readdirSync(
   options?: ReaddirOptions | undefined | null,
 ): Array<string> | Array<Dirent>
 
-export declare function readFile(path: string, options?: string | ReadFileOptions | undefined | null): Promise<unknown>
+export declare function readFile(
+  path: string,
+  options?: string | ReadFileOptions | undefined | null,
+): Promise<string | Buffer>
 
 export interface ReadFileOptions {
   encoding?: string
@@ -182,21 +191,21 @@ export declare function readFileSync(
   options?: string | ReadFileOptions | undefined | null,
 ): string | Buffer
 
-export declare function readlink(path: string): Promise<unknown>
+export declare function readlink(path: string): Promise<string>
 
 export declare function readlinkSync(path: string): string
 
-export declare function realpath(path: string): Promise<unknown>
+export declare function realpath(path: string): Promise<string>
 
 export declare function realpathSync(path: string): string
 
-export declare function rename(oldPath: string, newPath: string): Promise<unknown>
+export declare function rename(oldPath: string, newPath: string): Promise<void>
 
 export declare function renameSync(oldPath: string, newPath: string): void
 
-export declare function rm(path: string, options?: RmOptions | undefined | null): Promise<unknown>
+export declare function rm(path: string, options?: RmOptions | undefined | null): Promise<void>
 
-export declare function rmdir(path: string): Promise<unknown>
+export declare function rmdir(path: string): Promise<void>
 
 export declare function rmdirSync(path: string): void
 
@@ -209,7 +218,7 @@ export declare function rmdirSync(path: string): void
  *   encountered, Node.js retries the operation with a linear backoff of `retryDelay` ms longer on
  *   each try. This option represents the number of retries.
  * - `retryDelay`: The amount of time in milliseconds to wait between retries (default 100ms).
- * - `concurrency` (rush-fs extension): Number of parallel threads for recursive removal.
+ * - `concurrency` (vooya-fs extension): Number of parallel threads for recursive removal.
  */
 export interface RmOptions {
   force?: boolean
@@ -221,23 +230,56 @@ export interface RmOptions {
 
 export declare function rmSync(path: string, options?: RmOptions | undefined | null): void
 
-export declare function stat(path: string): Promise<unknown>
+export declare function scan(root: string, options?: ScanOptions | undefined | null): Promise<Array<ScanEntry>>
+
+export interface ScanEntry {
+  /** Path relative to the scan root. */
+  path: string
+  name: string
+  /** One of file, directory, symlink, or other. */
+  kind: string
+  size: number
+  mode: number
+  mtimeMs: number
+  depth: number
+}
+
+export interface ScanOptions {
+  /** Glob patterns rooted at `root`. Defaults to `**`. */
+  include?: Array<string>
+  /** Glob patterns to omit from the result. */
+  exclude?: Array<string>
+  /** Include matching directories as well as files. Defaults to false. */
+  withDirectories?: boolean
+  /** Follow symbolic links while walking and when collecting metadata. */
+  followSymlinks?: boolean
+  /** Apply .gitignore and other standard ignore files. Defaults to false. */
+  gitIgnore?: boolean
+  /** Skip hidden files and directories. Defaults to false. */
+  skipHidden?: boolean
+  /** Number of traversal threads. Zero selects the runtime heuristic. */
+  concurrency?: number
+}
+
+export declare function scanSync(root: string, options?: ScanOptions | undefined | null): Array<ScanEntry>
+
+export declare function stat(path: string): Promise<Stats>
 
 export declare function statSync(path: string): Stats
 
-export declare function symlink(target: string, path: string, symlinkType?: string | undefined | null): Promise<unknown>
+export declare function symlink(target: string, path: string, symlinkType?: string | undefined | null): Promise<void>
 
 export declare function symlinkSync(target: string, path: string, symlinkType?: string | undefined | null): void
 
-export declare function truncate(path: string, len?: number | undefined | null): Promise<unknown>
+export declare function truncate(path: string, len?: number | undefined | null): Promise<void>
 
 export declare function truncateSync(path: string, len?: number | undefined | null): void
 
-export declare function unlink(path: string): Promise<unknown>
+export declare function unlink(path: string): Promise<void>
 
 export declare function unlinkSync(path: string): void
 
-export declare function utimes(path: string, atime: number, mtime: number): Promise<unknown>
+export declare function utimes(path: string, atime: number, mtime: number): Promise<void>
 
 export declare function utimesSync(path: string, atime: number, mtime: number): void
 
@@ -245,7 +287,7 @@ export declare function writeFile(
   path: string,
   data: string | Buffer,
   options?: WriteFileOptions | undefined | null,
-): Promise<unknown>
+): Promise<void>
 
 export interface WriteFileOptions {
   encoding?: string

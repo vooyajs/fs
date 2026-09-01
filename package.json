@@ -1,14 +1,24 @@
 {
-  "name": "@rush-fs/core",
+  "name": "@vooya/fs",
   "version": "0.1.0",
-  "description": "High-performance drop-in replacement for Node.js fs module, powered by Rust",
+  "description": "Native batch filesystem operations for Node.js, powered by Rust",
   "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.js",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CoderSerio/rush-fs.git"
+    "url": "git+https://github.com/vooyajs/fs.git"
   },
+  "homepage": "https://github.com/vooyajs/fs#readme",
   "license": "MIT",
-  "browser": "browser.js",
   "keywords": [
     "fs",
     "filesystem",
@@ -25,11 +35,10 @@
   ],
   "files": [
     "index.d.ts",
-    "index.js",
-    "browser.js"
+    "index.js"
   ],
   "napi": {
-    "binaryName": "rush-fs",
+    "binaryName": "vooya-fs",
     "targets": [
       "x86_64-pc-windows-msvc",
       "x86_64-apple-darwin",
@@ -38,7 +47,7 @@
     ]
   },
   "engines": {
-    "node": ">= 18.0.0"
+    "node": ">= 22.0.0"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
@@ -60,9 +69,11 @@
     "format:rs": "cargo fmt",
     "fmt:check": "cargo fmt -- --check",
     "lint": "oxlint .",
+    "typecheck": "tsc --noEmit",
     "perf:fs": "node --expose-gc --import @oxc-node/core/register scripts/run-performance.mjs",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
+    "test:bindings": "ava \"__test__/**/*.spec.ts\"",
     "test:conformance": "ava \"test/conformance/**/*.spec.ts\"",
     "test:governance": "ava \"test/governance/**/*.spec.ts\"",
     "test:performance-tools": "ava \"test/performance/**/*.spec.ts\" \"test/docs/**/*.spec.ts\"",
@@ -77,7 +88,7 @@
     "@oxc-node/core": "^0.0.34",
     "@taplo/cli": "^0.7.0",
     "@tybys/wasm-util": "^0.10.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.13.3",
     "ava": "^6.4.1",
     "chalk": "^5.6.2",
     "fast-glob": "^3.3.3",

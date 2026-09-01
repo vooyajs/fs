@@ -32,7 +32,7 @@ const report = {
         duration: { trimmedMean: 1 },
         delta: { rss: 1024 },
       },
-      rush: {
+      vooya: {
         duration: { trimmedMean: 2 },
         delta: { rss: 2048 },
       },
@@ -56,7 +56,7 @@ const readFileReport = {
 test('renderPerformanceSection creates a markdown table for an API', (t) => {
   const markdown = renderPerformanceSection(report, 'readdir')
 
-  t.true(markdown.includes('{/* rush-fs-perf:start readdir */}'))
+  t.true(markdown.includes('{/* vooya-fs-perf:start readdir */}'))
   t.true(markdown.includes('| tiny | 4 files / 2 dirs | 1.00 ms | 2.00 ms | 2.00x slower | 1.0 KB | 2.0 KB |'))
   t.true(markdown.includes('2 warmup runs, 10 measured runs'))
 })
@@ -64,21 +64,21 @@ test('renderPerformanceSection creates a markdown table for an API', (t) => {
 test('replacePerformanceSection updates only the marker block', (t) => {
   const content = [
     'before',
-    '{/* rush-fs-perf:start readdir */}',
+    '{/* vooya-fs-perf:start readdir */}',
     'old generated content',
-    '{/* rush-fs-perf:end readdir */}',
+    '{/* vooya-fs-perf:end readdir */}',
     'after',
   ].join('\n')
 
   const next = replacePerformanceSection(content, 'readdir', renderPerformanceSection(report, 'readdir'))
 
-  t.true(next.startsWith('before\n{/* rush-fs-perf:start readdir */}'))
-  t.true(next.endsWith('{/* rush-fs-perf:end readdir */}\nafter'))
+  t.true(next.startsWith('before\n{/* vooya-fs-perf:start readdir */}'))
+  t.true(next.endsWith('{/* vooya-fs-perf:end readdir */}\nafter'))
   t.false(next.includes('old generated content'))
 })
 
 test('syncPerformanceDoc maps readFile reports to read-file docs', (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rush-fs-sync-perf-docs-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-fs-sync-perf-docs-'))
   t.teardown(() => fs.rmSync(root, { recursive: true, force: true }))
   const docsRoot = path.join(root, 'api')
   fs.mkdirSync(docsRoot, { recursive: true })
@@ -89,9 +89,9 @@ test('syncPerformanceDoc maps readFile reports to read-file docs', (t) => {
     docPath,
     [
       'before',
-      '{/* rush-fs-perf:start readFile */}',
+      '{/* vooya-fs-perf:start readFile */}',
       'old generated content',
-      '{/* rush-fs-perf:end readFile */}',
+      '{/* vooya-fs-perf:end readFile */}',
       'after',
     ].join('\n'),
   )
@@ -103,7 +103,7 @@ test('syncPerformanceDoc maps readFile reports to read-file docs', (t) => {
 })
 
 test('syncPerformanceDoc maps writeFile reports to write-file docs', (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rush-fs-sync-perf-docs-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-fs-sync-perf-docs-'))
   t.teardown(() => fs.rmSync(root, { recursive: true, force: true }))
   const docsRoot = path.join(root, 'api')
   fs.mkdirSync(docsRoot, { recursive: true })
@@ -127,9 +127,9 @@ test('syncPerformanceDoc maps writeFile reports to write-file docs', (t) => {
     docPath,
     [
       'before',
-      '{/* rush-fs-perf:start writeFile */}',
+      '{/* vooya-fs-perf:start writeFile */}',
       'old generated content',
-      '{/* rush-fs-perf:end writeFile */}',
+      '{/* vooya-fs-perf:end writeFile */}',
       'after',
     ].join('\n'),
   )
@@ -141,7 +141,7 @@ test('syncPerformanceDoc maps writeFile reports to write-file docs', (t) => {
 })
 
 test('syncPerformanceDoc maps stat reports to stat docs', (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rush-fs-sync-perf-docs-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-fs-sync-perf-docs-'))
   t.teardown(() => fs.rmSync(root, { recursive: true, force: true }))
   const docsRoot = path.join(root, 'api')
   fs.mkdirSync(docsRoot, { recursive: true })
@@ -165,9 +165,9 @@ test('syncPerformanceDoc maps stat reports to stat docs', (t) => {
     docPath,
     [
       'before',
-      '{/* rush-fs-perf:start stat */}',
+      '{/* vooya-fs-perf:start stat */}',
       'old generated content',
-      '{/* rush-fs-perf:end stat */}',
+      '{/* vooya-fs-perf:end stat */}',
       'after',
     ].join('\n'),
   )
@@ -179,7 +179,7 @@ test('syncPerformanceDoc maps stat reports to stat docs', (t) => {
 })
 
 test('syncPerformanceDoc maps lstat reports to lstat docs', (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rush-fs-sync-perf-docs-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-fs-sync-perf-docs-'))
   t.teardown(() => fs.rmSync(root, { recursive: true, force: true }))
   const docsRoot = path.join(root, 'api')
   fs.mkdirSync(docsRoot, { recursive: true })
@@ -203,9 +203,9 @@ test('syncPerformanceDoc maps lstat reports to lstat docs', (t) => {
     docPath,
     [
       'before',
-      '{/* rush-fs-perf:start lstat */}',
+      '{/* vooya-fs-perf:start lstat */}',
       'old generated content',
-      '{/* rush-fs-perf:end lstat */}',
+      '{/* vooya-fs-perf:end lstat */}',
       'after',
     ].join('\n'),
   )
@@ -217,7 +217,7 @@ test('syncPerformanceDoc maps lstat reports to lstat docs', (t) => {
 })
 
 test('syncPerformanceDoc maps copyFile reports to copy-file docs', (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rush-fs-sync-perf-docs-'))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-fs-sync-perf-docs-'))
   t.teardown(() => fs.rmSync(root, { recursive: true, force: true }))
   const docsRoot = path.join(root, 'api')
   fs.mkdirSync(docsRoot, { recursive: true })
@@ -241,9 +241,9 @@ test('syncPerformanceDoc maps copyFile reports to copy-file docs', (t) => {
     docPath,
     [
       'before',
-      '{/* rush-fs-perf:start copyFile */}',
+      '{/* vooya-fs-perf:start copyFile */}',
       'old generated content',
-      '{/* rush-fs-perf:end copyFile */}',
+      '{/* vooya-fs-perf:end copyFile */}',
       'after',
     ].join('\n'),
   )
@@ -252,4 +252,38 @@ test('syncPerformanceDoc maps copyFile reports to copy-file docs', (t) => {
   const content = fs.readFileSync(docPath, 'utf8')
   t.true(content.includes('| small-4kb | - | 1.00 ms | 2.00 ms | 2.00x slower | 1.0 KB | 2.0 KB |'))
   t.false(content.includes('old generated content'))
+})
+
+test('syncPerformanceDoc maps batch API reports to their docs', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-fs-sync-batch-perf-docs-'))
+  t.teardown(() => fs.rmSync(root, { recursive: true, force: true }))
+  const docsRoot = path.join(root, 'api')
+  fs.mkdirSync(docsRoot, { recursive: true })
+
+  for (const api of ['scan', 'glob', 'cp', 'rm']) {
+    const reportPath = path.join(root, `${api}.json`)
+    const docPath = path.join(docsRoot, `${api}.mdx`)
+    fs.writeFileSync(
+      reportPath,
+      JSON.stringify({
+        ...report,
+        comparisons: [{ ...report.comparisons[0], api }],
+      }),
+    )
+    fs.writeFileSync(
+      docPath,
+      [
+        'before',
+        `{/* vooya-fs-perf:start ${api} */}`,
+        'old generated content',
+        `{/* vooya-fs-perf:end ${api} */}`,
+        'after',
+      ].join('\n'),
+    )
+
+    t.is(syncPerformanceDoc({ api, reportPath, docsRoot }), docPath)
+    const content = fs.readFileSync(docPath, 'utf8')
+    t.true(content.includes(`vooya-fs-perf:start ${api}`))
+    t.false(content.includes('old generated content'))
+  }
 })

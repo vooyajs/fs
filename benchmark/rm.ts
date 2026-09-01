@@ -4,7 +4,7 @@ import * as os from 'node:os'
 import { rmSync as hyperRmSync } from '../index.js'
 
 const tmpDir = os.tmpdir()
-const baseDir = path.join(tmpDir, 'rush-fs-bench-rm')
+const baseDir = path.join(tmpDir, 'vooya-fs-bench-rm')
 
 if (fs.existsSync(baseDir)) {
   fs.rmSync(baseDir, { recursive: true, force: true })
@@ -44,9 +44,9 @@ function createTreeStructure(dir: string, breadth: number, depth: number) {
 
 const implementations = [
   { name: 'Node.js', fn: (p: string) => fs.rmSync(p, { recursive: true, force: true }) },
-  { name: 'Rush-FS', fn: (p: string) => hyperRmSync(p, { recursive: true, force: true }) },
+  { name: 'Vooya FS', fn: (p: string) => hyperRmSync(p, { recursive: true, force: true }) },
   {
-    name: 'Rush-FS (4 threads)',
+    name: 'Vooya FS (4 threads)',
     fn: (p: string) => hyperRmSync(p, { recursive: true, force: true, concurrency: 4 }),
   },
 ]

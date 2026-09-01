@@ -52,7 +52,7 @@ impl Task for RenameTask {
   }
 }
 
-#[napi(js_name = "rename")]
+#[napi(js_name = "rename", ts_return_type = "Promise<void>")]
 pub fn rename(old_path: String, new_path: String) -> AsyncTask<RenameTask> {
   AsyncTask::new(RenameTask { old_path, new_path })
 }

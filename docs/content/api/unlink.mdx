@@ -5,7 +5,7 @@ Remove a file. Fails for directories; use `rm` with `recursive: true` for direct
 ## Basic usage
 
 ```ts
-import { unlink } from '@rush-fs/core'
+import { unlink } from '@vooya/fs'
 
 await unlink('./temp.txt')
 ```
@@ -16,8 +16,8 @@ await unlink('./temp.txt')
 
 **Async.** Returns `Promise<void>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
+| Argument | Type   | Description          |
+| -------- | ------ | -------------------- |
 | `path`   | string | File path to remove. |
 
 ### `unlinkSync(path)`
@@ -33,5 +33,5 @@ Single syscall; on par with Node.js. No dedicated benchmark; see [Benchmarks](/b
 - **Directories**: Use `rm(path, { recursive: true })` or `rmdir(path)` for empty dirs. `unlink` on a directory fails with `EISDIR` (or equivalent).
 - **Symlinks**: Removes the symlink entry itself, not the target file.
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Directory code gap**: Directory unlink failures are platform-specific in Node; Rush-FS currently reports `EPERM` text for directories.
-- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Rush-FS `unlink` surface.
+- **Directory code gap**: Directory unlink failures are platform-specific in Node; Vooya FS currently reports `EPERM` text for directories.
+- **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `unlink` surface.

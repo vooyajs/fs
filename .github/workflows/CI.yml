@@ -1,7 +1,7 @@
 name: CI
 env:
   DEBUG: napi:*
-  APP_NAME: rush-fs
+  APP_NAME: vooya-fs
   MACOSX_DEPLOYMENT_TARGET: '10.13'
   CARGO_INCREMENTAL: '1'
   NODE_VERSION: '24'
@@ -11,20 +11,16 @@ env:
     branches:
       - main
     paths-ignore:
-      - '**/*.md'
       - LICENSE
       - '**/*.gitignore'
       - .editorconfig
-      - docs/**
   pull_request:
     branches:
       - main
     paths-ignore:
-      - '**/*.md'
       - LICENSE
       - '**/*.gitignore'
       - .editorconfig
-      - docs/**
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -49,10 +45,28 @@ jobs:
         run: pnpm install
       - name: Oxlint
         run: pnpm lint
+      - name: TypeScript
+        run: pnpm typecheck
       - name: Cargo fmt
         run: cargo fmt -- --check
       - name: Clippy
-        run: cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build documentation
+        run: pnpm doc:build
   build:
     strategy:
       fail-fast: false
@@ -70,15 +84,10 @@ jobs:
           - host: macos-latest
             target: aarch64-apple-darwin
             build: pnpm build --target aarch64-apple-darwin
-    name: stable - ${{ matrix.settings.target }} - node@${{ env.NODE_VERSION }}
+    name: stable - ${{ matrix.settings.target }} - node@24
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
-      - name: Cache Rust toolchain
-        uses: actions/cache@v4
-        with:
-          path: ~/.rustup
-          key: rustup-${{ matrix.settings.host }}-${{ matrix.settings.target }}-stable
       - name: Install pnpm
         uses: pnpm/action-setup@v4
       - name: Setup node
@@ -113,10 +122,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           tool: cargo-zigbuild
-      - name: Setup toolchain
-        run: ${{ matrix.settings.setup }}
-        if: ${{ matrix.settings.setup }}
-        shell: bash
       - name: Install dependencies
         run: pnpm install
       - name: Build
@@ -172,7 +177,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: pnpm test
+        run: pnpm test:bindings
       - name: Test Node fs conformance
         run: pnpm test:conformance
   test-linux-binding:
@@ -245,7 +250,7 @@ jobs:
             -w "${{ github.workspace }}" \
             --platform "${{ steps.docker.outputs.PLATFORM }}" \
             "${{ steps.docker.outputs.IMAGE }}" \
-            sh -lc "corepack enable && pnpm test"
+            sh -lc "corepack enable && pnpm test:bindings"
       - name: Test Node fs conformance
         run: |
           docker run --rm \

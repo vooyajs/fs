@@ -1,11 +1,11 @@
 # utimes
 
-Set the access and modification times of a file (atime, mtime). Current Rush-FS inputs are numbers in seconds since the Unix epoch.
+Set the access and modification times of a file (atime, mtime). Current Vooya FS inputs are numbers in seconds since the Unix epoch.
 
 ## Basic usage
 
 ```ts
-import { utimes } from '@rush-fs/core'
+import { utimes } from '@vooya/fs'
 
 await utimes('./file.txt', atime, mtime)
 ```
@@ -16,11 +16,11 @@ await utimes('./file.txt', atime, mtime)
 
 **Async.** Returns `Promise<void>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
-| `path`   | string | File path. |
+| Argument | Type   | Description                             |
+| -------- | ------ | --------------------------------------- |
+| `path`   | string | File path.                              |
 | `atime`  | number | Access time (e.g. seconds since epoch). |
-| `mtime`  | number | Modification time. |
+| `mtime`  | number | Modification time.                      |
 
 ### `utimesSync(path, atime, mtime)`
 
@@ -34,4 +34,4 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 
 - **Precision**: Platform-dependent; same as Node.js.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node inputs/APIs**: `Buffer` paths, `URL` paths, `Date` time values, string time values, and file-descriptor `futimes` APIs are not part of the current Rush-FS `utimes` surface.
+- **Unsupported Node inputs/APIs**: `Buffer` paths, `URL` paths, `Date` time values, string time values, and file-descriptor `futimes` APIs are not part of the current Vooya FS `utimes` surface.

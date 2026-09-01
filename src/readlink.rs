@@ -46,7 +46,7 @@ impl Task for ReadlinkTask {
   }
 }
 
-#[napi(js_name = "readlink")]
+#[napi(js_name = "readlink", ts_return_type = "Promise<string>")]
 pub fn readlink(path: String) -> AsyncTask<ReadlinkTask> {
   AsyncTask::new(ReadlinkTask { path })
 }

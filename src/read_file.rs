@@ -194,8 +194,23 @@ fn read_file_impl(
       open_opts.read(true).write(true).create_new(true);
     }
     _ => {
-      open_opts.read(true);
+      return Err(Error::from_reason(format!(
+        "ERR_INVALID_ARG_VALUE: invalid flag '{}'",
+        flag
+      )))
     }
+  }
+
+  // The line-range extension streams the requested lines and must not open the
+  // same file twice before reading it.
+  if let (Some(lines), Some(_)) = (&opts.lines, &opts.encoding) {
+    let contents = read_file_with_lines(
+      path,
+      &mut open_opts,
+      lines.clone(),
+      opts.encoding.as_deref(),
+    )?;
+    return Ok(Either::A(contents));
   }
 
   let mut file = open_opts.open(path).map_err(|e| {
@@ -218,18 +233,6 @@ fn read_file_impl(
       Error::from_reason(e.to_string())
     }
   })?;
-
-  // If lines option is specified with a text encoding, use streaming line-by-line reading
-  // to avoid loading the entire file into memory. Buffer mode (no encoding) ignores lines.
-  if let (Some(lines), Some(_)) = (&opts.lines, &opts.encoding) {
-    let contents = read_file_with_lines(
-      path,
-      &mut open_opts,
-      lines.clone(),
-      opts.encoding.as_deref(),
-    )?;
-    return Ok(Either::A(contents));
-  }
 
   use std::io::Read;
   let mut data = Vec::new();
@@ -268,7 +271,7 @@ impl Task for ReadFileTask {
   }
 }
 
-#[napi(js_name = "readFile")]
+#[napi(js_name = "readFile", ts_return_type = "Promise<string | Buffer>")]
 pub fn read_file(
   path: String,
   options: Option<Either<String, ReadFileOptions>>,

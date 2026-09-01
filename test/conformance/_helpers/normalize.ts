@@ -43,9 +43,9 @@ export function normalizeError(error: unknown): Record<string, unknown> {
   }
 }
 
-export function assertSameErrorShape(t: ExecutionContext, nodeError: unknown, rushError: unknown): void {
+export function assertSameErrorShape(t: ExecutionContext, nodeError: unknown, vooyaError: unknown): void {
   const nodeShape = normalizeError(nodeError)
-  const rushShape = normalizeError(rushError)
-  t.is(rushShape.code, nodeShape.code)
-  t.is(rushShape.syscall, nodeShape.syscall)
+  const vooyaShape = normalizeError(vooyaError)
+  t.is(vooyaShape.code, nodeShape.code)
+  t.is(vooyaShape.syscall, nodeShape.syscall)
 }

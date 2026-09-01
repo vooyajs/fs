@@ -4,8 +4,8 @@ import * as os from 'node:os'
 import { cpSync as hyperCpSync } from '../index.js'
 
 const tmpDir = os.tmpdir()
-const baseDir = path.join(tmpDir, 'rush-fs-bench-cp')
-const srcBase = path.join(tmpDir, 'rush-fs-bench-cp-src')
+const baseDir = path.join(tmpDir, 'vooya-fs-bench-cp')
+const srcBase = path.join(tmpDir, 'vooya-fs-bench-cp-src')
 
 if (fs.existsSync(baseDir)) fs.rmSync(baseDir, { recursive: true, force: true })
 if (fs.existsSync(srcBase)) fs.rmSync(srcBase, { recursive: true, force: true })
@@ -56,15 +56,15 @@ const implementations = [
     fn: (src: string, dest: string) => fs.cpSync(src, dest, { recursive: true }),
   },
   {
-    name: 'Rush-FS (1 thread)',
+    name: 'Vooya FS (1 thread)',
     fn: (src: string, dest: string) => hyperCpSync(src, dest, { recursive: true, concurrency: 1 }),
   },
   {
-    name: 'Rush-FS (4 threads)',
+    name: 'Vooya FS (4 threads)',
     fn: (src: string, dest: string) => hyperCpSync(src, dest, { recursive: true, concurrency: 4 }),
   },
   {
-    name: 'Rush-FS (8 threads)',
+    name: 'Vooya FS (8 threads)',
     fn: (src: string, dest: string) => hyperCpSync(src, dest, { recursive: true, concurrency: 8 }),
   },
 ]

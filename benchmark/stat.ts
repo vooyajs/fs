@@ -10,19 +10,19 @@ console.log(`Benchmarking stat on: ${targetFile} and ${targetDir}`)
 // 1. stat on a file
 group('stat (file)', () => {
   bench('Node.js', () => fs.statSync(targetFile)).baseline()
-  bench('Rush-FS', () => statSync(targetFile))
+  bench('Vooya FS', () => statSync(targetFile))
 })
 
 // 2. stat on a directory
 group('stat (directory)', () => {
   bench('Node.js', () => fs.statSync(targetDir)).baseline()
-  bench('Rush-FS', () => statSync(targetDir))
+  bench('Vooya FS', () => statSync(targetDir))
 })
 
 // 3. lstat on a file
 group('lstat (file)', () => {
   bench('Node.js', () => fs.lstatSync(targetFile)).baseline()
-  bench('Rush-FS', () => lstatSync(targetFile))
+  bench('Vooya FS', () => lstatSync(targetFile))
 })
 
 // 4. Batch stat — stat multiple files in sequence
@@ -33,7 +33,7 @@ group(`stat batch (${files.length} files)`, () => {
   bench('Node.js', () => {
     for (const f of files) fs.statSync(f)
   }).baseline()
-  bench('Rush-FS', () => {
+  bench('Vooya FS', () => {
     for (const f of files) statSync(f)
   })
 })

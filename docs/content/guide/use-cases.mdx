@@ -1,28 +1,47 @@
 # Use Cases
 
-## When Rush-FS shines
+Use Vooya FS when the unit of work is a tree or a batch, and keep ordinary one-off
+calls in `node:fs`.
 
-Use Rush-FS when you have **recursive or batch filesystem work**:
+## Strong candidates
 
-- **Recursive directory listing** — `readdir` with `recursive: true` (e.g. walking `node_modules`, large trees).
-- **Glob matching** — `glob` over many files; Rush-FS is much faster than Node.js or fast-glob in typical benchmarks.
-- **Recursive delete** — `rm` with `recursive: true` and optional `concurrency` for large trees.
-- **Recursive copy** — `cp` with `recursive: true` and optional `concurrency`.
+### Repository and monorepo indexing
 
-In these scenarios, Rust's parallel walkers and lower V8 overhead often yield **2–70×** speedups. See [Benchmarks](/benchmarks) for numbers.
+Use `scan` to discover source files and obtain size, mode, modification time, kind,
+and depth in one pass. This fits build graphs, language tooling, code search, and
+incremental cache inputs.
 
-## When Node.js is fine
+### Build input discovery
 
-- **Single-file operations** — `stat`, `readFile`, `writeFile`, `chmod`, etc. are on par with Node.js; the N-API bridge adds a small fixed overhead (~0.3 µs per call).
-- **Tiny, hot paths** — For sub-microsecond built-ins like `existsSync` or `accessSync` (F_OK), Node.js can be faster because it has an internal fast path; Rush-FS still crosses N-API.
+Use rooted `glob` or `scan` include/exclude patterns to avoid returning every entry
+to JavaScript before filtering. Keep generated directories and dependencies out of
+the traversal when possible.
 
-So: use Rush-FS for **heavy I/O and recursion**; for simple one-off file ops either is fine.
+### Package and dependency inspection
 
-## Summary
+Recursive `readdir` and `glob('**/package.json')` are useful for large dependency
+trees where the fixed bridge cost is amortized over thousands of entries.
 
-| Scenario                     | Prefer        |
-| ---------------------------- | ------------- |
-| Recursive readdir / glob     | Rush-FS       |
-| Recursive rm / cp            | Rush-FS       |
-| Single-file read/write/stat  | Either        |
-| existsSync / accessSync hot  | Node.js       |
+### Cache lifecycle and workspace cleanup
+
+Use recursive `cp` and `rm` for cache snapshots, staging directories, build output,
+and workspace cleanup. Bounded concurrency makes the execution policy explicit.
+
+### Partial text extraction
+
+`readFile(path, { encoding: 'utf8', lines: { from, to } })` is a Vooya FS extension
+for selecting a line range without decoding the complete file into a JavaScript
+string. Benchmark it for large text files; for streaming pipelines, continue to use
+Node streams.
+
+## Weak candidates
+
+- a single existence, stat, rename, or truncate call;
+- tiny directories repeatedly queried in a latency-sensitive path;
+- callback- or stream-oriented code that would need an adapter;
+- file-descriptor workflows, watchers, `URL` paths, or `Buffer` paths outside the
+  current compatibility surface.
+
+The decision rule is simple: if the application still performs thousands of native
+calls and JS transformations after invoking Vooya FS, look for a fused API; if the
+operation contains almost no work, stay with Node.

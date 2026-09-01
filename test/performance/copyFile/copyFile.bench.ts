@@ -12,20 +12,20 @@ async function writeFixture(file: string, bytes: number): Promise<void> {
 async function compareCopy(root: string, scale: string, bytes: number): Promise<void> {
   const src = path.join(root, `${scale}-src.bin`)
   const nodeDest = path.join(root, `${scale}-node.bin`)
-  const rushDest = path.join(root, `${scale}-rush.bin`)
+  const vooyaDest = path.join(root, `${scale}-vooya.bin`)
   await writeFixture(src, bytes)
 
   const node = await measure(`node copyFile ${scale}`, () => nodeFs.copyFile(src, nodeDest), {
     beforeEach: () => nodeFs.rm(nodeDest, { force: true }),
   })
-  const rush = await measure(`rush copyFile ${scale}`, () => copyFile(src, rushDest), {
-    beforeEach: () => nodeFs.rm(rushDest, { force: true }),
+  const vooya = await measure(`vooya copyFile ${scale}`, () => copyFile(src, vooyaDest), {
+    beforeEach: () => nodeFs.rm(vooyaDest, { force: true }),
   })
-  printComparison('copyFile', scale, node, rush)
+  printComparison('copyFile', scale, node, vooya)
 }
 
 async function main(): Promise<void> {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-perf-copyfile-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-perf-copyfile-'))
   try {
     await compareCopy(root, 'small-4kb', 4 * 1024)
     await compareCopy(root, 'medium-1mb', 1024 * 1024)

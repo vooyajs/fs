@@ -30,7 +30,7 @@ export const scaleProfiles: Record<ScaleName, ScaleProfile> = {
 
 export async function createScaleFixture(api: string, scale: ScaleName): Promise<ScaleFixture> {
   const profile = scaleProfiles[scale]
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), `rush-fs-${api}-${scale}-`))
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), `vooya-fs-${api}-${scale}-`))
   const content = 'x'.repeat(profile.fileSize)
   let files = 0
   let dirs = 1
@@ -79,7 +79,7 @@ export async function listTree(root: string): Promise<string[]> {
 }
 
 export async function copyFixture(src: string, label: string): Promise<string> {
-  const dest = await fs.mkdtemp(path.join(os.tmpdir(), `rush-fs-copy-${label}-`))
+  const dest = await fs.mkdtemp(path.join(os.tmpdir(), `vooya-fs-copy-${label}-`))
   await fs.rm(dest, { force: true, recursive: true })
   await fs.cp(src, dest, { recursive: true })
   return dest

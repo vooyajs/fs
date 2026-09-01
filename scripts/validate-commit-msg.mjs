@@ -33,6 +33,7 @@ const apiScopes = new Set([
   'rename',
   'rm',
   'rmdir',
+  'scan',
   'stat',
   'symlink',
   'truncate',
@@ -59,6 +60,7 @@ const apiFileToScope = new Map([
   ['rename', 'rename'],
   ['rm', 'rm'],
   ['rmdir', 'rmdir'],
+  ['scan', 'scan'],
   ['stat', 'stat'],
   ['symlink', 'symlink'],
   ['truncate', 'truncate'],
@@ -71,9 +73,7 @@ function stagedFiles() {
   if (process.env.COMMIT_VALIDATION_STAGED_FILES) {
     return process.env.COMMIT_VALIDATION_STAGED_FILES.split('\n').filter(Boolean)
   }
-  return execSync('git diff --cached --name-only', { encoding: 'utf8' })
-    .split('\n')
-    .filter(Boolean)
+  return execSync('git diff --cached --name-only', { encoding: 'utf8' }).split('\n').filter(Boolean)
 }
 
 function fail(message) {

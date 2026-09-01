@@ -5,7 +5,7 @@ Get file/directory metadata. Follows symlinks; use `lstat` to inspect the link i
 ## Basic usage
 
 ```ts
-import { stat } from '@rush-fs/core'
+import { stat } from '@vooya/fs'
 
 const s = await stat('./package.json')
 console.log(s.size, s.isFile(), s.isDirectory())
@@ -18,8 +18,8 @@ console.log(s.mtime, s.atime)
 
 **Async.** Returns `Promise<Stats>`.
 
-| Argument | Type   | Description |
-| -------- | ------ | ----------- |
+| Argument | Type   | Description             |
+| -------- | ------ | ----------------------- |
 | `path`   | string | File or directory path. |
 
 **Stats:** Numeric fields (`dev`, `mode`, `nlink`, `uid`, `gid`, `rdev`, `blksize`, `ino`, `size`, `blocks`, `atimeMs`, `mtimeMs`, `ctimeMs`, `birthtimeMs`), Date fields (`atime`, `mtime`, `ctime`, `birthtime`), methods (`isFile()`, `isDirectory()`, `isSymbolicLink()`, etc.). Error distinction: `ENOENT` vs `EACCES`.
@@ -32,15 +32,15 @@ console.log(s.mtime, s.atime)
 
 From repo benchmarks (`pnpm build && pnpm bench`):
 
-| Scenario        | Node.js | Rush-FS | Ratio |
-| --------------- | ------- | ------- | ----- |
-| stat (single file) | 1.45 µs | 1.77 µs | 1.2x  |
+| Scenario           | Node.js | Vooya FS | Ratio |
+| ------------------ | ------- | -------- | ----- |
+| stat (single file) | 1.45 µs | 1.77 µs  | 1.2x  |
 
 On par with Node.js; small N-API overhead per call.
 
 ### Local scale report
 
-{/* rush-fs-perf:start stat */}
+{/* vooya-fs-perf:start stat */}
 
 _Generated from local performance reports. Do not edit this block by hand._
 
@@ -48,17 +48,17 @@ _Generated from local performance reports. Do not edit this block by hand._
 - Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
-| Scale | Fixture | Node.js | Rush-FS | Ratio | Node RSS | Rush-FS RSS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| single-file | - | 0.05 ms | 0.03 ms | 1.42x faster | 27.2 KB | 3.2 KB |
-| directory | - | 0.04 ms | 0.03 ms | 1.26x faster | 0 B | 0 B |
-| batch-128-files | - | 1.44 ms | 1.48 ms | 1.03x slower | 8.0 KB | 0 B |
+| Scale           | Fixture | Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
+| --------------- | ------: | ------: | -------: | -----------: | -------: | -----------: |
+| single-file     |       - | 0.05 ms |  0.03 ms | 1.42x faster |  27.2 KB |       3.2 KB |
+| directory       |       - | 0.04 ms |  0.03 ms | 1.26x faster |      0 B |          0 B |
+| batch-128-files |       - | 1.44 ms |  1.48 ms | 1.03x slower |   8.0 KB |          0 B |
 
-{/* rush-fs-perf:end stat */}
+{/* vooya-fs-perf:end stat */}
 
 ## Notes
 
 - **Symlinks**: `stat` follows symlinks; use `lstat` for the link metadata.
 - **Dates**: `atime`, `mtime`, `ctime`, `birthtime` are `Date` objects; `*Ms` are numbers.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node options**: `bigint`, `throwIfNoEntry`, `Buffer` paths, and `URL` paths are not part of the current Rush-FS `stat` surface.
+- **Unsupported Node options**: `bigint`, `throwIfNoEntry`, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `stat` surface.

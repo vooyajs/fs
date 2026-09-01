@@ -8,7 +8,7 @@ import { mkdtemp, mkdtempSync } from '../../../index.js'
 import { capture } from '../_helpers/normalize.ts'
 
 async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }) {
-  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'rush-fs-conformance-mkdtemp-root-'))
+  const root = await nodeFs.mkdtemp(path.join(os.tmpdir(), 'vooya-fs-conformance-mkdtemp-root-'))
   t.teardown(() => nodeFs.rm(root, { recursive: true, force: true }))
   return root
 }
@@ -16,19 +16,19 @@ async function withFixture(t: { teardown(fn: () => void | Promise<void>): void }
 test('mkdtemp: promise creates directory with prefix like node:fs/promises', async (t) => {
   const root = await withFixture(t)
   const nodePrefix = path.join(root, 'node-')
-  const rushPrefix = path.join(root, 'rush-')
+  const vooyaPrefix = path.join(root, 'vooya-')
 
   const nodeDir = await nodeFs.mkdtemp(nodePrefix)
-  const rushDir = (await mkdtemp(rushPrefix)) as string
+  const vooyaDir = (await mkdtemp(vooyaPrefix)) as string
 
   t.true(nodeDir.startsWith(nodePrefix))
-  t.true(rushDir.startsWith(rushPrefix))
-  t.true(nodeFsSync.statSync(rushDir).isDirectory())
+  t.true(vooyaDir.startsWith(vooyaPrefix))
+  t.true(nodeFsSync.statSync(vooyaDir).isDirectory())
 })
 
 test('mkdtemp: promise creates unique directories across repeated calls', async (t) => {
   const root = await withFixture(t)
-  const prefix = path.join(root, 'rush-unique-')
+  const prefix = path.join(root, 'vooya-unique-')
 
   const first = (await mkdtemp(prefix)) as string
   const second = (await mkdtemp(prefix)) as string
@@ -41,28 +41,28 @@ test('mkdtemp: promise creates unique directories across repeated calls', async 
 test('mkdtemp: sync creates directory with prefix like node:fs', async (t) => {
   const root = await withFixture(t)
   const nodePrefix = path.join(root, 'node-sync-')
-  const rushPrefix = path.join(root, 'rush-sync-')
+  const vooyaPrefix = path.join(root, 'vooya-sync-')
 
   const nodeDir = nodeFsSync.mkdtempSync(nodePrefix)
-  const rushDir = mkdtempSync(rushPrefix)
+  const vooyaDir = mkdtempSync(vooyaPrefix)
 
   t.true(nodeDir.startsWith(nodePrefix))
-  t.true(rushDir.startsWith(rushPrefix))
-  t.true(nodeFsSync.statSync(rushDir).isDirectory())
+  t.true(vooyaDir.startsWith(vooyaPrefix))
+  t.true(nodeFsSync.statSync(vooyaDir).isDirectory())
 })
 
 test('mkdtemp: missing parent rejects or throws in both implementations', async (t) => {
   const root = await withFixture(t)
   const nodePrefix = path.join(root, 'missing-node', 'node-')
-  const rushPrefix = path.join(root, 'missing-rush', 'rush-')
+  const vooyaPrefix = path.join(root, 'missing-vooya', 'vooya-')
 
   const nodeResult = await capture(() => nodeFs.mkdtemp(nodePrefix))
-  const rushResult = await capture(() => mkdtemp(rushPrefix) as Promise<unknown>)
+  const vooyaResult = await capture(() => mkdtemp(vooyaPrefix) as Promise<unknown>)
 
   t.false(nodeResult.ok)
-  t.false(rushResult.ok)
+  t.false(vooyaResult.ok)
   t.throws(() => nodeFsSync.mkdtempSync(nodePrefix))
-  t.throws(() => mkdtempSync(rushPrefix))
+  t.throws(() => mkdtempSync(vooyaPrefix))
 })
 
 test('mkdtemp: prefix is literal unless caller includes a trailing separator', async (t) => {

@@ -8,7 +8,7 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Rush-FS prefix input today: `string`.
+- Supported Vooya FS prefix input today: `string`.
 - Supported return type: promise resolves with the created directory path; sync returns the created directory path.
 - Supported behavior: append a unique six-character suffix to the prefix and create that directory.
 - Unsupported Node surface for this SDD: `Buffer` prefix, `URL` prefix, `encoding` option, callback API shape, and exact Node error object metadata.
@@ -23,11 +23,11 @@
 
 ## Known Gaps
 
-| Behavior                | Node oracle                                                     | Current Rush-FS behavior                                                                                                    | Reason                                                                                    | Follow-up                   |
+| Behavior                | Node oracle                                                     | Current Vooya FS behavior                                                                                                   | Reason                                                                                    | Follow-up                   |
 | ----------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------- |
 | Error object fields     | Rejects or throws with Node-style `code`, `syscall`, and `path` | Message contains Node-like text for missing parents, but N-API exposes `code: "GenericFailure"` and omits structured fields | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
 | Path-like prefix inputs | Node accepts strings, Buffers, and file URLs                    | Type surface currently accepts string prefixes only                                                                         | Path input expansion is deferred globally                                                 | API surface expansion       |
-| `encoding` option       | Node can return Buffer output when `encoding: "buffer"`         | Rush-FS always returns a string                                                                                             | Encoding option is not part of the current Rush-FS surface                                | API surface expansion       |
+| `encoding` option       | Node can return Buffer output when `encoding: "buffer"`         | Vooya FS always returns a string                                                                                            | Encoding option is not part of the current Vooya FS surface                               | API surface expansion       |
 
 ## Performance Metrics
 

@@ -7,7 +7,7 @@ import * as path from 'node:path'
 const script = path.resolve('scripts/validate-commit-msg.mjs')
 
 function run(message: string, stagedFiles = ''): void {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rush-fs-commit-msg-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-fs-commit-msg-'))
   const file = path.join(dir, 'COMMIT_EDITMSG')
   fs.writeFileSync(file, `${message}\n`)
   try {
@@ -23,6 +23,7 @@ function run(message: string, stagedFiles = ''): void {
 test('commit validation accepts English subjects with optional emoji', (t) => {
   t.notThrows(() => run('feat(glob): add promise conformance matrix', 'src/glob.rs'))
   t.notThrows(() => run('✨ feat(glob): add promise conformance matrix', 'src/glob.rs'))
+  t.notThrows(() => run('feat(scan): add fused traversal metadata', 'src/scan.rs'))
   t.notThrows(() => run('docs: clarify promise-first compatibility'))
 })
 
