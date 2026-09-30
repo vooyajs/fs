@@ -46,3 +46,11 @@ Vooya FS should be close to or slower than Node on tiny copies. It should become
 Node runtime. See `docs/content/api/compatibility.mdx` for native vs Node execution
 policy, intentional extensions and unsupported combinations. Benchmarks import
 the public package; compatibility routes must not be presented as native speedups.
+
+## Buffer path routing
+
+UTF-8 Buffer paths are a native Unix Promise-copy extension. Windows and advanced
+options delegate unchanged to Node; tests compare Node's Buffer-path rejection
+on those routes rather than requiring successful copies everywhere. Portable
+copy inputs are string paths and file URLs. No implementation behavior changes
+are needed for this platform-oracle correction.

@@ -25,6 +25,12 @@ await cp('./src', './dest', { recursive: true, force: true, concurrency: 4 })
 | `dest`    | string / Buffer / URL | Destination path.                |
 | `options` | object                | Optional. See below.             |
 
+UTF-8 Buffer paths are accepted by the native Unix Promise route as a Vooya
+extension. Node 22/24 Promise copy rejects Buffer paths on the delegated routes,
+including Windows and filter callbacks. Use strings or file URLs for portable
+copy calls; delegation preserves the Node error instead of silently converting
+its input.
+
 **Options:** `filter` (sync or Promise callback), `mode` (copy flags), `recursive` (boolean), `force` (boolean, default true), `errorOnExist`, `preserveTimestamps`, `dereference`, `verbatimSymlinks`, **`concurrency`** (number, Vooya FS, default 1).
 
 ### `cpSync(src, dest, options?)`
