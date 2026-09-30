@@ -48,6 +48,21 @@ Large Buffer workloads are the intended target; small writes remain dominated
 by scheduling, opening the file and filesystem cost. These APIs do not implement
 Node's `flush` option, so the measurements compare writes without an explicit flush.
 
+Local macOS arm64 medians, two warmups and ten samples; times include the
+public entry. Inputs are Buffer subarrays, concurrency 1, warm cache, no flush.
+
+| Node     | Input / method | Node ms | Before ms | After ms |
+| -------- | -------------- | ------: | --------: | -------: |
+| v22.22.0 | 64 B async     |   0.145 |     0.058 |    0.069 |
+| v22.22.0 | 8 MiB async    |   0.933 |     0.898 |    0.778 |
+| v22.22.0 | 8 MiB sync     |   0.749 |     0.814 |    0.748 |
+| v24.21.0 | 64 B async     |   0.147 |     0.070 |    0.072 |
+| v24.21.0 | 8 MiB async    |   0.991 |     0.978 |    0.846 |
+| v24.21.0 | 8 MiB sync     |   0.716 |     0.807 |    0.702 |
+
+Small-input results include regressions; reduced copying does not imply a speedup
+for every payload or filesystem. RSS samples in the report are not peak memory.
+
 ## Notes
 
 - **Encodings**: Same as Node.js (utf8, ascii, latin1, base64, base64url, hex).
