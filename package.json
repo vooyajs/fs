@@ -81,7 +81,9 @@
     "test:performance-tools": "ava \"test/performance/**/*.spec.ts\" \"test/docs/**/*.spec.ts\"",
     "preversion": "napi build --platform && git add .",
     "version": "napi version",
-    "prepare": "husky"
+    "prepare": "husky",
+    "perf:competitors": "node --expose-gc scripts/benchmark-competitors.mjs",
+    "test:competitor-contract": "ava test/performance/competitors/suite.spec.ts"
   },
   "devDependencies": {
     "@emnapi/core": "^1.5.0",
@@ -91,16 +93,20 @@
     "@taplo/cli": "^0.7.0",
     "@tybys/wasm-util": "^0.10.0",
     "@types/node": "^24.13.3",
+    "@types/picomatch": "4.0.3",
     "ava": "^6.4.1",
     "chalk": "^5.6.2",
     "fast-glob": "^3.3.3",
-    "glob": "^13.0.0",
+    "fdir": "6.5.0",
+    "glob": "^13.0.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.6",
     "mitata": "^1.0.34",
     "npm-run-all2": "^8.0.4",
     "oxlint": "^1.14.0",
+    "picomatch": "4.0.7",
     "prettier": "^3.6.2",
+    "tinyglobby": "0.2.17",
     "typescript": "^5.9.2"
   },
   "lint-staged": {
