@@ -340,7 +340,13 @@ test('globSync: pattern with ? before first * uses correct walk root (dir?/sub/*
   try {
     const results = globSync('dir?/sub/**/*.ts', { cwd: base })
     const normalized = results.map((result) => result.replace(/\\/g, '/'))
-    t.deepEqual(normalized.sort(), nodeFs.globSync('dir?/sub/**/*.ts', { cwd: base }).sort())
+    t.deepEqual(
+      normalized.sort(),
+      nodeFs
+        .globSync('dir?/sub/**/*.ts', { cwd: base })
+        .map((result) => result.replace(/\\/g, '/'))
+        .sort(),
+    )
     t.true(normalized.length >= 2, `expected at least 2 matches for dir?/sub/**/*.ts, got ${results.length}`)
     t.true(
       normalized.some((p) => p.includes('a.ts')),
