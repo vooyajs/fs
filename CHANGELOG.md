@@ -8,6 +8,10 @@ All notable Vooya FS changes are documented here. The format follows
 
 ### Added
 
+- Reproducible competitor benchmark suite adapted from pinned fdir/tinyglobby
+  workloads, with license notices, independent result validation, Node 22/24 raw
+  evidence and a recursive readdir concurrency diagnostic.
+
 - Public compatibility entry point with file URL/Buffer path handling for core batches,
   option-dependent Node execution paths, constants, result-aware TypeScript declarations,
   and an actual Promise-based glob batch that also supports async iteration.

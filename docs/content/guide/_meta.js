@@ -4,6 +4,7 @@ export default {
   'execution-model': 'Execution Model',
   'batch-evidence': 'Batch Evidence',
   'native-overheads': 'Native Overhead Evidence',
+  'competitor-evidence': 'Competitor Evidence',
   'use-cases': 'Use Cases',
   migration: 'Migration from Rush-FS',
 }
