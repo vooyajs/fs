@@ -16,7 +16,7 @@ function fixture(t: { teardown(fn: () => void): void }) {
 }
 
 for (const input of ['string', 'buffer', 'url'] as const) {
-  test(`public batches accept ${input} paths`, async (t) => {
+  test(`public batches preserve ${input} path behavior by route`, async (t) => {
     const root = fixture(t)
     const asPath = (path: string) =>
       input === 'string' ? path : input === 'buffer' ? Buffer.from(path) : pathToFileURL(path)
@@ -29,7 +29,20 @@ for (const input of ['string', 'buffer', 'url'] as const) {
     t.is(await vooya.readFile(asPath(join(root, 'src/a.txt')), 'utf8'), 'one\n\nthree\n')
     t.is(vooya.readFileSync(asPath(join(root, 'src/a.txt')), { encoding: 'utf8', lines: { from: 1, to: 2 } }), 'one\n')
     t.is((await vooya.scan(src)).length, 2)
-    await vooya.cp(src, asPath(join(root, 'copy')), { recursive: true, concurrency: 4 })
+    if (process.platform === 'win32' && input === 'buffer') {
+      // Windows uses Node's Promise copy. Node rejects Buffer paths here,
+      // although other fs APIs and Vooya's Unix native copy accept them.
+      const expected = (await t.throwsAsync(() =>
+        promises.cp(src as never, asPath(join(root, 'node-copy')) as never, { recursive: true }),
+      )) as NodeJS.ErrnoException
+      await t.throwsAsync(() => vooya.cp(src, asPath(join(root, 'copy')), { recursive: true, concurrency: 4 }), {
+        code: expected.code,
+      })
+      t.false(fs.existsSync(join(root, 'copy')))
+      await promises.cp(join(root, 'src'), join(root, 'copy'), { recursive: true })
+    } else {
+      await vooya.cp(src, asPath(join(root, 'copy')), { recursive: true, concurrency: 4 })
+    }
     t.is(fs.readFileSync(join(root, 'copy/sub/b.txt'), 'utf8'), 'nested')
     await vooya.rm(asPath(join(root, 'copy')), { recursive: true, concurrency: 4 })
     t.false(fs.existsSync(join(root, 'copy')))
@@ -415,4 +428,15 @@ test('copying a symlink onto a regular file reports link target and destination'
   const expected = (await t.throwsAsync(() => promises.cp(src, dest))) as NodeJS.ErrnoException & { dest?: string }
   const actual = (await t.throwsAsync(() => vooya.cp(src, dest))) as NodeJS.ErrnoException & { dest?: string }
   for (const field of ['code', 'syscall', 'path', 'dest', 'errno'] as const) t.is(actual[field], expected[field])
+})
+
+test('public cp preserves Node Buffer-path rejection on callback routes', async (t) => {
+  const root = fixture(t)
+  const src = Buffer.from(join(root, 'src'))
+  const options = { recursive: true, filter: () => true }
+  const expected = (await t.throwsAsync(() =>
+    promises.cp(src as never, join(root, 'node-copy'), options),
+  )) as NodeJS.ErrnoException
+  await t.throwsAsync(() => vooya.cp(src, join(root, 'copy'), options), { code: expected.code })
+  t.false(fs.existsSync(join(root, 'copy')))
 })
