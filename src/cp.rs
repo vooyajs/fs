@@ -69,52 +69,117 @@ fn cp_impl(src: &Path, dest: &Path, opts: &CpOptions, parallel: bool) -> Result<
     fs::symlink_metadata(src)
   };
 
-  let meta = meta.map_err(|e| {
-    if e.kind() == std::io::ErrorKind::NotFound {
-      Error::from_reason(format!(
-        "ENOENT: no such file or directory, cp '{}' -> '{}'",
-        src.to_string_lossy(),
-        dest.to_string_lossy()
-      ))
-    } else {
-      Error::from_reason(e.to_string())
+  let meta = meta
+    .map_err(|error| crate::fs_error::io(error, if dereference { "stat" } else { "lstat" }, src))?;
+  let dest_meta = match fs::symlink_metadata(dest) {
+    Ok(metadata) => Some(metadata),
+    Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+    Err(error) => return Err(crate::fs_error::io(error, "lstat", dest)),
+  };
+  if let Some(ref other) = dest_meta {
+    #[cfg(unix)]
+    let identical = {
+      use std::os::unix::fs::MetadataExt;
+      meta.ino() == other.ino() && meta.dev() == other.dev()
+    };
+    #[cfg(not(unix))]
+    let identical = same_file::is_same_file(src, dest).unwrap_or(false);
+    if identical {
+      return Err(crate::fs_error::custom(
+        "ERR_FS_CP_EINVAL",
+        "cp",
+        dest,
+        None,
+        "src and dest cannot be the same",
+      ));
     }
-  })?;
+    if meta.is_dir() && !other.is_dir() {
+      return Err(crate::fs_error::custom(
+        "ERR_FS_CP_DIR_TO_NON_DIR",
+        "cp",
+        dest,
+        None,
+        "cannot overwrite non-directory with directory",
+      ));
+    }
+    if !meta.is_dir() && other.is_dir() {
+      return Err(crate::fs_error::custom(
+        "ERR_FS_CP_NON_DIR_TO_DIR",
+        "cp",
+        dest,
+        None,
+        "cannot overwrite directory with non-directory",
+      ));
+    }
+  }
+
+  #[cfg(unix)]
+  {
+    use std::os::unix::fs::FileTypeExt;
+    let kind = meta.file_type();
+    if kind.is_fifo() || kind.is_socket() {
+      return Err(crate::fs_error::custom(
+        if kind.is_fifo() {
+          "ERR_FS_CP_FIFO_PIPE"
+        } else {
+          "ERR_FS_CP_SOCKET"
+        },
+        "cp",
+        dest,
+        None,
+        "unsupported file type",
+      ));
+    }
+  }
 
   if meta.is_symlink() && !dereference {
-    let target = fs::read_link(src).map_err(|e| Error::from_reason(e.to_string()))?;
+    let target = fs::read_link(src).map_err(|error| crate::fs_error::io(error, "readlink", src))?;
 
     let link_target = if verbatim_symlinks {
       target
     } else if target.is_relative() {
-      src
-        .parent()
-        .unwrap_or(Path::new(""))
-        .join(&target)
-        .canonicalize()
-        .unwrap_or(target)
+      lexical_absolute(&src.parent().unwrap_or(Path::new(".")).join(&target))?
     } else {
-      target.canonicalize().unwrap_or(target)
+      target
     };
 
-    if dest.exists() || dest.symlink_metadata().is_ok() {
-      if error_on_exist {
-        return Err(Error::from_reason(format!(
-          "EEXIST: file already exists, cp '{}' -> '{}'",
-          src.to_string_lossy(),
-          dest.to_string_lossy()
-        )));
+    if let Some(other) = &dest_meta {
+      if other.is_symlink() {
+        let target =
+          fs::read_link(dest).map_err(|error| crate::fs_error::io(error, "readlink", dest))?;
+        let resolved_dest =
+          lexical_absolute(&dest.parent().unwrap_or(Path::new(".")).join(target))?;
+        if resolved_dest.starts_with(&link_target) {
+          return Err(crate::fs_error::custom(
+            "ERR_FS_CP_EINVAL",
+            "cp",
+            dest,
+            None,
+            "cannot copy a symlink into itself",
+          ));
+        }
+        let source_target =
+          fs::metadata(src).map_err(|error| crate::fs_error::io(error, "stat", src))?;
+        if source_target.is_dir() && link_target.starts_with(&resolved_dest) {
+          return Err(crate::fs_error::custom(
+            "ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY",
+            "cp",
+            dest,
+            None,
+            "cannot overwrite an ancestor symlink",
+          ));
+        }
+        fs::remove_file(dest).map_err(|error| crate::fs_error::io(error, "unlink", dest))?;
       }
-      if force {
-        let _ = fs::remove_file(dest);
-      } else {
-        return Ok(());
-      }
+      // Existing regular destinations are left for symlink() to reject with EEXIST.
     }
 
+    if let Some(parent) = dest.parent().filter(|p| !p.as_os_str().is_empty()) {
+      fs::create_dir_all(parent).map_err(|error| crate::fs_error::io(error, "mkdir", parent))?;
+    }
     #[cfg(unix)]
     std::os::unix::fs::symlink(&link_target, dest)
-      .map_err(|e| Error::from_reason(e.to_string()))?;
+      .map_err(|error| crate::fs_error::io_dest(error, "symlink", &link_target, Some(dest)))?;
     #[cfg(windows)]
     {
       if link_target.is_dir() {
@@ -130,21 +195,24 @@ fn cp_impl(src: &Path, dest: &Path, opts: &CpOptions, parallel: bool) -> Result<
 
   if meta.is_dir() {
     if !recursive {
-      return Err(Error::from_reason(format!(
-        "ERR_FS_EISDIR: Path is a directory. To copy a directory set the 'recursive' option to true, cp '{}' -> '{}'",
-        src.to_string_lossy(),
-        dest.to_string_lossy()
-      )));
+      return Err(crate::fs_error::custom(
+        "ERR_FS_EISDIR",
+        "cp",
+        src,
+        None,
+        "Path is a directory; set recursive to true",
+      ));
     }
 
-    if !dest.exists() {
-      fs::create_dir_all(dest).map_err(|e| Error::from_reason(e.to_string()))?;
+    let created = !dest.exists();
+    if created {
+      fs::create_dir_all(dest).map_err(|error| crate::fs_error::io(error, "mkdir", dest))?;
     }
 
     let entries: Vec<_> = fs::read_dir(src)
-      .map_err(|e| Error::from_reason(e.to_string()))?
+      .map_err(|error| crate::fs_error::io(error, "scandir", src))?
       .collect::<std::io::Result<_>>()
-      .map_err(|e| Error::from_reason(e.to_string()))?;
+      .map_err(|error| crate::fs_error::io(error, "scandir", src))?;
 
     if parallel {
       entries.par_iter().try_for_each(|entry| -> Result<()> {
@@ -156,17 +224,20 @@ fn cp_impl(src: &Path, dest: &Path, opts: &CpOptions, parallel: bool) -> Result<
       }
     }
 
-    if preserve_timestamps {
-      set_timestamps(src, dest).map_err(|e| Error::from_reason(e.to_string()))?;
+    if created {
+      fs::set_permissions(dest, meta.permissions())
+        .map_err(|error| crate::fs_error::io(error, "chmod", dest))?;
     }
   } else {
-    if dest.exists() {
-      if error_on_exist {
-        return Err(Error::from_reason(format!(
-          "EEXIST: file already exists, cp '{}' -> '{}'",
-          src.to_string_lossy(),
-          dest.to_string_lossy()
-        )));
+    if dest_meta.is_some() {
+      if error_on_exist && !force {
+        return Err(crate::fs_error::custom(
+          "ERR_FS_CP_EEXIST",
+          "cp",
+          dest,
+          None,
+          "file already exists",
+        ));
       }
       if !force {
         return Ok(());
@@ -175,18 +246,63 @@ fn cp_impl(src: &Path, dest: &Path, opts: &CpOptions, parallel: bool) -> Result<
 
     if let Some(parent) = dest.parent() {
       if !parent.exists() {
-        fs::create_dir_all(parent).map_err(|e| Error::from_reason(e.to_string()))?;
+        fs::create_dir_all(parent).map_err(|error| crate::fs_error::io(error, "mkdir", parent))?;
       }
     }
 
-    fs::copy(src, dest).map_err(|e| Error::from_reason(e.to_string()))?;
+    if dest_meta.is_some() {
+      fs::remove_file(dest).map_err(|error| crate::fs_error::io(error, "unlink", dest))?;
+    }
+    fs::copy(src, dest)
+      .map_err(|error| crate::fs_error::io_dest(error, "copyfile", src, Some(dest)))?;
 
     if preserve_timestamps {
-      set_timestamps(src, dest).map_err(|e| Error::from_reason(e.to_string()))?;
+      set_timestamps(src, dest).map_err(|error| crate::fs_error::io(error, "utime", dest))?;
     }
   }
 
   Ok(())
+}
+
+fn lexical_absolute(path: &Path) -> Result<std::path::PathBuf> {
+  let absolute =
+    std::path::absolute(path).map_err(|error| crate::fs_error::io(error, "realpath", path))?;
+  let mut normalized = std::path::PathBuf::new();
+  for component in absolute.components() {
+    match component {
+      std::path::Component::ParentDir => {
+        normalized.pop();
+      }
+      std::path::Component::CurDir => {}
+      component => normalized.push(component),
+    }
+  }
+  Ok(normalized)
+}
+
+fn resolve_destination(path: &Path) -> Result<std::path::PathBuf> {
+  if let Ok(resolved) = fs::canonicalize(path) {
+    return Ok(resolved);
+  }
+  let absolute =
+    std::path::absolute(path).map_err(|error| crate::fs_error::io(error, "realpath", path))?;
+  let mut parent = absolute.as_path();
+  let mut suffix = Vec::new();
+  loop {
+    if let Ok(mut resolved) = fs::canonicalize(parent) {
+      for part in suffix.into_iter().rev() {
+        resolved.push(part);
+      }
+      return Ok(resolved);
+    }
+    if let Some(name) = parent.file_name() {
+      suffix.push(name.to_os_string());
+    }
+    match parent.parent() {
+      Some(next) => parent = next,
+      None => return Ok(absolute),
+    }
+  }
 }
 
 fn cp_entry(src_str: String, dest_str: String, options: Option<CpOptions>) -> Result<()> {
@@ -201,6 +317,32 @@ fn cp_entry(src_str: String, dest_str: String, options: Option<CpOptions>) -> Re
     verbatim_symlinks: None,
     concurrency: None,
   });
+  // Resolve directory ancestors before creating a descendant. The final symlink
+  // itself must not be followed: a file copy may replace a link to the source.
+  let source_meta = if opts.dereference.unwrap_or(false) {
+    fs::metadata(src)
+  } else {
+    fs::symlink_metadata(src)
+  };
+  if source_meta.is_ok_and(|meta| meta.is_dir())
+    && fs::symlink_metadata(dest)
+      .map(|meta| meta.is_dir())
+      .unwrap_or(true)
+  {
+    let source = fs::canonicalize(src).ok();
+    let destination = resolve_destination(dest)?;
+    if let Some(source) = source {
+      if destination == source || destination.starts_with(&source) {
+        return Err(crate::fs_error::custom(
+          "ERR_FS_CP_EINVAL",
+          "cp",
+          dest,
+          None,
+          "cannot copy a path into itself",
+        ));
+      }
+    }
+  }
   let concurrency = opts.concurrency.unwrap_or(1);
   if concurrency > 1 {
     let pool = ThreadPoolBuilder::new()
@@ -214,8 +356,8 @@ fn cp_entry(src_str: String, dest_str: String, options: Option<CpOptions>) -> Re
 }
 
 #[napi(js_name = "cpSync")]
-pub fn cp_sync(src: String, dest: String, options: Option<CpOptions>) -> Result<()> {
-  cp_entry(src, dest, options)
+pub fn cp_sync(env: Env, src: String, dest: String, options: Option<CpOptions>) -> Result<()> {
+  cp_entry(src, dest, options).map_err(|error| crate::fs_error::into_js(env, error))
 }
 
 // ========= async version =========
@@ -232,6 +374,10 @@ impl Task for CpTask {
 
   fn compute(&mut self) -> Result<Self::Output> {
     cp_entry(self.src.clone(), self.dest.clone(), self.options.clone())
+  }
+
+  fn reject(&mut self, env: Env, error: Error) -> Result<Self::JsValue> {
+    Err(crate::fs_error::into_js(env, error))
   }
 
   fn resolve(&mut self, _env: Env, _output: Self::Output) -> Result<Self::JsValue> {

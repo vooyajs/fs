@@ -12,6 +12,11 @@ await writeFile('./out.bin', buffer)
 await writeFile('./out.txt', 'content', { encoding: 'utf8', mode: 0o644 })
 ```
 
+The options argument also accepts an encoding string, for example `"utf8"` or `"hex"`.
+Encoding names are case-insensitive. ASCII and Latin-1 writes truncate each UTF-16
+code unit to its low byte, matching Node. Both Base64 variants accept either alphabet
+and stop at padding.
+
 ## Methods
 
 ### `writeFile(path, data, options?)`
@@ -22,7 +27,7 @@ await writeFile('./out.txt', 'content', { encoding: 'utf8', mode: 0o644 })
 | --------- | ---------------- | -------------------- |
 | `path`    | string           | File path.           |
 | `data`    | string \| Buffer | Data to write.       |
-| `options` | object           | Optional. See below. |
+| `options` | string \| object | Optional. See below. |
 
 **Options:** `encoding` (utf8, ascii, latin1, base64, base64url, hex), `mode` (number), `flag` (e.g. `'w'`, `'wx'`, `'a'`, `'ax'`).
 

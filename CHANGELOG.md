@@ -8,6 +8,39 @@ All notable Vooya FS changes are documented here. The format follows
 
 ### Added
 
+- Public compatibility entry point with file URL/Buffer path handling for core batches,
+  option-dependent Node execution paths, constants, result-aware TypeScript declarations,
+  and an actual Promise-based glob batch that also supports async iteration.
+- Node-oracle regression coverage for public exports, ESM imports, rooted exclusions,
+  platform case rules, permissions, symlinks, overwrite behavior and callback options.
+
+### Fixed
+
+- `readdir`: filename encodings and Buffer names, empty/file roots, traversal failures,
+  recursive symlinks, and the sync/Promise distinction for Dirent traversal.
+- `glob`: wildcard prefixes, arrays/deduplication, cwd-rooted exclusions, parent paths,
+  platform case rules and Node-compatible unreadable-directory handling.
+- `scan` / `glob`: ignore-file rules take precedence over positive includes.
+- `cp`: self/descendant/hardlink guards, overwrite precedence, destination inode
+  replacement, directory modes, symlink handling and structured errors.
+- `rm`: non-recursive directory rejection, retry eligibility and disappearance races.
+- `readFile`: malformed UTF-8 replacement, preserved blank lines, inclusive line bounds
+  without an extra line read, and structured I/O errors.
+- `writeFile` / `appendFile`: encoding-string options, ASCII/Latin-1 UTF-16 truncation,
+  Base64 alphabets/padding and case-insensitive encoding names.
+
+### Compatibility policy
+
+- The measured Rust fast paths remain focused on bulk work. Advanced options use
+  Node explicitly as documented; their availability is not a performance claim.
+- `cpSync` and `rmSync` use Node's existing native implementation. Windows copy/removal also
+  use Node. No WASM or missing-native-installation fallback is introduced.
+- Performance evidence measures the package entry under release builds on Node 22/24.
+
+## [@vooya/fs 0.1.0] - 2026-09-02
+
+### Added
+
 - **`scan` / `scanSync`:** One native pass for rooted include/exclude matching,
   recursive traversal, ignore rules, optional directories, symlink policy, and
   metadata collection. Results are deterministic and sorted by relative path.
@@ -18,9 +51,9 @@ All notable Vooya FS changes are documented here. The format follows
 
 ### Changed
 
-- **Project identity:** Rush-FS is becoming **Vooya FS**. The planned canonical npm
+- **Project identity:** Rush-FS became **Vooya FS**. The canonical npm
   package is `@vooya/fs`, the Rust crate is `vooya_fs`, and the native binary is
-  `vooya-fs`. Nothing is published to npm by this development branch.
+  `vooya-fs`. This release was published as `@vooya/fs@0.1.0`.
 - **Positioning:** Documentation now describes a boundary-first batch engine rather
   than a universal `node:fs` drop-in or blanket performance replacement.
 - **Concurrency:** Recursive operations with an explicit worker count use a bounded
@@ -47,7 +80,7 @@ All notable Vooya FS changes are documented here. The format follows
 - **Type declarations:** Async APIs generate concrete promise return types rather
   than `Promise<unknown>`.
 
-## [0.1.0] - 2026-03-05
+## [@rush-fs/core 0.1.0] - 2026-03-05
 
 ### Changed
 
@@ -77,7 +110,8 @@ All notable Vooya FS changes are documented here. The format follows
 
 ---
 
-[Unreleased]: https://github.com/vooyajs/fs/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/vooyajs/fs/compare/v0.0.5...v0.1.0
+[Unreleased]: https://github.com/vooyajs/fs/compare/fs-v0.1.0...HEAD
+[@vooya/fs 0.1.0]: https://github.com/vooyajs/fs/releases/tag/fs-v0.1.0
+[@rush-fs/core 0.1.0]: https://github.com/vooyajs/fs/compare/v0.0.5...v0.1.0
 [0.0.5]: https://github.com/vooyajs/fs/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/vooyajs/fs/compare/v0.0.3...v0.0.4

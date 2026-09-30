@@ -1,7 +1,7 @@
 const nodeFs = require('node:fs/promises')
 const path = require('node:path')
 const os = require('node:os')
-const { readFile } = require('../../../index.js')
+const { readFile } = require('@vooya/fs')
 const { removeFixture } = require('../../fixtures/fs-scale.ts')
 const { measure, printComparison } = require('../_helpers/measure.ts')
 

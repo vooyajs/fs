@@ -11,6 +11,11 @@ await appendFile('./log.txt', 'new line\n')
 await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
 ```
 
+The options argument also accepts an encoding string, for example `"utf8"` or `"hex"`.
+Encoding names are case-insensitive. ASCII and Latin-1 writes truncate each UTF-16
+code unit to its low byte, matching Node. Both Base64 variants accept either alphabet
+and stop at padding.
+
 ## Methods
 
 ### `appendFile(path, data, options?)`
@@ -21,7 +26,7 @@ await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
 | --------- | ---------------- | ------------------------------------- |
 | `path`    | string           | File path.                            |
 | `data`    | string \| Buffer | Data to append.                       |
-| `options` | object           | Optional: `encoding`, `mode`, `flag`. |
+| `options` | string \| object | Optional: `encoding`, `mode`, `flag`. |
 
 ### `appendFileSync(path, data, options?)`
 

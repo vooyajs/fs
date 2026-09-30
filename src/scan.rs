@@ -106,7 +106,16 @@ fn metadata_mode(metadata: &fs::Metadata) -> u32 {
 }
 
 fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanEntry>> {
-  let root = Path::new(if root_str.is_empty() { "." } else { &root_str }).to_path_buf();
+  let root = Path::new(&root_str).to_path_buf();
+  let metadata =
+    fs::metadata(&root).map_err(|error| crate::fs_error::io(error, "scandir", &root))?;
+  if !metadata.is_dir() {
+    return Err(crate::fs_error::io(
+      std::io::Error::from(std::io::ErrorKind::NotADirectory),
+      "scandir",
+      &root,
+    ));
+  }
   let opts = options.unwrap_or(ScanOptions {
     include: None,
     exclude: None,
@@ -139,10 +148,21 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
 
   let follow_symlinks = opts.follow_symlinks.unwrap_or(false);
   let with_directories = opts.with_directories.unwrap_or(false);
+  let mut exclusions = OverrideBuilder::new(&root);
+  for excluded in opts.exclude.as_deref().unwrap_or_default() {
+    exclusions
+      .add(&format!("!/{}", excluded.trim_start_matches('/')))
+      .map_err(|error| Error::from_reason(error.to_string()))?;
+  }
   let mut builder = WalkBuilder::new(&root);
   builder
-    .overrides(overrides)
+    .overrides(
+      exclusions
+        .build()
+        .map_err(|error| Error::from_reason(error.to_string()))?,
+    )
     .standard_filters(opts.git_ignore.unwrap_or(false))
+    .require_git(false)
     .hidden(opts.skip_hidden.unwrap_or(false))
     .follow_links(follow_symlinks)
     .threads(opts.concurrency.unwrap_or(0) as usize);
@@ -168,7 +188,7 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
       let entry = match result {
         Ok(entry) => entry,
         Err(error) => {
-          *walk_error.lock().unwrap() = Some(error.to_string());
+          *walk_error.lock().unwrap() = Some(crate::fs_error::walk(error, &root));
           return WalkState::Quit;
         }
       };
@@ -179,8 +199,10 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
       let path = entry.path();
       let relative = path.strip_prefix(&root).unwrap_or(path);
       let is_directory = entry.file_type().is_some_and(|kind| kind.is_dir());
-      if is_directory
-        && (!with_directories || !directory_matcher.matched(relative, true).is_whitelist())
+      if (is_directory && !with_directories)
+        || !directory_matcher
+          .matched(relative, is_directory)
+          .is_whitelist()
       {
         return WalkState::Continue;
       }
@@ -193,7 +215,7 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
       let metadata = match metadata {
         Ok(metadata) => metadata,
         Err(error) => {
-          *walk_error.lock().unwrap() = Some(format!("{}: {}", path.display(), error));
+          *walk_error.lock().unwrap() = Some(crate::fs_error::io(error, "lstat", path));
           return WalkState::Quit;
         }
       };
@@ -230,7 +252,7 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
     .map_err(|_| Error::from_reason("scan error lock poisoned"))?
     .take()
   {
-    return Err(Error::from_reason(error));
+    return Err(error);
   }
 
   let mut entries = Arc::try_unwrap(entries)
@@ -242,8 +264,8 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
 }
 
 #[napi(js_name = "scanSync")]
-pub fn scan_sync(root: String, options: Option<ScanOptions>) -> Result<Vec<ScanEntry>> {
-  scan_impl(root, options)
+pub fn scan_sync(env: Env, root: String, options: Option<ScanOptions>) -> Result<Vec<ScanEntry>> {
+  scan_impl(root, options).map_err(|error| crate::fs_error::into_js(env, error))
 }
 
 pub struct ScanTask {
@@ -257,6 +279,10 @@ impl Task for ScanTask {
 
   fn compute(&mut self) -> Result<Self::Output> {
     scan_impl(self.root.clone(), self.options.clone())
+  }
+
+  fn reject(&mut self, env: Env, error: Error) -> Result<Self::JsValue> {
+    Err(crate::fs_error::into_js(env, error))
   }
 
   fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {

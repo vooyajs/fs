@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
 use chrono::{DateTime, Local, TimeZone};
+use napi::bindgen_prelude::{Buffer, Either};
 use napi_derive::napi;
 
 #[napi]
 #[derive(Clone)]
 pub struct Dirent {
-  #[napi(readonly)]
-  pub name: String,
+  pub(crate) name: Either<String, Vec<u8>>,
   #[napi(readonly, js_name = "parentPath")]
   pub parent_path: String,
   // 1: file, 2: dir, 3: symlink, 4: block, 5: char, 6: fifo, 7: socket, 0: unknown
@@ -16,6 +16,14 @@ pub struct Dirent {
 
 #[napi]
 impl Dirent {
+  #[napi(getter)]
+  pub fn name(&self) -> Either<String, Buffer> {
+    match &self.name {
+      Either::A(name) => Either::A(name.clone()),
+      Either::B(bytes) => Either::B(Buffer::from(bytes.clone())),
+    }
+  }
+
   #[napi(js_name = "isFile")]
   pub fn is_file(&self) -> bool {
     self.file_type == 1

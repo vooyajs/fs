@@ -9,11 +9,11 @@
 
 ## Node Oracle and Supported Surface
 
-- Supported Vooya FS path input today: `string`.
+- Public core path inputs: string, Buffer and file URL. The generated native binding accepts strings.
 - Supported return modes: `Buffer` when no encoding is provided, `string` when encoding is provided.
 - Supported encodings: `utf8`, `utf-8`, `ascii`, `latin1`, `binary`, `base64`, `base64url`, and `hex`.
 - Supported flags are a subset of Node open flags: `r`, `rs`, `r+`, `rs+`, `a+`, `ax+`, `w+`, and `wx+`.
-- Unsupported Node surface for this SDD: `AbortSignal`, file handles, `Buffer` paths, `URL` paths, and callback API shape.
+- AbortSignal, FileHandle and additional flags/encodings use the public Node route. Callback forms remain out of scope.
 
 ## Functional Matrix
 
@@ -26,12 +26,9 @@
 
 ## Known Gaps
 
-| Behavior                              | Node oracle                                                  | Current Vooya FS behavior                                                                                             | Reason                                                                                    | Follow-up                   |
-| ------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------- |
-| Error object fields for missing paths | Rejects with `code: "ENOENT"`, `syscall: "open"`, and `path` | Message contains Node-like ENOENT text, but N-API error exposes `code: "GenericFailure"` and omits `syscall` / `path` | Runtime error construction does not yet map filesystem metadata into Node-style JS errors | Runtime error compatibility |
-| `AbortSignal` option                  | May abort pending reads with `AbortError`                    | Not supported                                                                                                         | Promise-first target has not accepted abort semantics yet                                 | API surface expansion       |
-| `Buffer` and `URL` paths              | Accepted by Node                                             | Type surface currently accepts string paths only                                                                      | Path input expansion is deferred globally                                                 | API surface expansion       |
-| `lines` option                        | No Node equivalent                                           | Vooya FS extension that returns a selected line range for text reads                                                  | Intentional extension                                                                     | Docs only                   |
+| Behavior       | Node oracle        | Current Vooya FS behavior                                            | Reason                | Follow-up |
+| -------------- | ------------------ | -------------------------------------------------------------------- | --------------------- | --------- |
+| `lines` option | No Node equivalent | Vooya FS extension that returns a selected line range for text reads | Intentional extension | Docs only |
 
 ## Performance Metrics
 
@@ -45,3 +42,14 @@
 - Docs must describe `lines` as a Vooya FS extension, not Node compatibility.
 - Docs must keep unsupported `AbortSignal`, `Buffer` path, and `URL` path behavior visible until implemented.
 - Docs should expose local scale report parameters when generated performance numbers are published.
+
+## Encoding parity regression coverage
+
+`test/conformance/writeFile/encoding-parity.spec.ts` compares native sync and Promise
+results against Node for encoding aliases/case, ASCII and Latin-1 UTF-16 truncation,
+Base64 alphabets/padding, write/append encoding-string shorthand, and malformed
+whole-file UTF-8 decoding. UTF-16LE/UCS-2 support and lone-surrogate preservation
+at the JS-to-Rust string boundary remain unverified or unsupported.
+
+Core missing-path errors now expose code/syscall/path/errno. Public routing, cancellation,
+file URL/Buffer inputs and permission behavior are tested in `../public/batch.spec.ts`.

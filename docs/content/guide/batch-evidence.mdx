@@ -1,0 +1,122 @@
+# Batch API evidence
+
+This report covers the unreleased Node 22/24 compatibility iteration. The npm
+release remains `@vooya/fs@0.1.0`; build this checkout to use the changes.
+
+## Scope and execution policy
+
+The measured entry is `@vooya/fs`, including its JavaScript compatibility routing.
+The primary workloads are recursive listing, glob matching, recursive Promise
+copy, recursive removal, traversal with metadata, and early text line ranges.
+See [compatibility and execution policy](/api/compatibility) for options that
+execute in Node and intentional differences from Node's API.
+
+`cpSync` and `rmSync` use Node's native synchronous implementations. Advanced copy callbacks,
+copy modes, dereference, Windows copying/removal and other unsupported native
+option combinations retain Node behavior. These routes are compatibility support,
+not acceleration claims.
+
+## Measurement method
+
+- Release native build; macOS arm64; Node 22.22.0 and Node 24.21.0.
+- Standard reports: two warmups and ten measured samples per implementation and case.
+- Large traversal cross-check: one warmup and three measured samples on Node 22.
+- Timing uses the trimmed mean, dropping the highest and lowest tenth of samples.
+- Fixtures: 8 files / 2 directories; 104 / 13; 2,728 / 341; and an opt-in
+  156,248 / 19,531 tree. File sizes are 32 B, 256 B, 1 KiB and 1 KiB respectively.
+- Copy/removal use `concurrency: 4`; glob defaults to 4 workers and scan uses
+  the walker heuristic. Native `readdir` uses its default pool.
+- Inputs are reused after warmup; these are local warm-cache measurements, not
+  cold-disk or network-filesystem results. Node samples run before Vooya samples.
+- Fixture creation, copying for removal setup, and cleanup are outside timing.
+- RSS values are before/after-GC deltas, not peak memory measurements. Negative
+  deltas reflect reclamation and are not evidence of negative memory use.
+- The early-lines baseline loads and splits the whole text file with Node. It
+  does not compare against a tuned streaming Node line reader.
+
+The source is under `test/performance`, with raw sample collection in
+`test/performance/_helpers/measure.ts`. Performance is evidence, not a timing
+assertion in CI. Results on this machine do not establish Windows or Linux speed.
+
+## Reproduce
+
+```bash
+pnpm build
+pnpm perf:fs --iterations 10 --warmup 2 --json .perf/api-aligned-node22.json
+npm exec --yes --package=node@24 -- node --expose-gc --import @oxc-node/core/register scripts/run-performance.mjs --iterations 10 --warmup 2 --json .perf/api-aligned-node24.json
+pnpm perf:fs readdir --iterations 3 --warmup 1 --large --json .perf/readdir-large-final.json
+pnpm perf:fs glob --iterations 3 --warmup 1 --large --json .perf/glob-large-final.json
+pnpm perf:fs scan --iterations 3 --warmup 1 --large --json .perf/scan-large-final.json
+```
+
+Large copy/removal measurements create and remove millions of filesystem entries
+across samples, so this optional run can take substantially longer than tests.
+Use the API filter, such as `pnpm perf:fs readdir`, to inspect one operation.
+
+## Verification boundaries
+
+Node 22 and Node 24 execute the same public-entry conformance matrix. It checks
+results and side effects against Node, including URL/Buffer paths, sync/Promise
+variants, Dirent names and parent paths, recursive symlinks, rooted exclusions,
+ignore precedence, copy overwrite/filter/mode/timestamps, cancellation, errors,
+ESM imports and result types.
+
+Windows MSVC and Linux GNU native targets receive compile checks here. Runtime
+filesystem behavior on those platforms still needs their CI runners; a cross
+compile is not a runtime conformance or performance result. Timing on network
+filesystems, cold caches and concurrent external mutation remains unmeasured.
+
+## Results
+
+Table ratios are Node time divided by Vooya time; greater than 1 means Vooya is faster.
+Standard tree rows use 2,728 files and 341 directories. The line-range row reads
+the first 100 lines of a 16 MiB file. Each cell is **Node / Vooya time (ratio)**.
+
+| Workload                 | Node 22.22.0               | Node 24.21.0               |
+| ------------------------ | -------------------------- | -------------------------- |
+| cp                       | 463.38 / 150.08 ms (3.09×) | 449.59 / 150.00 ms (3.00×) |
+| glob                     | 18.03 / 5.41 ms (3.34×)    | 17.42 / 5.59 ms (3.11×)    |
+| readdir                  | 19.30 / 4.60 ms (4.19×)    | 18.90 / 5.27 ms (3.59×)    |
+| rm                       | 75.23 / 68.29 ms (1.10×)   | 77.11 / 68.80 ms (1.12×)   |
+| scan                     | 31.05 / 10.83 ms (2.87×)   | 27.56 / 10.16 ms (2.71×)   |
+| readFile first 100 lines | 15.94 / 0.06 ms (261.71×)  | 13.67 / 0.06 ms (244.45×)  |
+
+These samples support native batching for recursive listing, recursive glob,
+Promise copy, fused metadata scans and early line ranges at the measured scales.
+They do not establish a useful general removal speedup: rm is close to parity and
+slightly slower on the 104-file fixture. Small glob and scan fixtures are slower
+than Node because worker/matcher setup dominates. Ordinary whole-file UTF-8 reads
+show a much smaller advantage than line ranges; do not generalize the line-range
+ratio to readFile as a whole.
+
+### Large traversal cross-check
+
+Node 22; 156,248 files and 19,531 directories; one warmup and three samples.
+This is a lower-sample scale cross-check, separate from the ten-sample report.
+With three samples the trimmed mean equals the ordinary mean.
+
+| Workload | Node / Vooya time (ratio)   |
+| -------- | --------------------------- |
+| readdir  | 1187.63 / 369.03 ms (3.22×) |
+| glob     | 1181.11 / 194.75 ms (6.06×) |
+| scan     | 1976.23 / 424.22 ms (4.66×) |
+
+Large copy/removal were not included in this final cross-check. Earlier exploratory
+copy measurements are not used as final-build evidence in this report.
+
+### Raw samples
+
+- [Node 22 standard report](/evidence/api-aligned-node22.json)
+- [Node 24 standard report](/evidence/api-aligned-node24.json)
+- [Large readdir](/evidence/readdir-large-final.json)
+- [Large glob](/evidence/glob-large-final.json)
+- [Large scan](/evidence/scan-large-final.json)
+
+## Validation result
+
+Release build; 440 tests passed on each of Node 22 and Node 24. TypeScript,
+Oxlint, Rust formatting and Clippy pass. Linux GNU and Windows MSVC cross-checks
+compile successfully; Windows retains a pre-existing unused helper warning.
+Packed CommonJS and ESM entry points were exercised on both Node versions with
+the locally built native binary. The package includes the public entry and
+generated native loader/types. The documentation production build passes.

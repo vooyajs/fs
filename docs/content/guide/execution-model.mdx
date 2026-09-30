@@ -29,7 +29,9 @@ less promise orchestration, fused passes, and bounded native parallelism.
 ## Concurrency semantics
 
 `concurrency: 1` selects a serial path where supported. A value greater than one
-sets the per-operation worker count; omitted or zero uses the runtime heuristic.
+sets the per-operation worker count on native paths.
+Defaults differ by API; see the [concurrency table](/api/compatibility).
+Node compatibility routes validate this extension but use Node's own scheduling.
 Higher values are not guaranteed to be faster, especially on SSDs or small trees.
 Measure the representative tree and workload.
 

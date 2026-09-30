@@ -77,7 +77,7 @@ test('globSync: should return Dirent objects when withFileTypes is true', (t) =>
     t.is(typeof first.isFile, 'function')
     t.true(first.isFile())
     t.is(typeof first.name, 'string')
-    t.true(first.name.endsWith('.rs'))
+    t.true(typeof first.name === 'string' && first.name.endsWith('.rs'))
     t.is(typeof first.parentPath, 'string')
   } else {
     t.fail('Should return objects')
@@ -90,7 +90,7 @@ test('globSync: should support exclude option', (t) => {
   t.true(allFiles.some((f) => f.endsWith('lib.rs')))
 
   // Exclude lib.rs
-  const filteredFiles = globSync('src/*.rs', { cwd: CWD, exclude: ['lib.rs'] })
+  const filteredFiles = globSync('src/*.rs', { cwd: CWD, exclude: ['src/lib.rs'] })
   t.true(filteredFiles.length > 0)
   t.false(
     filteredFiles.some((f) => f.endsWith('lib.rs')),
@@ -329,26 +329,26 @@ test('dual-run: **/*.txt recursion matches node:fs.globSync', (t) => {
   t.deepEqual(hyper.sort(), nodeResults.sort(), '**/*.txt recursive results should match Node')
 })
 
-// extract_path_prefix must treat ? and [ as glob metacharacters so "dir?/sub/**/*.ts" uses "dir" as
-// walk root with pattern "?/sub/**/*.ts", not the literal "dir?/sub" (which would not exist).
+// extract_path_prefix must treat ? and [ as glob metacharacters so "dir?/sub/**/*.ts" keeps the wildcard within its path segment.
 test('globSync: pattern with ? before first * uses correct walk root (dir?/sub/**/*.ts)', (t) => {
   const base = join(tmpdir(), `hyper-glob-metachar-${Date.now()}-${Math.random().toString(36).slice(2)}`)
-  // With prefix "dir", walk root is base/dir; ? matches one char so we need dir/a/sub and dir/b/sub
-  nodeFs.mkdirSync(join(base, 'dir/a/sub'), { recursive: true })
-  nodeFs.mkdirSync(join(base, 'dir/b/sub'), { recursive: true })
-  nodeFs.writeFileSync(join(base, 'dir/a/sub/a.ts'), '')
-  nodeFs.writeFileSync(join(base, 'dir/b/sub/b.ts'), '')
+  // ? matches one character within the same segment, never a slash.
+  nodeFs.mkdirSync(join(base, 'dira/sub'), { recursive: true })
+  nodeFs.mkdirSync(join(base, 'dirb/sub'), { recursive: true })
+  nodeFs.writeFileSync(join(base, 'dira/sub/a.ts'), '')
+  nodeFs.writeFileSync(join(base, 'dirb/sub/b.ts'), '')
   try {
     const results = globSync('dir?/sub/**/*.ts', { cwd: base })
     const normalized = results.map((result) => result.replace(/\\/g, '/'))
+    t.deepEqual(normalized.sort(), nodeFs.globSync('dir?/sub/**/*.ts', { cwd: base }).sort())
     t.true(normalized.length >= 2, `expected at least 2 matches for dir?/sub/**/*.ts, got ${results.length}`)
     t.true(
       normalized.some((p) => p.includes('a.ts')),
-      'should match dir/a/sub/a.ts',
+      'should match dira/sub/a.ts',
     )
     t.true(
       normalized.some((p) => p.includes('b.ts')),
-      'should match dir/b/sub/b.ts',
+      'should match dirb/sub/b.ts',
     )
   } finally {
     rmSync(base, { recursive: true })

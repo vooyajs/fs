@@ -42,3 +42,10 @@ Vooya FS may lose on tiny and small glob patterns because bridge and matcher set
 - Docs may mention `fast-glob` only as a competitive benchmark reference, not as the API oracle.
 - Docs must explain rooted matching for `*.txt` versus `**/*.txt`.
 - If performance reports identify a new break-even point or best-practice boundary, update the Performance and Notes sections.
+
+## Public entry and boundary regressions
+
+`../public/batch.spec.ts` checks the shipped `@vooya/fs` entry against the same
+Node runtime. See `docs/content/api/compatibility.mdx` for native vs Node execution
+policy, intentional extensions and unsupported combinations. Benchmarks import
+the public package; compatibility routes must not be presented as native speedups.

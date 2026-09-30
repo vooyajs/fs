@@ -77,11 +77,11 @@ test('options: skip_hidden should filter out dotfiles', (t) => {
   const allFiles = readdirSync('.', { skipHidden: false })
   // Assuming this repo has a .git folder or similar
   // files are strings now
-  const hasHidden = allFiles.some((f) => (typeof f === 'string' ? f : f.name).startsWith('.'))
+  const hasHidden = allFiles.some((f) => f.startsWith('.'))
 
   if (hasHidden) {
     const visibleFiles = readdirSync('.', { skipHidden: true })
-    const hiddenRemains = visibleFiles.some((f) => (typeof f === 'string' ? f : f.name).startsWith('.'))
+    const hiddenRemains = visibleFiles.some((f) => f.startsWith('.'))
     t.false(hiddenRemains, 'Should not contain hidden files when skip_hidden is true')
   } else {
     t.pass('No hidden files found in root to test skipping')

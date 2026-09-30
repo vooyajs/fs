@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use rayon::ThreadPoolBuilder;
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Removes files and directories (modeled on the standard POSIX `rm` utility).
 ///
@@ -27,39 +27,63 @@ pub struct RmOptions {
   pub concurrency: Option<u32>,
 }
 
-fn remove_recursive(path: &Path, recursive: bool, parallel: bool) -> io::Result<()> {
-  let meta = fs::symlink_metadata(path)?;
+struct RemoveError {
+  error: io::Error,
+  syscall: &'static str,
+  path: PathBuf,
+}
+
+fn context(error: io::Error, syscall: &'static str, path: &Path) -> RemoveError {
+  RemoveError {
+    error,
+    syscall,
+    path: path.to_path_buf(),
+  }
+}
+
+fn remove_recursive(
+  path: &Path,
+  recursive: bool,
+  parallel: bool,
+) -> std::result::Result<(), RemoveError> {
+  let meta = match fs::symlink_metadata(path) {
+    Ok(meta) => meta,
+    // A child may disappear after its parent directory has been enumerated.
+    Err(error) if recursive && error.kind() == io::ErrorKind::NotFound => return Ok(()),
+    Err(error) => return Err(context(error, "lstat", path)),
+  };
 
   if meta.is_dir() {
     if recursive {
-      let entries_iter = fs::read_dir(path)?;
-
+      let entries_iter = fs::read_dir(path).map_err(|error| context(error, "scandir", path))?;
       if parallel {
-        let entries: Vec<_> = entries_iter.collect::<io::Result<_>>()?;
+        let entries: Vec<_> = entries_iter
+          .collect::<io::Result<_>>()
+          .map_err(|error| context(error, "scandir", path))?;
         entries
           .par_iter()
           .try_for_each(|entry| remove_recursive(&entry.path(), true, true))?;
       } else {
         for entry in entries_iter {
-          remove_recursive(&entry?.path(), true, false)?;
+          let entry = entry.map_err(|error| context(error, "scandir", path))?;
+          remove_recursive(&entry.path(), true, false)?;
         }
       }
-
-      fs::remove_dir(path)?;
-    } else {
-      fs::remove_dir(path)?;
+    }
+    match fs::remove_dir(path) {
+      Err(error) if recursive && error.kind() == io::ErrorKind::NotFound => Ok(()),
+      result => result.map_err(|error| context(error, "rmdir", path)),
     }
   } else {
-    fs::remove_file(path)?;
+    match fs::remove_file(path) {
+      Err(error) if recursive && error.kind() == io::ErrorKind::NotFound => Ok(()),
+      result => result.map_err(|error| context(error, "unlink", path)),
+    }
   }
-  Ok(())
 }
 
 fn is_retryable(error: &io::Error) -> bool {
-  if matches!(
-    error.kind(),
-    io::ErrorKind::PermissionDenied | io::ErrorKind::DirectoryNotEmpty
-  ) {
+  if error.kind() == io::ErrorKind::DirectoryNotEmpty {
     return true;
   }
 
@@ -73,22 +97,26 @@ fn is_retryable(error: &io::Error) -> bool {
   false
 }
 
-fn remove_once(path: &Path, opts: &RmOptions) -> io::Result<()> {
+fn remove_once(path: &Path, opts: &RmOptions) -> std::result::Result<(), RemoveError> {
   let recursive = opts.recursive.unwrap_or(false);
   let concurrency = opts.concurrency.unwrap_or(1);
   if recursive && concurrency > 1 {
     let pool = ThreadPoolBuilder::new()
       .num_threads(concurrency as usize)
       .build()
-      .map_err(io::Error::other)?;
+      .map_err(|error| context(io::Error::other(error), "rm", path))?;
     pool.install(|| remove_recursive(path, true, true))
   } else {
     remove_recursive(path, recursive, false)
   }
 }
 
-fn remove_with_retry(path: &Path, opts: &RmOptions) -> io::Result<()> {
-  let max_retries = opts.max_retries.unwrap_or(0) as usize;
+fn remove_with_retry(path: &Path, opts: &RmOptions) -> std::result::Result<(), RemoveError> {
+  let max_retries = if opts.recursive.unwrap_or(false) {
+    opts.max_retries.unwrap_or(0) as usize
+  } else {
+    0
+  };
   let retry_delay = opts.retry_delay.unwrap_or(100) as u64;
 
   let mut last_err = None;
@@ -100,23 +128,17 @@ fn remove_with_retry(path: &Path, opts: &RmOptions) -> io::Result<()> {
     }
     match remove_once(path, opts) {
       Ok(()) => return Ok(()),
-      Err(error) if attempt < max_retries && is_retryable(&error) => last_err = Some(error),
+      Err(error) if attempt < max_retries && is_retryable(&error.error) => last_err = Some(error),
       Err(error) => return Err(error),
     }
   }
-  Err(last_err.unwrap_or_else(|| io::Error::other("remove failed without an error")))
-}
-
-fn remove_error(path: &Path, error: io::Error) -> Error {
-  let reason = match error.kind() {
-    io::ErrorKind::NotFound => "ENOENT: no such file or directory",
-    io::ErrorKind::PermissionDenied => "EPERM: operation not permitted",
-    io::ErrorKind::DirectoryNotEmpty => "ENOTEMPTY: directory not empty",
-    _ => {
-      return Error::from_reason(format!("{}, rm '{}'", error, path.to_string_lossy()));
-    }
-  };
-  Error::from_reason(format!("{}, rm '{}'", reason, path.to_string_lossy()))
+  Err(last_err.unwrap_or_else(|| {
+    context(
+      io::Error::other("remove failed without an error"),
+      "rm",
+      path,
+    )
+  }))
 }
 
 fn remove(path_str: String, options: Option<RmOptions>) -> Result<()> {
@@ -132,12 +154,31 @@ fn remove(path_str: String, options: Option<RmOptions>) -> Result<()> {
   let force = opts.force.unwrap_or(false);
 
   match fs::symlink_metadata(path) {
+    Ok(metadata) if metadata.is_dir() && !opts.recursive.unwrap_or(false) => {
+      return Err(crate::fs_error::custom(
+        "ERR_FS_EISDIR",
+        "rm",
+        path,
+        None,
+        "Path is a directory",
+      ));
+    }
     Ok(_) => {}
     Err(error) if error.kind() == io::ErrorKind::NotFound && force => return Ok(()),
-    Err(error) => return Err(remove_error(path, error)),
+    Err(error) => return Err(crate::fs_error::io(error, "lstat", path)),
   }
 
-  remove_with_retry(path, &opts).map_err(|error| remove_error(path, error))
+  match remove_with_retry(path, &opts) {
+    Err(error)
+      if error.error.kind() == io::ErrorKind::NotFound
+        && (force || opts.recursive.unwrap_or(false)) =>
+    {
+      Ok(())
+    }
+    result => {
+      result.map_err(|failure| crate::fs_error::io(failure.error, failure.syscall, &failure.path))
+    }
+  }
 }
 
 // ========= async version =========
@@ -155,6 +196,10 @@ impl Task for RmTask {
     remove(self.path.clone(), self.options.clone())
   }
 
+  fn reject(&mut self, env: Env, error: Error) -> Result<Self::JsValue> {
+    Err(crate::fs_error::into_js(env, error))
+  }
+
   fn resolve(&mut self, _env: Env, _output: Self::Output) -> Result<Self::JsValue> {
     Ok(())
   }
@@ -166,6 +211,6 @@ pub fn rm(path: String, options: Option<RmOptions>) -> AsyncTask<RmTask> {
 }
 
 #[napi(js_name = "rmSync")]
-pub fn rm_sync(path: String, options: Option<RmOptions>) -> Result<()> {
-  remove(path, options)
+pub fn rm_sync(env: Env, path: String, options: Option<RmOptions>) -> Result<()> {
+  remove(path, options).map_err(|error| crate::fs_error::into_js(env, error))
 }

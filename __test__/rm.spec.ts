@@ -31,23 +31,23 @@ test('async: should remove a file', async (t) => {
   t.false(existsSync(testFile), 'File should not exist after removal')
 })
 
-test('sync: should remove an empty directory', (t) => {
+test('sync: should remove an empty directory with recursive enabled', (t) => {
   const tempDir = createTempDir()
   const testDir = join(tempDir, 'empty-dir')
   mkdirSync(testDir)
 
   t.true(existsSync(testDir), 'Directory should exist before removal')
-  rmSync(testDir)
+  rmSync(testDir, { recursive: true })
   t.false(existsSync(testDir), 'Directory should not exist after removal')
 })
 
-test('async: should remove an empty directory', async (t) => {
+test('async: should remove an empty directory with recursive enabled', async (t) => {
   const tempDir = createTempDir()
   const testDir = join(tempDir, 'empty-dir')
   mkdirSync(testDir)
 
   t.true(existsSync(testDir), 'Directory should exist before removal')
-  await rm(testDir)
+  await rm(testDir, { recursive: true })
   t.false(existsSync(testDir), 'Directory should not exist after removal')
 })
 
@@ -96,7 +96,7 @@ test('sync: should throw error when removing non-empty directory without recursi
   writeFileSync(testFile, 'content')
 
   t.true(existsSync(testDir), 'Directory should exist')
-  t.throws(() => rmSync(testDir), { message: /ENOTEMPTY|EEXIST/ })
+  t.throws(() => rmSync(testDir), { code: 'ERR_FS_EISDIR' })
 })
 
 test('async: should throw error when removing non-empty directory without recursive', async (t) => {
@@ -108,7 +108,7 @@ test('async: should throw error when removing non-empty directory without recurs
   writeFileSync(testFile, 'content')
 
   t.true(existsSync(testDir), 'Directory should exist')
-  await t.throwsAsync(async () => await rm(testDir), { message: /ENOTEMPTY|EEXIST/ })
+  await t.throwsAsync(async () => await rm(testDir), { code: 'ERR_FS_EISDIR' })
 })
 
 test('sync: should throw error when file does not exist and force=false', (t) => {
@@ -171,8 +171,9 @@ test('sync: should work with recursive=false explicitly', (t) => {
   mkdirSync(testDir)
 
   t.true(existsSync(testDir), 'Directory should exist before removal')
-  rmSync(testDir, { recursive: false })
-  t.false(existsSync(testDir), 'Directory should not exist after removal')
+  t.throws(() => nodeRmSync(testDir, { recursive: false }), { code: 'ERR_FS_EISDIR' })
+  t.throws(() => rmSync(testDir, { recursive: false }), { code: 'ERR_FS_EISDIR' })
+  t.true(existsSync(testDir), 'Directory must remain intact')
 })
 
 test('async: should work with recursive=false explicitly', async (t) => {
@@ -181,8 +182,8 @@ test('async: should work with recursive=false explicitly', async (t) => {
   mkdirSync(testDir)
 
   t.true(existsSync(testDir), 'Directory should exist before removal')
-  await rm(testDir, { recursive: false })
-  t.false(existsSync(testDir), 'Directory should not exist after removal')
+  await t.throwsAsync(() => rm(testDir, { recursive: false }), { code: 'ERR_FS_EISDIR' })
+  t.true(existsSync(testDir), 'Directory must remain intact')
 })
 
 test('sync: should remove deep nested directory with concurrency', (t) => {

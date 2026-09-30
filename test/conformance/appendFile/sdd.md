@@ -43,3 +43,11 @@
 - Docs must state that `appendFile` creates the file when missing and supports string/Buffer data.
 - Docs must document unsupported path/data inputs and modern write options.
 - Docs must keep the error object known gap visible until fixed.
+
+## Encoding parity regression coverage
+
+`test/conformance/writeFile/encoding-parity.spec.ts` compares native sync and Promise
+results against Node for encoding aliases/case, ASCII and Latin-1 UTF-16 truncation,
+Base64 alphabets/padding, write/append encoding-string shorthand, and malformed
+whole-file UTF-8 decoding. UTF-16LE/UCS-2 support and lone-surrogate preservation
+at the JS-to-Rust string boundary remain unverified or unsupported.

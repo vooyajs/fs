@@ -6,42 +6,30 @@ use std::io::Write;
 use std::path::Path;
 
 fn encode_string(s: &str, encoding: Option<&str>) -> Result<Vec<u8>> {
-  match encoding {
+  let normalized = encoding.map(str::to_ascii_lowercase);
+  match normalized.as_deref() {
     None | Some("utf8" | "utf-8") => Ok(s.as_bytes().to_vec()),
-    Some("ascii") => Ok(s.bytes().map(|b| b & 0x7f).collect()),
-    Some("latin1" | "binary") => Ok(s.chars().map(|c| c as u8).collect()),
-    Some("base64") => base64_decode(s, false),
-    Some("base64url") => base64_decode(s, true),
+    Some("ascii" | "latin1" | "binary") => Ok(s.encode_utf16().map(|c| c as u8).collect()),
+    Some("base64") => base64_decode(s),
+    Some("base64url") => base64_decode(s),
     Some("hex") => Ok(hex_decode(s)),
     Some(enc) => Err(Error::from_reason(format!("Unknown encoding: {}", enc))),
   }
 }
 
-fn base64_decode(s: &str, url_safe: bool) -> Result<Vec<u8>> {
+fn base64_decode(s: &str) -> Result<Vec<u8>> {
   let mut buf = Vec::with_capacity(s.len() * 3 / 4);
   let mut acc: u32 = 0;
   let mut bits: u32 = 0;
   for c in s.chars() {
-    let val = if url_safe {
-      match c {
-        'A'..='Z' => c as u32 - 'A' as u32,
-        'a'..='z' => c as u32 - 'a' as u32 + 26,
-        '0'..='9' => c as u32 - '0' as u32 + 52,
-        '-' => 62,
-        '_' => 63,
-        '=' => continue,
-        _ => continue,
-      }
-    } else {
-      match c {
-        'A'..='Z' => c as u32 - 'A' as u32,
-        'a'..='z' => c as u32 - 'a' as u32 + 26,
-        '0'..='9' => c as u32 - '0' as u32 + 52,
-        '+' => 62,
-        '/' => 63,
-        '=' => continue,
-        _ => continue,
-      }
+    let val = match c {
+      'A'..='Z' => c as u32 - 'A' as u32,
+      'a'..='z' => c as u32 - 'a' as u32 + 26,
+      '0'..='9' => c as u32 - '0' as u32 + 52,
+      '+' | '-' => 62,
+      '/' | '_' => 63,
+      '=' => break,
+      _ => continue,
     };
     acc = (acc << 6) | val;
     bits += 6;
@@ -83,17 +71,29 @@ pub struct WriteFileOptions {
   pub flag: Option<String>,
 }
 
+fn normalize_write_file_options(
+  options: Option<Either<String, WriteFileOptions>>,
+) -> WriteFileOptions {
+  match options {
+    Some(Either::B(options)) => options,
+    encoding => WriteFileOptions {
+      encoding: match encoding {
+        Some(Either::A(value)) => Some(value),
+        _ => None,
+      },
+      mode: None,
+      flag: None,
+    },
+  }
+}
+
 fn write_file_impl(
   path_str: String,
   data: Either<String, Buffer>,
-  options: Option<WriteFileOptions>,
+  options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
   let path = Path::new(&path_str);
-  let opts = options.unwrap_or(WriteFileOptions {
-    encoding: None,
-    mode: None,
-    flag: None,
-  });
+  let opts = normalize_write_file_options(options);
 
   let flag = opts.flag.as_deref().unwrap_or("w");
   let encoding = opts.encoding.as_deref();
@@ -156,7 +156,7 @@ fn write_file_impl(
 pub fn write_file_sync(
   path: String,
   data: Either<String, Buffer>,
-  options: Option<WriteFileOptions>,
+  options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
   write_file_impl(path, data, options)
 }
@@ -167,7 +167,7 @@ pub struct WriteFileTask {
   pub path: String,
   pub string_data: Option<String>,
   pub bytes_data: Option<Vec<u8>>,
-  pub options: Option<WriteFileOptions>,
+  pub options: Option<Either<String, WriteFileOptions>>,
 }
 
 impl Task for WriteFileTask {
@@ -192,7 +192,7 @@ impl Task for WriteFileTask {
 pub fn write_file(
   path: String,
   data: Either<String, Buffer>,
-  options: Option<WriteFileOptions>,
+  options: Option<Either<String, WriteFileOptions>>,
 ) -> AsyncTask<WriteFileTask> {
   let (string_data, bytes_data) = match data {
     Either::A(s) => (Some(s), None),
@@ -211,26 +211,22 @@ pub fn write_file(
 fn append_file_impl(
   path_str: String,
   data: Either<String, Buffer>,
-  options: Option<WriteFileOptions>,
+  options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
-  let opts = options.unwrap_or(WriteFileOptions {
-    encoding: None,
-    mode: None,
-    flag: None,
-  });
+  let opts = normalize_write_file_options(options);
   let merged = WriteFileOptions {
     encoding: opts.encoding,
     mode: opts.mode,
     flag: Some(opts.flag.unwrap_or_else(|| "a".to_string())),
   };
-  write_file_impl(path_str, data, Some(merged))
+  write_file_impl(path_str, data, Some(Either::B(merged)))
 }
 
 #[napi(js_name = "appendFileSync")]
 pub fn append_file_sync(
   path: String,
   data: Either<String, Buffer>,
-  options: Option<WriteFileOptions>,
+  options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
   append_file_impl(path, data, options)
 }
@@ -239,7 +235,7 @@ pub struct AppendFileTask {
   pub path: String,
   pub string_data: Option<String>,
   pub bytes_data: Option<Vec<u8>>,
-  pub options: Option<WriteFileOptions>,
+  pub options: Option<Either<String, WriteFileOptions>>,
 }
 
 impl Task for AppendFileTask {
@@ -264,7 +260,7 @@ impl Task for AppendFileTask {
 pub fn append_file(
   path: String,
   data: Either<String, Buffer>,
-  options: Option<WriteFileOptions>,
+  options: Option<Either<String, WriteFileOptions>>,
 ) -> AsyncTask<AppendFileTask> {
   let (string_data, bytes_data) = match data {
     Either::A(s) => (Some(s), None),
