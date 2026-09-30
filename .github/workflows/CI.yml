@@ -15,8 +15,6 @@ env:
       - '**/*.gitignore'
       - .editorconfig
   pull_request:
-    branches:
-      - main
     paths-ignore:
       - LICENSE
       - '**/*.gitignore'
