@@ -49,3 +49,7 @@ Vooya FS may lose on tiny and small glob patterns because bridge and matcher set
 Node runtime. See `docs/content/api/compatibility.mdx` for native vs Node execution
 policy, intentional extensions and unsupported combinations. Benchmarks import
 the public package; compatibility routes must not be presented as native speedups.
+
+## Incremental native overhead reduction
+
+Group patterns only when literal roots, hidden-entry policy and root-inclusion semantics agree. Preserve exclusions, ignore precedence, symlink traversal, path spelling, names/Dirents and deduplication across groups. Compare grouped calls with Node and the union of individual calls. Thread-local result collection must neither lose nor duplicate entries.

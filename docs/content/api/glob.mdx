@@ -36,7 +36,20 @@ The native walker benefits larger recursive trees. Matcher and worker startup
 can make tiny or shallow trees slower than Node. See the
 [batch evidence report](/guide/batch-evidence) for current measurements and limits.
 
-### Local scale report
+### Shared traversal
+
+Compatible native patterns in one call share a walker. For example,
+`glob(['**/*.ts', '**/*.js'], { cwd })` scans the tree once. Patterns with
+different literal roots, hidden-entry traversal rules, or terminal `**` root
+inclusion remain separate; results are still deduplicated across those walks.
+Workers collect matches locally and merge after traversal. This reduces shared
+locking while retaining the existing fully materialized result and unspecified order.
+
+See the [native overhead report](/guide/native-overheads) for before/after data,
+Node baselines, tiny-tree overhead and memory tradeoffs. Advanced patterns routed
+to Node retain Node's own traversal behavior.
+
+### Earlier single-pattern scale report
 
 {/* vooya-fs-perf:start glob */}
 
