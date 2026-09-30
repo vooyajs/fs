@@ -34,16 +34,28 @@ and stop at padding.
 
 ## Performance
 
-From repo benchmarks (`pnpm build && pnpm bench`):
+Buffer writes borrow the input bytes for synchronous calls. Promise calls keep
+one entry-time copy so the worker owns a stable snapshot, then write directly
+from that snapshot. This removes a redundant payload-sized allocation and copy;
+it is not a zero-copy or faster-disk guarantee. String encoding is unchanged.
 
-| Scenario   | Node.js | Vooya FS | Ratio |
-| ---------- | ------- | -------- | ----- |
-| appendFile | 30 µs   | 27 µs    | 0.9x  |
-
-On par with Node.js; single-file append is an atomic syscall.
+See the [native overhead report](/guide/native-overheads) for release-build
+Node 22/24 comparisons, including small inputs, raw samples and memory limits.
+Large Buffer workloads are the intended target; small writes remain dominated
+by scheduling, opening the file and filesystem cost. These APIs do not implement
+Node's `flush` option, so the measurements compare writes without an explicit flush.
 
 ## Notes
 
 - **Encodings**: utf8, ascii, latin1, base64, base64url, hex. Same semantics as Node.js.
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, TypedArray/DataView data, `AbortSignal`, and newer `flush` behavior are not part of the current Vooya FS `appendFile` surface.
+
+### Buffer ownership
+
+`Buffer.subarray()` writes only the selected bytes, including a nonzero offset.
+Async calls snapshot those bytes before returning the Promise; later mutation of
+the original Buffer does not change that operation's input. This is Vooya's
+ownership policy, not a promise that Node snapshots mutable inputs identically.
+Await writes to the same file in the required order; separate concurrent calls
+are not an ordering primitive.
