@@ -29,6 +29,17 @@ All notable Vooya FS changes are documented here. The format follows
 - `writeFile` / `appendFile`: encoding-string options, ASCII/Latin-1 UTF-16 truncation,
   Base64 alphabets/padding and case-insensitive encoding names.
 
+### Performance
+
+- Compatible native `glob` patterns share a traversal; workers collect results
+  locally and merge once, with cross-walk deduplication only when needed.
+- `writeFile` / `appendFile` borrow synchronous Buffer bytes and write async
+  worker-owned snapshots directly, removing redundant payload copies while
+  preserving entry-time snapshots and Buffer slice boundaries.
+- Controlled public-entry Node 22/24 before/after evidence and reproduction
+  instructions are included in the native overhead report, including small-input
+  costs and the limits of local filesystem and RSS measurements.
+
 ### Compatibility policy
 
 - The measured Rust fast paths remain focused on bulk work. Advanced options use
