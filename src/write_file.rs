@@ -189,9 +189,13 @@ impl Task for WriteFileTask {
   type JsValue = ();
 
   fn compute(&mut self) -> Result<Self::Output> {
-    let data = match self.string_data.as_deref() {
+    // Drop the owned snapshot on the worker after I/O, rather than retaining it
+    // until the JavaScript event loop gets around to resolving this task.
+    let text = self.string_data.take();
+    let bytes = self.bytes_data.take();
+    let data = match text.as_deref() {
       Some(text) => WriteData::Text(text),
-      None => WriteData::Bytes(self.bytes_data.as_deref().unwrap_or_default()),
+      None => WriteData::Bytes(bytes.as_deref().unwrap_or_default()),
     };
     write_file_impl(&self.path, data, self.options.take())
   }
@@ -256,9 +260,13 @@ impl Task for AppendFileTask {
   type JsValue = ();
 
   fn compute(&mut self) -> Result<Self::Output> {
-    let data = match self.string_data.as_deref() {
+    // Drop the owned snapshot on the worker after I/O, rather than retaining it
+    // until the JavaScript event loop gets around to resolving this task.
+    let text = self.string_data.take();
+    let bytes = self.bytes_data.take();
+    let data = match text.as_deref() {
       Some(text) => WriteData::Text(text),
-      None => WriteData::Bytes(self.bytes_data.as_deref().unwrap_or_default()),
+      None => WriteData::Bytes(bytes.as_deref().unwrap_or_default()),
     };
     append_file_impl(&self.path, data, self.options.take())
   }
