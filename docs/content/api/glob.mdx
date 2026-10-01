@@ -69,9 +69,9 @@ _Generated from local performance reports. Do not edit this block by hand._
 
 ## Notes
 
-- **gitIgnore**: When true, respects .gitignore (and similar) for exclusion; Vooya FS extension.
+- **gitIgnore**: When true, respects .gitignore (and similar) for exclusion. This native extension does not expand directory symlinks found during traversal; explicit literal symlink roots can still be traversed. It retains native string-array wildcard exclusions using the ignore/globset matcher; directory and terminal-globstar boundaries can differ from Node. Callback and advanced exclusions reject explicitly rather than dropping ignore-file semantics.
 - **concurrency**: Vooya FS extension; default 4. Measure before increasing it.
-- **exclude**: Patterns are rooted at cwd; excluding a directory prunes its descendants. Callback exclusions use Node.
+- **exclude**: Patterns are rooted at cwd. Ordinary wildcard and callback exclusions use Node to preserve directory/root boundary behavior; simple relative literal string-array exclusions remain native. `gitIgnore: true` retains its native wildcard-exclusion rules.
 - **Rooted matching**: `*.txt` only matches entries at `cwd`; use `**/*.txt` for recursive matches.
 - **Scale guidance**: `test/performance/glob` tracks tiny/small/medium/large behavior so the docs can keep the bridge-overhead and large-tree benefit boundaries visible.
 
@@ -89,3 +89,17 @@ restricted to native-supported patterns and rejects incompatible combinations.
 See the [full glob comparison table](/guide/all-api-evidence#glob) for
 Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
 execution routes and measurement limits.
+
+## Compatibility retries
+
+The public entry starts supported patterns on the native walker. If it discovers
+a directory symlink, ordinary glob calls retry the complete query with Node:
+Node can expand a matching symlink for the remaining pattern without recursively
+following every link. Partial native results are discarded, and both strings and
+Dirents retain Node's results. Such a call pays for the initial native work as
+well as the Node retry; it is not a native acceleration claim. The `gitIgnore`
+extension retains its documented native no-follow behavior instead of retrying.
+
+Repeated adjacent globstars such as `**/**` are normalized before native planning,
+so terminal globstars include the same root entry as Node. Regular trees without
+directory symlinks and without wildcard excludes still use native shared walks.

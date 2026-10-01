@@ -118,6 +118,7 @@ impl Drop for ThreadResults {
 fn glob_group(
   group: WalkGroup,
   options: Option<GlobOptions>,
+  node_compatible: bool,
 ) -> Result<Either<Vec<String>, Vec<Dirent>>> {
   let opts = options.unwrap_or(GlobOptions {
     cwd: None,
@@ -246,6 +247,24 @@ fn glob_group(
         }
       };
 
+      // Node's globstar state machine may expand a matching directory symlink
+      // for the remaining pattern. Following all links would recurse too far.
+      // Only the public compatibility entry requests a Node retry; raw bindings
+      // and the gitIgnore extension retain the ignore walker's no-follow policy.
+      if node_compatible
+        && entry.file_type().is_some_and(|kind| kind.is_symlink())
+        && entry.path().is_dir()
+      {
+        *walk_error.lock().unwrap() = Some(crate::fs_error::custom(
+          "ERR_VOOYA_GLOB_NODE_FALLBACK",
+          "glob",
+          entry.path(),
+          None,
+          "directory symlink requires Node glob traversal",
+        ));
+        return ignore::WalkState::Quit;
+      }
+
       let result_relative = entry
         .path()
         .strip_prefix(&result_root)
@@ -369,6 +388,7 @@ fn glob_group(
 fn glob_impl(
   pattern: Either<String, Vec<String>>,
   options: Option<GlobOptions>,
+  node_compatible: bool,
 ) -> Result<Either<Vec<String>, Vec<Dirent>>> {
   let patterns = match pattern {
     Either::A(pattern) => vec![pattern],
@@ -382,13 +402,13 @@ fn glob_impl(
   // One walker visits each path once, even when multiple positive patterns
   // match it. Only separate traversal groups need cross-walk deduplication.
   if groups.len() == 1 {
-    return glob_group(groups.pop().unwrap(), options);
+    return glob_group(groups.pop().unwrap(), options, node_compatible);
   }
   let mut strings = Vec::new();
   let mut dirents = Vec::new();
   let mut seen = std::collections::HashSet::new();
   for group in groups {
-    match glob_group(group, options.clone())? {
+    match glob_group(group, options.clone(), node_compatible)? {
       Either::A(entries) => {
         for value in entries {
           if seen.insert(value.clone()) {
@@ -421,14 +441,17 @@ pub fn glob_sync(
   env: Env,
   pattern: Either<String, Vec<String>>,
   options: Option<GlobOptions>,
+  node_compatible: Option<bool>,
 ) -> Result<Either<Vec<String>, Vec<Dirent>>> {
-  glob_impl(pattern, options).map_err(|error| crate::fs_error::into_js(env, error))
+  glob_impl(pattern, options, node_compatible.unwrap_or(false))
+    .map_err(|error| crate::fs_error::into_js(env, error))
 }
 
 // ===== Async version =====
 pub struct GlobTask {
   pub pattern: Either<String, Vec<String>>,
   pub options: Option<GlobOptions>,
+  pub node_compatible: bool,
 }
 
 impl Task for GlobTask {
@@ -436,7 +459,11 @@ impl Task for GlobTask {
   type JsValue = Either<Vec<String>, Vec<Dirent>>;
 
   fn compute(&mut self) -> Result<Self::Output> {
-    glob_impl(self.pattern.clone(), self.options.clone())
+    glob_impl(
+      self.pattern.clone(),
+      self.options.clone(),
+      self.node_compatible,
+    )
   }
 
   fn reject(&mut self, env: Env, error: Error) -> Result<Self::JsValue> {
@@ -455,6 +482,11 @@ impl Task for GlobTask {
 pub fn glob(
   pattern: Either<String, Vec<String>>,
   options: Option<GlobOptions>,
+  node_compatible: Option<bool>,
 ) -> AsyncTask<GlobTask> {
-  AsyncTask::new(GlobTask { pattern, options })
+  AsyncTask::new(GlobTask {
+    pattern,
+    options,
+    node_compatible: node_compatible.unwrap_or(false),
+  })
 }
