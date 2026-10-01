@@ -27,6 +27,8 @@ All notable Vooya FS changes are documented here. The format follows
 
 ### Fixed
 
+- `scan`: Windows directory sizes now match Node's zero-size metadata convention,
+  including followed directory links; file and unfollowed link sizes are unchanged.
 - Public glob compatibility for consecutive globstars, wildcard exclusion
   boundaries and Node's finite directory-symlink expansion, with regression tests.
 - Benchmark provenance now identifies the actual loaded native binary, including

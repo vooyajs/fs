@@ -61,6 +61,11 @@ interface ScanEntry {
 Results are sorted by relative path for deterministic builds. Traversal and metadata
 errors reject the entire operation instead of returning an incomplete result.
 
+File sizes are byte lengths. Directory sizes follow Node's metadata convention:
+Windows directories report `0`; Unix directories retain their filesystem-reported
+size. With `followSymlinks: true`, directory links use the target directory's size.
+Unfollowed links retain link metadata and are not normalized as directories.
+
 ## When it wins
 
 `scan` is designed to replace recursive `readdir` followed by many `stat`/`lstat`
