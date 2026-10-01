@@ -63,3 +63,9 @@ _Generated from local performance reports. Do not edit this block by hand._
 - **Known gap**: Missing-path and existing-destination errors currently have Node-like messages, but do not expose Node-style `code`, `path`, `dest`, and `syscall` fields yet.
 - **Unsupported Node inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `copyFile` surface.
 - **Unsupported reflink guarantee**: `COPYFILE_FICLONE_FORCE` currently falls back to ordinary copy instead of requiring copy-on-write support.
+
+## Competitor measurements
+
+See the [full copyFile comparison table](/guide/all-api-evidence#copyfile) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

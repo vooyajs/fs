@@ -8,6 +8,13 @@ All notable Vooya FS changes are documented here. The format follows
 
 ### Added
 
+- Official benchmark hub and sequential Node 22/24 reproduction matrix, pinned
+  fixture setup, report overwrite protection and reviewed table generation.
+
+- Full public API competitor comparisons with per-API Node 22/24 tables, raw
+  samples, validated mutation effects, explicit Node fallback routes and
+  specialized copy/remove/mkdir/scan baselines.
+
 - Reproducible competitor benchmark suite adapted from pinned fdir/tinyglobby
   workloads, with license notices, independent result validation, Node 22/24 raw
   evidence and a recursive readdir concurrency diagnostic.
@@ -19,6 +26,13 @@ All notable Vooya FS changes are documented here. The format follows
   platform case rules, permissions, symlinks, overwrite behavior and callback options.
 
 ### Fixed
+
+- `scan`: Windows directory sizes now match Node's zero-size metadata convention,
+  including followed directory links; file and unfollowed link sizes are unchanged.
+- Public glob compatibility for consecutive globstars, wildcard exclusion
+  boundaries and Node's finite directory-symlink expansion, with regression tests.
+- Benchmark provenance now identifies the actual loaded native binary, including
+  override paths; Windows realpath fixtures use consistent long-path inputs.
 
 - `readdir`: filename encodings and Buffer names, empty/file roots, traversal failures,
   recursive symlinks, and the sync/Promise distinction for Dirent traversal.

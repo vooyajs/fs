@@ -98,6 +98,7 @@ export declare function existsSync(path: string): boolean
 export declare function glob(
   pattern: string | Array<string>,
   options?: GlobOptions | undefined | null,
+  nodeCompatible?: boolean | undefined | null,
 ): Promise<Array<string> | Array<Dirent>>
 
 export interface GlobOptions {
@@ -111,6 +112,7 @@ export interface GlobOptions {
 export declare function globSync(
   pattern: string | Array<string>,
   options?: GlobOptions | undefined | null,
+  nodeCompatible?: boolean | undefined | null,
 ): Array<string> | Array<Dirent>
 
 export interface LineRange {

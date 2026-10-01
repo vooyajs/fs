@@ -82,3 +82,9 @@ _Generated from local performance reports. Do not edit this block by hand._
 - **Errors**: Missing-path errors expose `code`, `path`, `syscall` and `errno`.
 - **Node options**: The public entry supports AbortSignal, Buffer/file URL paths and FileHandle inputs; advanced options use Node. The `lines` extension cannot be combined with cancellation or file handles.
 - **Large files**: Reading the whole file into memory is the same as Node.js; for very large files consider streaming (Node.js `fs.createReadStream`; Vooya FS does not provide a stream API for this yet).
+
+## Competitor measurements
+
+See the [full readFile comparison table](/guide/all-api-evidence#readfile) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

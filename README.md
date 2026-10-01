@@ -7,6 +7,7 @@
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
   <a href="https://github.com/vooyajs/fs">Repository</a> ·
+  <a href="https://rush-fs-docs.vercel.app/benchmarks">Benchmarks & Docs</a> ·
   <a href="https://vooyajs.com/">Vooya</a> ·
   <a href="https://vooyajs.github.io/vooya-lab/">Vooya Lab</a>
 </p>
@@ -155,7 +156,16 @@ corepack pnpm test
 corepack pnpm doc:build
 ```
 
-Run evidence-oriented benchmarks with:
+The [official benchmark hub](https://rush-fs-docs.vercel.app/benchmarks) links all
+26 per-API comparison tables, upstream workloads and raw evidence. Reproduce both
+Node versions sequentially with installed runtime paths:
+
+```bash
+pnpm perf:matrix --node22 /path/to/node22 --node24 /path/to/node24 \
+  --output .perf/reproduction
+```
+
+Run focused evidence-oriented benchmarks with:
 
 ```bash
 corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json

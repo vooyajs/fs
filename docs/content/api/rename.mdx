@@ -36,3 +36,9 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks) for single-fi
 - **Cross-device**: Moving across filesystems may not be supported; copy + delete may be required.
 - **Known gap**: Missing-source and destination errors currently have Node-like messages, but do not expose Node-style `code`, `path`, `dest`, and `syscall` fields yet.
 - **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `rename` surface.
+
+## Competitor measurements
+
+See the [full rename comparison table](/guide/all-api-evidence#rename) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

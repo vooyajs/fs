@@ -1,46 +1,120 @@
 # Benchmarks
 
-Benchmarks in this repository are evidence for choosing an execution boundary, not
-release assertions. Each performance suite records fixture scale, runtime and
-platform, warmups, measured samples, wall-clock aggregation, and RSS deltas.
+Vooya FS chooses native implementations from equivalent, reproducible workloads.
+The current evidence covers **all 26 public operation families**, with a full
+comparison table for each API, both Node 22 and Node 24, synchronous and Promise
+forms, small inputs and larger workloads. Slower cases and Node execution routes
+remain visible.
 
-## Reproduce
+## Published results
 
-```bash
-corepack pnpm build
-corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
-corepack pnpm perf:fs readdir --iterations 10 --warmup 2 --json .perf/readdir.json
-corepack pnpm perf:fs glob --iterations 10 --warmup 2 --json .perf/glob.json
+| Evidence                      | Coverage                                                                                                          | Results                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| All API comparisons           | 26 APIs; 136 workload/mode cases per runtime; Node, Vooya, fs-extra, graceful-fs and applicable specialized peers | [Per-API tables](/guide/all-api-evidence)                                                   |
+| Upstream competitor workloads | Pinned typescript-eslint source tree, tiny and wide trees; fdir/tinyglobby upstream workloads; glob/readdir       | [Full tables and methodology](/guide/competitor-evidence)                                   |
+| Readdir concurrency           | Same real repository, default versus 1/2/4/8 workers, alongside Node and fdir                                     | [Concurrency diagnostic](/guide/competitor-evidence#focused-readdir-concurrency-diagnostic) |
+| Native optimization evidence  | Grouped glob traversal and Buffer write/append overhead before and after the optimization                         | [Native overhead evidence](/guide/native-overheads)                                         |
+| Fused scan crossover          | Small and medium traversal with metadata                                                                          | [Batch evidence](/guide/batch-evidence)                                                     |
+
+The per-API page links to its detailed comparison table. Raw JSON downloads appear
+on each evidence page and include every sample, runtime/library versions, fixture
+options, CPU/memory observations and source/native-binary identity. Evidence is a
+snapshot of the recorded revision and configuration, not a universal speed claim.
+
+## Reproduce the complete matrix
+
+From a fresh checkout, install the locked dependencies and build the release
+binding once. Install Node 22.22.0 and Node 24.21.0 with your version manager for
+an exact-runtime reproduction; supply the absolute paths to their executables.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test:competitor-contract
+
+# Inspect the six jobs without downloading fixtures or writing reports.
+pnpm perf:matrix --node22 /absolute/path/to/node22 \
+  --node24 /absolute/path/to/node24 \
+  --output .perf/reproduction-2026-10-01 --dry-run
+
+# Run the same jobs sequentially on this machine.
+pnpm perf:matrix --node22 /absolute/path/to/node22 \
+  --node24 /absolute/path/to/node24 \
+  --output .perf/reproduction-2026-10-01
 ```
 
-The default matrix stops at `medium`. Add `--large` for the 156,248-file fixture
-or `--extreme` for the manual-only stress fixture; these modes can consume
-substantial time and disk space.
+The script validates both runtime versions, prepares the pinned upstream source
+archive if necessary (requires `curl` and `tar`), and verifies its fixture
+manifest. It runs all-API comparisons, upstream comparisons and the readdir
+concurrency sweep, first on Node 22 and then Node 24. It does not install or execute
+code from the fixture. Existing mismatched fixtures are rejected. Existing report
+files are not overwritten; use a new output directory for each experiment.
 
-Use the same machine and quiet background conditions when comparing changes. Do
-not compare ratios from different hosts as if they were the same experiment.
+Use `--fixture /path/to/pinned/typescript-eslint` to reuse an extraction, or
+`--suites all-apis` to run only the synthetic full-API matrix without downloading
+the upstream fixture. Defaults are two warmups and ten samples per implementation.
+Do not run builds, tests or competing benchmarks during measurement.
 
-## Current scan boundary
+## Focused follow-ups
 
-Apple M4 Pro, Node 22.22, 2 warmups and 10 measured samples:
+```sh
+# Current Node runtime; all APIs or selected APIs.
+pnpm perf:all-apis --output .perf/all-apis.json
+pnpm perf:all-apis --apis readFile,cp,rm --output .perf/focused.json
 
-| Scale  |                Fixture | Node recursive readdir + lstat | Vooya FS `scan` |                Result |
-| ------ | ---------------------: | -----------------------------: | --------------: | --------------------: |
-| tiny   |       8 files / 2 dirs |                        0.26 ms |         3.43 ms |    Node 13.44x faster |
-| small  |    104 files / 13 dirs |                        1.43 ms |         3.51 ms |     Node 2.45x faster |
-| medium | 2,728 files / 341 dirs |                       33.98 ms |        10.70 ms | Vooya FS 3.18x faster |
+# Existing pinned source fixture.
+pnpm perf:competitors --fixture .perf/competitors/typescript-eslint \
+  --output .perf/competitors.json
+pnpm perf:readdir-concurrency .perf/competitors/typescript-eslint \
+  .perf/readdir-concurrency.json
 
-The useful conclusion is the crossover, not the largest ratio: native task setup
-dominates tiny trees, while fused traversal and metadata collection pays off as
-the tree grows.
+# Older scale-oriented suite; useful for larger synthetic scan workloads.
+pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
+```
 
-## Reading reports
+For the all-API runner, `--smoke --samples 2 --warmups 1` is a reduced debugging
+run, not publishable performance evidence. The older `perf:fs` suite defaults to
+medium scale; `--large` and `--extreme` are explicitly requested stress workloads.
 
-- Compare absolute time as well as ratios.
-- Treat negative RSS deltas as sampling and garbage-collection noise, not freed
-  memory attributable to one implementation.
-- Rerun outliers and inspect raw samples.
-- Validate behavior with conformance tests separately; a fast mismatch is a bug.
-- Tune concurrency per representative storage and tree shape.
+## Publish reviewed tables
 
-Generated per-API tables live on API pages when a checked-in report is available.
+Generate tables from the completed reports into review files first:
+
+```sh
+pnpm docs:all-api-evidence --input .perf/reproduction-2026-10-01 \
+  --output .perf/all-api-evidence.mdx
+pnpm docs:competitor-evidence --input .perf/reproduction-2026-10-01 \
+  --output .perf/competitor-evidence.mdx
+```
+
+The generator rejects incomplete/smoke reports, missing cases or samples,
+mismatched runtimes, library/source/binary identities and machine context.
+After reviewing correctness, distributions and losses, copy the reports into
+`docs/public/evidence`, then run both `pnpm docs:all-api-evidence` and
+`pnpm docs:competitor-evidence`. Review retained competitor findings against the new
+measurements, format the generated pages and run `pnpm doc:build`. Do not replace historical source hashes with newer
+ones: regenerate measurements, or retain the old report as a labeled baseline.
+
+CI runs the benchmark adapter contracts on Node 22/24 across supported platforms,
+including output and mutation validation. It does not assert timing ratios on
+shared runners. Local macOS performance is not Windows/Linux performance evidence.
+
+## Interpret the numbers
+
+- Compare the same output, options, concurrency and side effects. fs-extra and
+  graceful-fs often wrap Node; scan competitors are explicitly composed pipelines.
+- Sync `cp` and `rm` may execute through Node. Their timings are compatibility
+  measurements, not Rust acceleration.
+- Fresh equivalent mutation state is prepared before every sample. Setup, GC,
+  validation and cleanup are outside timing; API calls and result construction
+  are included.
+- Filesystem caches are warm. Writes do not request fsync/flush; file copying may
+  use clones. Logical throughput is not durable-storage or physical-disk bandwidth.
+- RSS/heap/external deltas are not peak memory. Negative deltas are not evidence
+  of implementation-specific memory savings.
+- Retain raw samples, inspect p90 and repeat noisy comparisons. Tiny timings and
+  small differences do not establish a stable winner.
+
+See the [full API adapter contract](https://github.com/vooyajs/fs/blob/main/test/performance/api-comparisons/README.md)
+and [upstream provenance and licenses](https://github.com/vooyajs/fs/blob/main/test/performance/competitors/SOURCES.md)
+for the exact shared subset and measurement limits.

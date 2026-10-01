@@ -83,3 +83,9 @@ An empty directory still requires `recursive: true`; `force` does not change tha
 rule. Retry delays apply only to recursive removal and eligible error codes. The
 public entry uses Node for non-recursive calls, Windows removal and all `rmSync`
 calls, preserving runtime-specific synchronous errors.
+
+## Competitor measurements
+
+See the [full rm comparison table](/guide/all-api-evidence#rm) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

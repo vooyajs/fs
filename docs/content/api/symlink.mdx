@@ -39,3 +39,9 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, `dest`, and `syscall` fields yet.
 - **Current type gap**: The TypeScript surface currently accepts any string for `type`; Node documents `file`, `dir`, and `junction`.
 - **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `symlink` surface.
+
+## Competitor measurements
+
+See the [full symlink comparison table](/guide/all-api-evidence#symlink) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

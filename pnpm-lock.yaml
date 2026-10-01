@@ -37,15 +37,24 @@ importers:
       chalk:
         specifier: ^5.6.2
         version: 5.6.2
+      copy-file:
+        specifier: 11.1.0
+        version: 11.1.0
       fast-glob:
         specifier: ^3.3.3
         version: 3.3.3
       fdir:
         specifier: 6.5.0
         version: 6.5.0(picomatch@4.0.7)
+      fs-extra:
+        specifier: 11.4.1
+        version: 11.4.1
       glob:
         specifier: ^13.0.6
         version: 13.0.6
+      graceful-fs:
+        specifier: 4.2.11
+        version: 4.2.11
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -55,6 +64,9 @@ importers:
       mitata:
         specifier: ^1.0.34
         version: 1.0.34
+      mkdirp:
+        specifier: 3.0.1
+        version: 3.0.1
       npm-run-all2:
         specifier: ^8.0.4
         version: 8.0.4
@@ -67,6 +79,9 @@ importers:
       prettier:
         specifier: ^3.6.2
         version: 3.8.1
+      rimraf:
+        specifier: 6.1.3
+        version: 6.1.3
       tinyglobby:
         specifier: 0.2.17
         version: 0.2.17
@@ -2086,6 +2101,11 @@ packages:
       { integrity: sha512-rcQ1bsQO9799wq24uE5AM2tAILy4gXGIK/njFWcVQkGNZ96edlpY+A7bjwvzjYvLDyzmG1MmMLZhpcsb+klNMQ== }
     engines: { node: ^12.20.0 || ^14.13.1 || >=16.0.0 }
 
+  copy-file@11.1.0:
+    resolution:
+      { integrity: sha512-X8XDzyvYaA6msMyAM575CUoygY5b44QzLcGRKsK3MFmXcOvQa518dNPLsKYwkYsn72g3EiW+LE0ytd/FlqWmyw== }
+    engines: { node: '>=18' }
+
   cose-base@1.0.3:
     resolution:
       { integrity: sha512-s9whTXInMSgAp/NVXVNuVxVKzGH2qck3aQlVHxDCdAEPgtMKwc4Wq6/QKhgdEdgbLSi9rBTAcPoRa6JpiG4ksg== }
@@ -2552,6 +2572,11 @@ packages:
       { integrity: sha512-wzsgA6WOq+09wrU1tsJ09udeR/YZRaeArL9e1wPbFg3GG2yDnC2ldKpxs4xunpFF9DgqCqOIra3bc1HWrJ37Ww== }
     engines: { node: '>=0.4.x' }
 
+  fs-extra@11.4.1:
+    resolution:
+      { integrity: sha512-KYAb4c9BJQI6QqGKthV68OHe0badztdXJWKo0WtBA9IuCFPTKvE5ZdUBglP833aMjhaSPNO4A5j/EkzZtGlKjA== }
+    engines: { node: '>=14.14' }
+
   get-caller-file@2.0.5:
     resolution:
       { integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg== }
@@ -2852,6 +2877,10 @@ packages:
     resolution:
       { integrity: sha512-lR4MXjGNgkJc7tkQ97kb2nuEMnNCyU//XYVH0MKTGcXEiSudQ5MKGKen3C5QubYy0vmq+JGitUg92uuywGEwIA== }
     engines: { node: ^18.17.0 || >=20.5.0 }
+
+  jsonfile@6.2.1:
+    resolution:
+      { integrity: sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q== }
 
   katex@0.16.28:
     resolution:
@@ -3247,6 +3276,12 @@ packages:
     resolution:
       { integrity: sha512-7NO5s6n10TIV96d4g2uDpG7ZDpIhMh0QNfGdJw/W47JswFcosz457wqz/b5sAKvl12sxINGFCn80NZHKwxQEXA== }
 
+  mkdirp@3.0.1:
+    resolution:
+      { integrity: sha512-+NsyUUAZDmo6YVHzL/stxSu3t9YS1iljliy3BSDrXJ/dkn1KYdmtZODGGjLcc9XLgVVpH4KshHB8XmZgMhaBXg== }
+    engines: { node: '>=10' }
+    hasBin: true
+
   mlly@1.8.0:
     resolution:
       { integrity: sha512-l8D9ODSRWLe2KHJSifWGwBqpTZXIXTeo8mlKjY+E2HAakaTeNpqAyBZ8GSqLzHgw4XmHmC8whvpjJNMbFZN7/g== }
@@ -3407,10 +3442,20 @@ packages:
       oxlint-tsgolint:
         optional: true
 
+  p-event@6.0.1:
+    resolution:
+      { integrity: sha512-Q6Bekk5wpzW5qIyUP4gdMEujObYstZl6DMMOSenwBvV0BlE5LkDwkjs5yHbZmdCEq2o4RJx4tE1vwxFVf2FG1w== }
+    engines: { node: '>=16.17' }
+
   p-map@7.0.4:
     resolution:
       { integrity: sha512-tkAQEw8ysMzmkhgw8k+1U/iPhWNhykKnSk4Rd5zLoPJCuJaGRPo6YposrZgaxHKzDHdDWWZvE/Sk7hsL2X/CpQ== }
     engines: { node: '>=18' }
+
+  p-timeout@6.1.4:
+    resolution:
+      { integrity: sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg== }
+    engines: { node: '>=14.16' }
 
   package-config@5.0.0:
     resolution:
@@ -3721,6 +3766,12 @@ packages:
   rfdc@1.4.1:
     resolution:
       { integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA== }
+
+  rimraf@6.1.3:
+    resolution:
+      { integrity: sha512-LKg+Cr2ZF61fkcaK1UdkH2yEBBKnYjTyWzTJT6KNPcSPaiT7HSdhtMXQuN5wkTX0Xu72KQ1l8S42rlmexS2hSA== }
+    engines: { node: 20 || >=22 }
+    hasBin: true
 
   robust-predicates@3.0.2:
     resolution:
@@ -4087,6 +4138,11 @@ packages:
   universal-user-agent@7.0.3:
     resolution:
       { integrity: sha512-TmnEAEAsBJVZM/AADELsK76llnwcf9vMKuPz8JflO1frO8Lchitr0fNaN9d+Ap0BjKtqWqd/J17qeDnXh8CL2A== }
+
+  universalify@2.0.1:
+    resolution:
+      { integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw== }
+    engines: { node: '>= 10.0.0' }
 
   use-sync-external-store@1.6.0:
     resolution:
@@ -5736,6 +5792,11 @@ snapshots:
 
   convert-to-spaces@2.0.1: {}
 
+  copy-file@11.1.0:
+    dependencies:
+      graceful-fs: 4.2.11
+      p-event: 6.0.1
+
   cose-base@1.0.3:
     dependencies:
       layout-base: 1.0.2
@@ -6126,6 +6187,12 @@ snapshots:
 
   format@0.2.2: {}
 
+  fs-extra@11.4.1:
+    dependencies:
+      graceful-fs: 4.2.11
+      jsonfile: 6.2.1
+      universalify: 2.0.1
+
   get-caller-file@2.0.5: {}
 
   get-east-asian-width@1.5.0: {}
@@ -6421,6 +6488,12 @@ snapshots:
       argparse: 2.0.1
 
   json-parse-even-better-errors@4.0.0: {}
+
+  jsonfile@6.2.1:
+    dependencies:
+      universalify: 2.0.1
+    optionalDependencies:
+      graceful-fs: 4.2.11
 
   katex@0.16.28:
     dependencies:
@@ -7035,6 +7108,8 @@ snapshots:
 
   mj-context-menu@0.6.1: {}
 
+  mkdirp@3.0.1: {}
+
   mlly@1.8.0:
     dependencies:
       acorn: 8.15.0
@@ -7221,7 +7296,13 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.48.0
       '@oxlint/binding-win32-x64-msvc': 1.48.0
 
+  p-event@6.0.1:
+    dependencies:
+      p-timeout: 6.1.4
+
   p-map@7.0.4: {}
+
+  p-timeout@6.1.4: {}
 
   package-config@5.0.0:
     dependencies:
@@ -7542,6 +7623,11 @@ snapshots:
   reusify@1.1.0: {}
 
   rfdc@1.4.1: {}
+
+  rimraf@6.1.3:
+    dependencies:
+      glob: 13.0.6
+      package-json-from-dist: 1.0.1
 
   robust-predicates@3.0.2: {}
 
@@ -7872,6 +7958,8 @@ snapshots:
       unist-util-visit-parents: 6.0.2
 
   universal-user-agent@7.0.3: {}
+
+  universalify@2.0.1: {}
 
   use-sync-external-store@1.6.0(react@19.2.4):
     dependencies:

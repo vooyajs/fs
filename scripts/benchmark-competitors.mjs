@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { performance } from 'node:perf_hooks'
 import { parseArgs } from 'node:util'
+import { nativeBinaryIdentity } from './benchmark-native-identity.mjs'
 import {
   cases,
   execute,
@@ -36,7 +37,6 @@ if (!Number.isInteger(samples) || samples < 2 || !Number.isInteger(warmups) || w
   throw new Error('samples >= 2 and warmups >= 1 required')
 const project = path.resolve(import.meta.dirname, '..')
 const sha = (file) => createHash('sha256').update(fs.readFileSync(file)).digest('hex')
-const binary = fs.readdirSync(project).find((file) => file.startsWith('vooya-fs.') && file.endsWith('.node'))
 const version = (name) => {
   let directory = path.dirname(require.resolve(name))
   while (directory !== path.dirname(directory)) {
@@ -66,12 +66,13 @@ const report = {
       'src/glob.rs',
       'src/readdir.rs',
       'scripts/benchmark-competitors.mjs',
+      'scripts/benchmark-native-identity.mjs',
       'test/performance/competitors/suite.mjs',
       'pnpm-lock.yaml',
       'test/performance/competitors/SOURCES.md',
     ].map((file) => [file, sha(path.join(project, file))]),
   ),
-  nativeBinary: { file: binary, sha256: sha(path.join(project, binary)), build: 'pnpm build -- release' },
+  nativeBinary: { ...nativeBinaryIdentity(), build: 'pnpm build -- release' },
   packages: Object.fromEntries(
     ['fdir', 'picomatch', 'fast-glob', 'tinyglobby', 'glob'].map((name) => [name, version(name)]),
   ),

@@ -35,3 +35,9 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 - **Directories**: Typically not allowed for directories; use symlinks for directory “aliases”.
 - **Known gap**: Missing-source and existing-destination errors currently have Node-like messages, but do not expose Node-style `code`, `path`, `dest`, and `syscall` fields yet.
 - **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `link` surface.
+
+## Competitor measurements
+
+See the [full link comparison table](/guide/all-api-evidence#link) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.
