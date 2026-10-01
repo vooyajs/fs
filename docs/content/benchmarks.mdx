@@ -78,18 +78,21 @@ medium scale; `--large` and `--extreme` are explicitly requested stress workload
 
 ## Publish reviewed tables
 
-Generate tables from a completed pair of all-API reports into a review file first:
+Generate tables from the completed reports into review files first:
 
 ```sh
 pnpm docs:all-api-evidence --input .perf/reproduction-2026-10-01 \
   --output .perf/all-api-evidence.mdx
+pnpm docs:competitor-evidence --input .perf/reproduction-2026-10-01 \
+  --output .perf/competitor-evidence.mdx
 ```
 
 The generator rejects incomplete/smoke reports, missing cases or samples,
 mismatched runtimes, library/source/binary identities and machine context.
 After reviewing correctness, distributions and losses, copy the reports into
-`docs/public/evidence`, then run `pnpm docs:all-api-evidence`, format the generated
-page and run `pnpm doc:build`. Do not replace historical source hashes with newer
+`docs/public/evidence`, then run both `pnpm docs:all-api-evidence` and
+`pnpm docs:competitor-evidence`. Review retained competitor findings against the new
+measurements, format the generated pages and run `pnpm doc:build`. Do not replace historical source hashes with newer
 ones: regenerate measurements, or retain the old report as a labeled baseline.
 
 CI runs the benchmark adapter contracts on Node 22/24 across supported platforms,

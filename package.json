@@ -87,7 +87,8 @@
     "perf:all-apis": "node --expose-gc scripts/benchmark-all-apis.mjs",
     "docs:all-api-evidence": "node scripts/render-all-api-evidence.mjs",
     "perf:matrix": "node scripts/run-benchmark-matrix.mjs",
-    "perf:readdir-concurrency": "node --expose-gc scripts/benchmark-readdir-concurrency.mjs"
+    "perf:readdir-concurrency": "node --expose-gc scripts/benchmark-readdir-concurrency.mjs",
+    "docs:competitor-evidence": "node scripts/render-competitor-evidence.mjs"
   },
   "devDependencies": {
     "@emnapi/core": "^1.5.0",
