@@ -85,7 +85,9 @@
     "perf:competitors": "node --expose-gc scripts/benchmark-competitors.mjs",
     "test:competitor-contract": "ava test/performance/competitors/suite.spec.ts \"test/performance/api-comparisons/*.spec.ts\"",
     "perf:all-apis": "node --expose-gc scripts/benchmark-all-apis.mjs",
-    "docs:all-api-evidence": "node scripts/render-all-api-evidence.mjs"
+    "docs:all-api-evidence": "node scripts/render-all-api-evidence.mjs",
+    "perf:matrix": "node scripts/run-benchmark-matrix.mjs",
+    "perf:readdir-concurrency": "node --expose-gc scripts/benchmark-readdir-concurrency.mjs"
   },
   "devDependencies": {
     "@emnapi/core": "^1.5.0",

@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import { performance } from 'node:perf_hooks'
+import { nativeBinaryIdentity } from './benchmark-native-identity.mjs'
 import {
   scenarios,
   engines,
@@ -33,6 +34,7 @@ const sourceFiles = [
   'api.js',
   'index.js',
   'scripts/benchmark-all-apis.mjs',
+  'scripts/benchmark-native-identity.mjs',
   'test/performance/api-comparisons/suite.mjs',
   'test/performance/competitors/suite.mjs',
   'pnpm-lock.yaml',
@@ -53,7 +55,6 @@ function version(name) {
   }
   throw new Error(`Cannot resolve version: ${name}`)
 }
-const binary = `vooya-fs.${process.platform}-${process.arch}${process.platform === 'linux' ? '-gnu' : process.platform === 'win32' ? '-msvc' : ''}.node`
 const report = {
   schema: 1,
   timestamp: new Date().toISOString(),
@@ -66,7 +67,7 @@ const report = {
   memoryBytes: os.totalmem(),
   gitHead: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   sourceHashes: Object.fromEntries(sourceFiles.map((file) => [file, hash(file)])),
-  nativeBinary: { file: binary, sha256: hash(binary) },
+  nativeBinary: nativeBinaryIdentity(),
   packages: Object.fromEntries(
     ['fs-extra', 'graceful-fs', 'rimraf', 'mkdirp', 'copy-file', 'fdir', 'tinyglobby', 'fast-glob', 'glob'].map(
       (name) => [name, version(name)],

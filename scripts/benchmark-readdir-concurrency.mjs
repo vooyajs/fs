@@ -6,6 +6,7 @@ import * as os from 'node:os'
 import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
+import { nativeBinaryIdentity } from './benchmark-native-identity.mjs'
 import {
   inventory,
   expectedPaths,
@@ -46,6 +47,7 @@ const report = {
 }
 for (const file of [
   'scripts/benchmark-readdir-concurrency.mjs',
+  'scripts/benchmark-native-identity.mjs',
   'test/performance/competitors/suite.mjs',
   'pnpm-lock.yaml',
   'src/readdir.rs',
@@ -54,12 +56,8 @@ for (const file of [
   report.sourceHashes[file] = createHash('sha256')
     .update(fs.readFileSync(path.resolve(import.meta.dirname, '..', file)))
     .digest('hex')
-const binary = fs
-  .readdirSync(path.resolve(import.meta.dirname, '..'))
-  .find((file) => file.startsWith('vooya-fs.') && file.endsWith('.node'))
-report.nativeBinarySha256 = createHash('sha256')
-  .update(fs.readFileSync(path.resolve(import.meta.dirname, '..', binary)))
-  .digest('hex')
+report.nativeBinary = nativeBinaryIdentity()
+report.nativeBinarySha256 = report.nativeBinary.sha256
 for (const name of variants) report.implementations[name] = { ms: [], cpuMs: [], rssDeltaBytes: [] }
 for (let iteration = -2; iteration < 10; iteration++) {
   for (let offset = 0; offset < variants.length; offset++) {

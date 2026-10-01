@@ -1,6 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 export function render(reports) {
   for (const report of reports) {
     if (!report.complete || report.smoke || report.samples < 10 || report.warmups < 2)
@@ -59,7 +60,7 @@ export function render(reports) {
       .map(([name, version]) => `${name} ${version}`)
       .join('; ')}.`,
     '',
-    '[Adapter contracts, peer sources and reproduction instructions](https://github.com/vooyajs/fs/blob/perf/all-api-comparisons/test/performance/api-comparisons/README.md). The earlier [real-repository glob/readdir comparison](/guide/competitor-evidence) provides additional tree shapes and multi-pattern workloads.',
+    '[Adapter contracts, peer sources and reproduction instructions](https://github.com/vooyajs/fs/blob/main/test/performance/api-comparisons/README.md). The earlier [real-repository glob/readdir comparison](/guide/competitor-evidence) provides additional tree shapes and multi-pattern workloads.',
     '',
     '## Batch overview',
     '',
@@ -179,8 +180,15 @@ export function render(reports) {
   return output.join('\n')
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const { values } = parseArgs({
+    options: {
+      input: { type: 'string', default: 'docs/public/evidence' },
+      output: { type: 'string', default: 'docs/content/guide/all-api-evidence.mdx' },
+    },
+  })
   const reports = ['22', '24'].map((v) =>
-    JSON.parse(fs.readFileSync(`docs/public/evidence/all-apis-node${v}.json`, 'utf8')),
+    JSON.parse(fs.readFileSync(path.join(values.input, `all-apis-node${v}.json`), 'utf8')),
   )
-  fs.writeFileSync('docs/content/guide/all-api-evidence.mdx', render(reports))
+  fs.mkdirSync(path.dirname(values.output), { recursive: true })
+  fs.writeFileSync(values.output, render(reports))
 }
