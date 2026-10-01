@@ -92,6 +92,9 @@ export function manifest(root) {
 export function prepare(root, s) {
   fs.rmSync(root, { recursive: true, force: true })
   fs.mkdirSync(root, { recursive: true })
+  // Windows temp roots may use 8.3 aliases. Give every realpath adapter the
+  // same long-form input; retain strict output comparison. Setup is untimed.
+  if (process.platform === 'win32' && s.api === 'realpath') root = fs.realpathSync.native(root)
   const unit = '文件内容🙂'
   const repeats = Math.floor(s.bytes / Buffer.byteLength(unit))
   const data =
