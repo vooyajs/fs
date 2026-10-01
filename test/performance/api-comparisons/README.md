@@ -8,6 +8,11 @@ the Node conformance tests or evidence for every option.
 
 ## Reproduce
 
+The official [benchmark hub](https://rush-fs-docs.vercel.app/benchmarks) documents
+`pnpm perf:matrix --node22 /path/to/node22 --node24 /path/to/node24 --output .perf/reproduction`,
+which verifies runtimes and runs all three suite families sequentially. It rejects
+existing report files and mismatched fixture manifests.
+
 ```sh
 pnpm install --frozen-lockfile
 pnpm build

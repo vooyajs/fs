@@ -7,6 +7,7 @@
 <p align="center">
   <a href="./README.md">English</a> ·
   <a href="https://github.com/vooyajs/fs">代码仓库</a> ·
+  <a href="https://rush-fs-docs.vercel.app/benchmarks">官方文档与性能对比</a> ·
   <a href="https://vooyajs.com/">Vooya</a> ·
   <a href="https://vooyajs.github.io/vooya-lab/">Vooya Lab</a>
 </p>
@@ -142,7 +143,15 @@ corepack pnpm test
 corepack pnpm doc:build
 ```
 
-运行带证据输出的性能基准：
+[官方性能入口](https://rush-fs-docs.vercel.app/benchmarks) 包含全部 26 组 API
+对比表、同行测试集和原始证据。指定已安装的 Node 路径即可顺序复跑两版运行时：
+
+```bash
+pnpm perf:matrix --node22 /path/to/node22 --node24 /path/to/node24 \
+  --output .perf/reproduction
+```
+
+运行单项性能基准：
 
 ```bash
 corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
