@@ -21,6 +21,19 @@ on each evidence page and include every sample, runtime/library versions, fixtur
 options, CPU/memory observations and source/native-binary identity. Evidence is a
 snapshot of the recorded revision and configuration, not a universal speed claim.
 
+## Find an API table
+
+Open the table for the operation you use. On narrow screens, swipe horizontally
+inside a table to reach the remaining implementations; the times are milliseconds
+for a complete workload, and lower is better. Keep the runtime, mode, options and
+execution route matched when comparing rows.
+
+- Discovery: [readdir](/guide/all-api-evidence#readdir), [glob](/guide/all-api-evidence#glob), [scan](/guide/all-api-evidence#scan).
+- File contents: [readFile](/guide/all-api-evidence#readfile), [writeFile](/guide/all-api-evidence#writefile), [appendFile](/guide/all-api-evidence#appendfile), [truncate](/guide/all-api-evidence#truncate).
+- Copy and removal: [copyFile](/guide/all-api-evidence#copyfile), [cp](/guide/all-api-evidence#cp), [rm](/guide/all-api-evidence#rm), [rmdir](/guide/all-api-evidence#rmdir), [unlink](/guide/all-api-evidence#unlink).
+- Paths and directories: [mkdir](/guide/all-api-evidence#mkdir), [mkdtemp](/guide/all-api-evidence#mkdtemp), [rename](/guide/all-api-evidence#rename), [realpath](/guide/all-api-evidence#realpath), [readlink](/guide/all-api-evidence#readlink), [link](/guide/all-api-evidence#link), [symlink](/guide/all-api-evidence#symlink).
+- Metadata: [stat](/guide/all-api-evidence#stat), [lstat](/guide/all-api-evidence#lstat), [access](/guide/all-api-evidence#access), [exists](/guide/all-api-evidence#exists), [chmod](/guide/all-api-evidence#chmod), [chown](/guide/all-api-evidence#chown), [utimes](/guide/all-api-evidence#utimes).
+
 ## Reproduce the complete matrix
 
 From a fresh checkout, install the locked dependencies and build the release

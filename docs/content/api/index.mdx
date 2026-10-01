@@ -11,7 +11,10 @@ marketing. Core batch APIs accept string, Buffer and file URL paths. A public
 compatibility layer uses Node for options outside the measured native path. Other
 exports retain their documented subsets; callback API forms remain absent.
 
-See the [Node compatibility backlog](/api/compatibility) for remaining API and behavioral gaps.
+This page describes main, including unreleased changes. See [Quick Start](/guide/quick-start)
+for the release boundary and installation instructions.
+
+See the [Node compatibility policy](/api/compatibility) for remaining API and behavioral gaps.
 
 ## Batch extensions
 
@@ -28,7 +31,7 @@ See the [Node compatibility backlog](/api/compatibility) for remaining API and b
 | -------------------------------------------- | ------ | ----------------------------------------------------------------------------------- |
 | `readdir`                                    | ✅     | `withFileTypes`, `recursive`; adds `concurrency`                                    |
 | `glob`                                       | ✅     | rooted patterns, `cwd`, `exclude`, `withFileTypes`; adds `concurrency`, `gitIgnore` |
-| `readFile` / `writeFile` / `appendFile`      | ✅     | string paths, documented encodings and flags                                        |
+| `readFile` / `writeFile` / `appendFile`      | ✅     | `readFile` supports core path/options routing; writes retain documented subsets     |
 | `copyFile` / `cp`                            | ✅     | recursive copy options; `cp` adds `concurrency`                                     |
 | `mkdir` / `rm` / `rmdir`                     | ✅     | recursive options; `rm` adds `concurrency`                                          |
 | `stat` / `lstat`                             | ✅     | `Stats` dates and type methods                                                      |
@@ -38,20 +41,22 @@ See the [Node compatibility backlog](/api/compatibility) for remaining API and b
 | `chmod` / `chown` / `utimes`                 | ✅     | platform filesystem semantics                                                       |
 | `mkdtemp`                                    | ✅     | string prefix                                                                       |
 
+`exists` is a Vooya Promise extension; Node has no Promise `exists` method.
+
 All APIs above provide promise and sync variants, for example `readdir` and
-`readdirSync`. Async calls run their Rust task away from the JavaScript event-loop
-thread; sync calls block like their Node counterparts.
+`readdirSync`. Native async routes run Rust work away from the JavaScript event-loop
+thread; other routes use Node. Sync calls block like their Node counterparts.
 
 ## Deliberately not implemented
 
-| Surface                                                                    | Reason / current alternative                                                                                  |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `open`, `close`, `read`, `write`, `fstat`, `ftruncate`                     | A safe cross-boundary file-descriptor lifecycle is a separate design problem. Use `node:fs` for fd workflows. |
-| `opendir`                                                                  | Native directory iterator lifetime and backpressure are not part of the current batch surface. Use `readdir`. |
-| `watch`, `watchFile`                                                       | Cross-platform event delivery needs a long-lived event bridge. Use Node watchers.                             |
-| `createReadStream`, `createWriteStream`                                    | Streams require Node-native backpressure and piping semantics. Use Node streams.                              |
-| callback APIs                                                              | The current library is promise-first plus synchronous APIs.                                                   |
-| `URL` / `Buffer` paths outside core batches outside the core batch surface | Check each operation; core batch APIs support these through the public entry.                                 |
+| Surface                                                | Reason / current alternative                                                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `open`, `close`, `read`, `write`, `fstat`, `ftruncate` | A safe cross-boundary file-descriptor lifecycle is a separate design problem. Use `node:fs` for fd workflows. |
+| `opendir`                                              | Native directory iterator lifetime and backpressure are not part of the current batch surface. Use `readdir`. |
+| `watch`, `watchFile`                                   | Cross-platform event delivery needs a long-lived event bridge. Use Node watchers.                             |
+| `createReadStream`, `createWriteStream`                | Streams require Node-native backpressure and piping semantics. Use Node streams.                              |
+| callback APIs                                          | The current library is promise-first plus synchronous APIs.                                                   |
+| `URL` / `Buffer` paths outside the core batch surface  | Check each operation; core batch APIs support these through the public entry.                                 |
 
 The SDDs in `test/conformance` record the precise oracle, functional matrix, known
 gaps, and documentation obligations for each supported API.

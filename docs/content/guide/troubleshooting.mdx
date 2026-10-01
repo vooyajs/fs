@@ -1,0 +1,66 @@
+# Troubleshooting and FAQ
+
+## Which version does this site describe?
+
+The site follows main. npm currently provides `@vooya/fs@0.1.0`; main includes
+additional compatibility fixes and newer measurements. Use the
+[release source](https://github.com/vooyajs/fs/tree/fs-v0.1.0) for 0.1.0 and the
+[checkout instructions](/guide/quick-start#try-the-current-source) to try main.
+
+## Cannot find the native binding
+
+Check the runtime, architecture and installed package from your application:
+
+```sh
+node -p "process.version + ' ' + process.platform + '/' + process.arch"
+npm ls @vooya/fs
+```
+
+Version 0.1.0 ships binaries for macOS arm64/x64, Linux x64 glibc and Windows x64.
+The architecture is that of the Node process, which can differ from the host under
+emulation. Ensure your package manager installs optional dependencies and install
+on the target platform; copying `node_modules` from a different OS is not portable.
+
+There is no WASM fallback or automatic Node-only fallback when the addon is missing.
+For a source checkout, run `pnpm install --frozen-lockfile` and `pnpm build` with
+Rust stable installed. Source builds on other targets are not a promise of support.
+
+## Can I replace every Node fs import?
+
+Adopt supported operations individually. There is no global patch, callback API,
+`@vooya/fs/promises` entry, or replacement for streams/watchers/fd lifecycle.
+[Core methods](/api/compatibility) support more path and option combinations than
+some of the smaller exports; check the specific API page. `exists` is an async
+extension, while Node provides `existsSync` and a legacy callback `exists`.
+
+## Why is Rust slower on my workload?
+
+Native scheduling, argument conversion and result construction are part of the
+cost. Tiny calls may not do enough work to recover that cost. More workers can
+increase startup and contention. Compare the same output, options and side effects
+using a release build, and measure both the default and explicit worker counts.
+The [per-API tables](/guide/all-api-evidence) include losses, and
+[Benchmarks](/benchmarks) provides repeatable commands and raw samples.
+
+## Does async mean streaming or bounded memory?
+
+No. Promise operations return complete results. In particular, main's `glob`
+iterator still materializes the full array; `scan` returns sorted metadata for all
+matches. Prefer Node streams or iterators when incremental consumption and
+backpressure are the requirement. Async native work runs off the JavaScript
+thread, but conversion and consumption of a large result can still affect it.
+
+## Why does a supported option use Node?
+
+The public entry selects Node for combinations outside a native fast path, such
+as copy filters or some glob patterns. This preserves the documented behavior.
+On main, `cpSync` and `rmSync` always use Node. A successful call or a speed ratio
+alone is not proof of Rust acceleration; consult the
+[execution policy](/api/compatibility).
+
+## Report a mismatch or performance regression
+
+Open an [issue](https://github.com/vooyajs/fs/issues) with Node/package versions,
+OS/architecture, checkout commit if applicable, exact options, a minimal fixture,
+and expected versus actual results. For performance, include release-build raw
+samples, workload sizes, worker count and the equivalent Node/peer baseline.
