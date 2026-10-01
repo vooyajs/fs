@@ -35,3 +35,9 @@ Single syscall plus random generation; on par with Node.js. See [Benchmarks](/be
 - **Cleanup**: Caller is responsible for removing the directory when done (e.g. `rm(dir, { recursive: true })`).
 - **Known gap**: Missing-parent errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs/options**: `Buffer` prefixes, `URL` prefixes, and the `encoding` option are not part of the current Vooya FS `mkdtemp` surface.
+
+## Competitor measurements
+
+See the [full mkdtemp comparison table](/guide/all-api-evidence#mkdtemp) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

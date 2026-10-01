@@ -35,3 +35,9 @@ Single syscall; on par with Node.js. No dedicated benchmark; see [Benchmarks](/b
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Directory code gap**: Directory unlink failures are platform-specific in Node; Vooya FS currently reports `EPERM` text for directories.
 - **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `unlink` surface.
+
+## Competitor measurements
+
+See the [full unlink comparison table](/guide/all-api-evidence#unlink) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

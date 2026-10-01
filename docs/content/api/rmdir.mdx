@@ -34,3 +34,9 @@ Single syscall; on par with Node.js. No dedicated benchmark; see [Benchmarks](/b
 - **Errors**: Same as Node.js (e.g. `ENOENT`, `ENOTEMPTY`, `EACCES`).
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, and legacy `rmdir` options such as deprecated recursive removal are not part of the current Vooya FS `rmdir` surface.
+
+## Competitor measurements
+
+See the [full rmdir comparison table](/guide/all-api-evidence#rmdir) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

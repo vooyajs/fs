@@ -73,3 +73,9 @@ Windows and non-UTF-8 paths use Node. `cpSync` uses Node's native implementation
 whose symlink behavior differs from the Promise implementation on supported runtimes.
 `force: true` takes precedence over `errorOnExist`. Copying a path onto itself or
 into its descendants rejects before destination creation.
+
+## Competitor measurements
+
+See the [full cp comparison table](/guide/all-api-evidence#cp) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

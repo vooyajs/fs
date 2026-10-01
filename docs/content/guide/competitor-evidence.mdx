@@ -1,0 +1,244 @@
+# Competitor benchmark evidence
+
+This compares overlapping workloads adapted from fdir and tinyglobby's own
+benchmarks against the current unreleased Vooya public entry. It is a baseline
+for choosing optimizations. These reports measure the reviewed release build,
+including the documented glob compatibility corrections.
+
+## Findings
+
+- On the real typescript-eslint source tree, native **sync glob** wins the three
+  full-tree matching workloads against the other tested synchronous APIs.
+- Native **async glob** beats Node's built-in glob but loses to the fastest
+  tested fdir/tinyglobby implementation. These two facts must not be conflated.
+- Default native recursive **readdir** loses to fdir in both modes on that tree.
+  A follow-up concurrency sweep below reduces native async time by about 61–62%
+  with four workers and sharply reduces CPU cost, bringing it close to fdir.
+- `packages/*/tsconfig.json` uses Vooya's Node fallback in both modes. Its results
+  demonstrate compatibility/routing overhead, not Rust acceleration.
+- Tiny and wide/flat trees remain important counterexamples. A single deep-tree
+  win is not evidence of a universally faster crawler. Close timings should be
+  treated as comparable until repeated in the target application.
+
+## Provenance and equivalent work
+
+The pinned upstream scripts, full MIT notices, modifications, fixture setup and
+reproduction commands are in
+[test/performance/competitors/SOURCES.md](https://github.com/vooyajs/fs/blob/main/test/performance/competitors/SOURCES.md).
+
+The upstream tinyglobby script uses a typescript-eslint clone. We pin it to
+`338fad98047cf80b88e2090c85dab9def3e2e782` and use the source archive without
+installing dependencies. The benchmark verifies a manifest of names, types and
+sizes before timing. Original benchmark defaults sometimes return files only,
+all entries, or Dirents; this adaptation returns **relative strings for matching
+files AND directories** throughout, with no order requirement. Glob excludes dot
+entries; plain readdir includes them. Gitignore is disabled. Symlinks/special
+files are rejected by fixture validation. This is a deliberately shared subset,
+not a complete library conformance claim.
+
+A directory named `folder.js`, hidden entries, duplicates and omitted entries are
+covered by adapter tests. An independent fixture manifest selects exact expected
+paths for the simple patterns. Every warmup and sample is checked. Only slash
+spelling/trailing directory slash are normalized outside timing. If an application
+needs canonicalized paths, its conversion cost must be measured separately.
+
+## Method
+
+- Apple M4 Pro, 14 logical CPUs, macOS arm64. Node 22.22.0 and Node 24.21.0.
+- Release native build; fdir 6.5.0, picomatch 4.0.7, fast-glob 3.3.3,
+  tinyglobby 0.2.17, glob 13.0.6. The pnpm lockfile fixes transitive versions.
+- Two warmups, ten samples per library/case. Tables show median milliseconds.
+  Engine order rotates per sample and per case; raw evidence also includes p90,
+  CPU samples and RSS deltas. No speed thresholds are asserted in CI.
+- Each call constructs its crawler/matchers and fully materializes the result.
+  Sync timings do not include an artificial `await`; async Node glob is fully
+  collected. Caller-managed persistent glob caches are not exercised.
+- Warm filesystem and library-internal caches; setup, GC and validation excluded.
+  These are repeat-call measurements, not cold storage or process startup.
+- Library defaults: native glob uses four workers, recursive readdir the default
+  Rayon pool. UV_THREADPOOL_SIZE and RAYON_NUM_THREADS were unset. The table is a
+  comparison of these adapter/default configurations, not every library's best
+  possible manually tuned configuration.
+- RSS is immediately-after minus immediately-before, **not peak memory**. Zero
+  does not mean no allocation. All libraries are loaded into the same process;
+  process CPU time includes native worker threads.
+- Vooya routing is verified by untimed instrumentation restored before timing.
+  Other than choosing the public API and documented options, the runtime code is
+  unchanged. Source, lockfile and native binary hashes are included in each report.
+- Not measured: peak memory, event-loop delay, startup, streaming first result,
+  cold-cache I/O, filesystem mutation/error races, metadata-heavy scan, Rust-only
+  libraries or Windows/Linux speed. Platform CI tests adapter correctness only.
+
+## Fixtures
+
+| Fixture           |  Files | Directories including root | Purpose                                                         |
+| ----------------- | -----: | -------------------------: | --------------------------------------------------------------- |
+| tiny              |     13 |                          7 | Small-input overhead plus hidden/matching-directory sentinels   |
+| typescript-eslint |  7,577 |                      2,448 | Pinned upstream real source repository                          |
+| wide-20000        | 20,005 |                          7 | Flat fan-out plus the same sentinels; supplemental stress shape |
+
+## Full results
+
+`all` = `**/*`; `configs` = `packages/*/tsconfig.json`; `javascript` = `**/*.js`;
+`multi` = four patterns for `.ts`, `.tsx`, `.js`, `.md`; `readdir` = recursive
+listing without glob. The multi-pattern and synthetic cases are Vooya supplements.
+A dash means the library was not entered in the plain-readdir comparison.
+
+### v22.22.0 — tiny
+
+| Task       | Mode  | Node  | fdir  | fast-glob | tinyglobby | glob  | Vooya | Vooya route   |
+| ---------- | ----- | ----- | ----- | --------- | ---------- | ----- | ----- | ------------- |
+| all        | async | 0.472 | 0.271 | 0.406     | 0.324      | 0.607 | 3.203 | native        |
+| all        | sync  | 0.281 | 0.201 | 0.247     | 0.220      | 0.341 | 3.158 | native        |
+| configs    | async | 0.238 | 0.281 | 0.288     | 0.214      | 0.443 | 0.280 | node-fallback |
+| configs    | sync  | 0.182 | 0.208 | 0.221     | 0.189      | 0.384 | 0.182 | node-fallback |
+| javascript | async | 0.394 | 0.284 | 0.368     | 0.299      | 0.543 | 2.421 | native        |
+| javascript | sync  | 0.286 | 0.229 | 0.229     | 0.227      | 0.480 | 3.186 | native        |
+| multi      | async | 0.517 | 0.340 | 0.365     | 0.303      | 0.585 | 3.182 | native        |
+| multi      | sync  | 0.413 | 0.291 | 0.295     | 0.258      | 0.418 | 3.215 | native        |
+| readdir    | async | 0.350 | 0.238 | —         | —          | —     | 0.247 | native        |
+| readdir    | sync  | 0.189 | 0.165 | —         | —          | —     | 0.204 | native        |
+
+### v22.22.0 — typescript-eslint
+
+| Task       | Mode  | Node    | fdir   | fast-glob | tinyglobby | glob   | Vooya  | Vooya route   |
+| ---------- | ----- | ------- | ------ | --------- | ---------- | ------ | ------ | ------------- |
+| all        | async | 106.755 | 17.446 | 23.168    | 19.691     | 26.593 | 24.585 | native        |
+| all        | sync  | 73.420  | 39.263 | 40.897    | 40.859     | 53.773 | 25.430 | native        |
+| configs    | async | 0.628   | 18.499 | 0.514     | 0.497      | 0.726  | 0.656  | node-fallback |
+| configs    | sync  | 0.323   | 38.264 | 0.733     | 0.712      | 0.670  | 0.344  | node-fallback |
+| javascript | async | 93.721  | 19.444 | 23.090    | 17.311     | 21.619 | 24.541 | native        |
+| javascript | sync  | 63.985  | 39.129 | 40.919    | 40.510     | 46.177 | 24.500 | native        |
+| multi      | async | 163.536 | 19.852 | 23.153    | 20.046     | 26.262 | 24.782 | native        |
+| multi      | sync  | 128.622 | 43.260 | 44.985    | 44.601     | 51.157 | 25.824 | native        |
+| readdir    | async | 97.461  | 19.770 | —         | —          | —      | 46.342 | native        |
+| readdir    | sync  | 71.309  | 35.630 | —         | —          | —      | 47.748 | native        |
+
+### v22.22.0 — wide-20000
+
+| Task       | Mode  | Node   | fdir   | fast-glob | tinyglobby | glob   | Vooya  | Vooya route   |
+| ---------- | ----- | ------ | ------ | --------- | ---------- | ------ | ------ | ------------- |
+| all        | async | 43.318 | 15.295 | 14.583    | 15.251     | 61.012 | 18.667 | native        |
+| all        | sync  | 34.411 | 14.540 | 14.411    | 15.071     | 56.495 | 18.798 | native        |
+| configs    | async | 0.364  | 14.516 | 0.426     | 0.367      | 0.501  | 0.397  | node-fallback |
+| configs    | sync  | 0.190  | 14.054 | 0.260     | 0.247      | 0.443  | 0.200  | node-fallback |
+| javascript | async | 34.350 | 14.453 | 13.542    | 14.406     | 55.542 | 18.432 | native        |
+| javascript | sync  | 30.314 | 14.379 | 13.558    | 14.651     | 47.253 | 18.282 | native        |
+| multi      | async | 97.545 | 17.355 | 15.083    | 17.173     | 64.811 | 19.092 | native        |
+| multi      | sync  | 85.382 | 17.039 | 14.851    | 17.191     | 59.093 | 18.694 | native        |
+| readdir    | async | 68.820 | 13.439 | —         | —          | —      | 14.010 | native        |
+| readdir    | sync  | 68.872 | 13.328 | —         | —          | —      | 13.848 | native        |
+
+### v24.21.0 — tiny
+
+| Task       | Mode  | Node  | fdir  | fast-glob | tinyglobby | glob  | Vooya | Vooya route   |
+| ---------- | ----- | ----- | ----- | --------- | ---------- | ----- | ----- | ------------- |
+| all        | async | 0.507 | 0.341 | 0.414     | 0.409      | 0.610 | 1.817 | native        |
+| all        | sync  | 0.296 | 0.209 | 0.273     | 0.234      | 0.372 | 1.760 | native        |
+| configs    | async | 0.259 | 0.308 | 0.308     | 0.241      | 0.425 | 0.297 | node-fallback |
+| configs    | sync  | 0.171 | 0.227 | 0.234     | 0.188      | 0.378 | 0.179 | node-fallback |
+| javascript | async | 0.478 | 0.321 | 0.401     | 0.348      | 0.515 | 3.245 | native        |
+| javascript | sync  | 0.291 | 0.221 | 0.217     | 0.243      | 0.469 | 1.825 | native        |
+| multi      | async | 0.583 | 0.417 | 0.415     | 0.405      | 0.563 | 1.817 | native        |
+| multi      | sync  | 0.379 | 0.298 | 0.299     | 0.269      | 0.426 | 1.838 | native        |
+| readdir    | async | 0.356 | 0.278 | —         | —          | —     | 0.316 | native        |
+| readdir    | sync  | 0.225 | 0.178 | —         | —          | —     | 0.216 | native        |
+
+### v24.21.0 — typescript-eslint
+
+| Task       | Mode  | Node    | fdir   | fast-glob | tinyglobby | glob   | Vooya  | Vooya route   |
+| ---------- | ----- | ------- | ------ | --------- | ---------- | ------ | ------ | ------------- |
+| all        | async | 107.723 | 20.352 | 21.630    | 19.829     | 26.304 | 24.306 | native        |
+| all        | sync  | 69.122  | 42.573 | 44.524    | 43.509     | 59.830 | 24.008 | native        |
+| configs    | async | 0.589   | 20.613 | 0.534     | 0.485      | 0.670  | 0.655  | node-fallback |
+| configs    | sync  | 0.351   | 40.718 | 0.802     | 0.728      | 0.607  | 0.362  | node-fallback |
+| javascript | async | 96.437  | 20.246 | 20.929    | 20.428     | 21.869 | 24.635 | native        |
+| javascript | sync  | 60.626  | 41.764 | 44.932    | 43.420     | 53.403 | 24.057 | native        |
+| multi      | async | 159.614 | 19.795 | 22.033    | 18.681     | 27.706 | 24.311 | native        |
+| multi      | sync  | 119.041 | 46.067 | 48.610    | 47.095     | 59.861 | 22.810 | native        |
+| readdir    | async | 99.831  | 21.800 | —         | —          | —      | 53.377 | native        |
+| readdir    | sync  | 71.269  | 38.546 | —         | —          | —      | 54.092 | native        |
+
+### v24.21.0 — wide-20000
+
+| Task       | Mode  | Node   | fdir   | fast-glob | tinyglobby | glob   | Vooya  | Vooya route   |
+| ---------- | ----- | ------ | ------ | --------- | ---------- | ------ | ------ | ------------- |
+| all        | async | 39.983 | 15.961 | 15.251    | 15.265     | 59.467 | 18.555 | native        |
+| all        | sync  | 29.023 | 15.722 | 14.274    | 15.365     | 54.489 | 19.427 | native        |
+| configs    | async | 0.339  | 15.172 | 0.426     | 0.381      | 0.547  | 0.386  | node-fallback |
+| configs    | sync  | 0.198  | 14.270 | 0.273     | 0.255      | 0.427  | 0.213  | node-fallback |
+| javascript | async | 28.423 | 15.371 | 13.331    | 15.177     | 52.149 | 18.264 | native        |
+| javascript | sync  | 25.256 | 15.191 | 13.104    | 15.025     | 45.896 | 18.307 | native        |
+| multi      | async | 91.304 | 18.150 | 15.438    | 17.369     | 62.112 | 18.578 | native        |
+| multi      | sync  | 79.711 | 17.903 | 14.765    | 17.448     | 57.368 | 19.060 | native        |
+| readdir    | async | 66.310 | 13.446 | —         | —          | —      | 14.105 | native        |
+| readdir    | sync  | 65.597 | 13.157 | —         | —          | —      | 17.027 | native        |
+
+## Focused readdir concurrency diagnostic
+
+The default real-tree readdir run consumed substantially more CPU than fdir.
+This follow-up keeps the exact recursive relative-path result and public async
+entry, varies only Vooya's documented concurrency option, and remeasures Node and
+fdir alongside it. Same two warmups, ten samples, rotating order and validation.
+These measurements are separate runs; compare baselines within each table.
+
+| Node     | Implementation / workers | Median ms | Process CPU ms |
+| -------- | ------------------------ | --------- | -------------- |
+| v22.22.0 | node                     | 102.364   | 109.705        |
+| v22.22.0 | fdir                     | 19.343    | 98.165         |
+| v22.22.0 | Vooya default            | 47.521    | 620.487        |
+| v22.22.0 | Vooya 1                  | 38.864    | 39.740         |
+| v22.22.0 | Vooya 2                  | 25.576    | 75.954         |
+| v22.22.0 | Vooya 4                  | 18.405    | 89.031         |
+| v22.22.0 | Vooya 8                  | 29.496    | 256.171        |
+| v24.21.0 | node                     | 99.272    | 106.097        |
+| v24.21.0 | fdir                     | 20.251    | 92.465         |
+| v24.21.0 | Vooya default            | 52.731    | 637.293        |
+| v24.21.0 | Vooya 1                  | 41.154    | 42.151         |
+| v24.21.0 | Vooya 2                  | 27.827    | 82.733         |
+| v24.21.0 | Vooya 4                  | 20.174    | 97.659         |
+| v24.21.0 | Vooya 8                  | 33.961    | 295.914        |
+
+Four workers reduce wall time by about 61–62% and process CPU time by about
+85–86% versus the native default on this machine and fixture. Their 18.405/20.174 ms
+medians are close to fdir's 19.343/20.251 ms on Node 22/24; these small differences
+do not establish a repeatable lead. Eight workers regress relative to four. The
+default's high CPU cost supports investigating scheduling/oversubscription, but
+does not prove which internal operation dominates or justify changing defaults
+for all machines. No default was changed.
+
+## What to investigate next
+
+1. Profile recursive readdir scheduling, default worker count and path/result
+   allocation. The concurrency sweep identifies a concrete low-scope experiment.
+2. Profile async glob against fdir/tinyglobby, separating traversal, matching and
+   N-API result conversion. The large Node baseline gap hides the smaller, more
+   relevant competitor gap. Sync wins do not establish async competitiveness.
+3. Test targeted subtree planning. fdir's generic root crawler in this adapter
+   scans the full source tree for `configs`, while the other glob planners can
+   constrain the search. Manual fdir root/depth tuning is not included, so that
+   row is not a claim that fdir cannot be used efficiently for a known layout.
+4. Keep the tiny and flat cases as counterweights. The [full API scan comparison](/guide/all-api-evidence#scan)
+   now covers metadata-heavy work; extend it to larger real repositories and
+   additional platforms before expanding performance recommendations.
+
+## Reproduce and inspect raw data
+
+Prepare the pinned fixture using SOURCES.md, then:
+
+```sh
+pnpm build
+pnpm perf:competitors --fixture .perf/competitors/typescript-eslint --output .perf/competitors-node22.json
+npm exec --yes --package=node@24.21.0 -- node --expose-gc scripts/benchmark-competitors.mjs --fixture .perf/competitors/typescript-eslint --output .perf/competitors-node24.json
+node --expose-gc scripts/benchmark-readdir-concurrency.mjs .perf/competitors/typescript-eslint .perf/competitors-readdir-concurrency-node22.json
+npm exec --yes --package=node@24.21.0 -- node --expose-gc scripts/benchmark-readdir-concurrency.mjs .perf/competitors/typescript-eslint .perf/competitors-readdir-concurrency-node24.json
+```
+
+Use Node 22.22.0 for the unprefixed commands. Run each command separately with no
+concurrent builds/tests. `pnpm test:competitor-contract` validates adapters without
+running timing benchmarks, and is wired into the platform CI test matrix.
+
+- [Node 22 full samples](/evidence/competitors-node22.json)
+- [Node 24 full samples](/evidence/competitors-node24.json)
+- [Node 22 concurrency samples](/evidence/competitors-readdir-concurrency-node22.json)
+- [Node 24 concurrency samples](/evidence/competitors-readdir-concurrency-node24.json)

@@ -35,3 +35,9 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 - **Precision**: Platform-dependent; same as Node.js.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs/APIs**: `Buffer` paths, `URL` paths, `Date` time values, string time values, and file-descriptor `futimes` APIs are not part of the current Vooya FS `utimes` surface.
+
+## Competitor measurements
+
+See the [full utimes comparison table](/guide/all-api-evidence#utimes) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

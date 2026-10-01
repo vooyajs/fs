@@ -178,6 +178,8 @@ jobs:
         run: pnpm test:bindings
       - name: Test Node fs conformance
         run: pnpm test:conformance
+      - name: Test competitor benchmark contracts
+        run: pnpm test:competitor-contract
   test-linux-binding:
     name: Test ${{ matrix.target }} - node@${{ matrix.node }}
     needs:
@@ -259,3 +261,13 @@ jobs:
             --platform "${{ steps.docker.outputs.PLATFORM }}" \
             "${{ steps.docker.outputs.IMAGE }}" \
             sh -lc "corepack enable && pnpm test:conformance"
+      - name: Test competitor benchmark contracts
+        run: |
+          docker run --rm \
+            -e CI=true \
+            -e GITHUB_ACTIONS=true \
+            -v "${{ github.workspace }}:${{ github.workspace }}" \
+            -w "${{ github.workspace }}" \
+            --platform "${{ steps.docker.outputs.PLATFORM }}" \
+            "${{ steps.docker.outputs.IMAGE }}" \
+            sh -lc "corepack enable && pnpm test:competitor-contract"
