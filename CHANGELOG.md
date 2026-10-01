@@ -8,6 +8,10 @@ All notable Vooya FS changes are documented here. The format follows
 
 ### Added
 
+- Full public API competitor comparisons with per-API Node 22/24 tables, raw
+  samples, validated mutation effects, explicit Node fallback routes and
+  specialized copy/remove/mkdir/scan baselines.
+
 - Reproducible competitor benchmark suite adapted from pinned fdir/tinyglobby
   workloads, with license notices, independent result validation, Node 22/24 raw
   evidence and a recursive readdir concurrency diagnostic.

@@ -41,3 +41,9 @@ For sync “exists” checks on hot paths, Node.js can be faster; for async or b
 - **Type**: Use `stat`/`lstat` if you need to know whether the path is a file, directory, or symlink.
 - **Symlinks**: Broken symlinks return `false`, matching `node:fs.existsSync`.
 - **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `exists` surface.
+
+## Competitor measurements
+
+See the [full exists comparison table](/guide/all-api-evidence#exists) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

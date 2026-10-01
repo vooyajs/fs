@@ -81,3 +81,9 @@ the original Buffer does not change that operation's input. This is Vooya's
 ownership policy, not a promise that Node snapshots mutable inputs identically.
 Await writes to the same file in the required order; separate concurrent calls
 are not an ordering primitive.
+
+## Competitor measurements
+
+See the [full writeFile comparison table](/guide/all-api-evidence#writefile) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.
