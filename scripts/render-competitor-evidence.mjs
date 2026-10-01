@@ -133,6 +133,9 @@ const table = (header, rows) =>
   [header, header.map(() => '---'), ...rows].map((row) => `| ${row.join(' | ')} |`).join('\n')
 export function render(reports, sweeps, document) {
   validateReports(reports, sweeps)
+  // Git may check this document out with CRLF on Windows. Section matching and
+  // generated Markdown use LF consistently; prose content remains unchanged.
+  document = document.replace(/\r\n/g, '\n')
   const full = document.indexOf('\n## Full results\n')
   const focused = document.indexOf('\n## Focused readdir concurrency diagnostic\n', full)
   const next = document.indexOf('\n## What to investigate next\n', focused)

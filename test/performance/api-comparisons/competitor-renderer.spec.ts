@@ -7,18 +7,36 @@ const read = (prefix: string) =>
     JSON.parse(fs.readFileSync(`docs/public/evidence/${prefix}-node${version}.json`, 'utf8')),
   )
 const document = fs.readFileSync('docs/content/guide/competitor-evidence.mdx', 'utf8')
+const normalizedDocument = document.replace(/\r\n/g, '\n')
 
 test('competitor renderer preserves prose and regenerates all main and concurrency cells', (t) => {
   const reports = read('competitors')
   const sweeps = read('competitors-readdir-concurrency')
   const result = render(reports, sweeps, document)
-  t.is(result.split('\n## Full results\n')[0], document.split('\n## Full results\n')[0])
-  t.is(result.split('\n## What to investigate next\n')[1], document.split('\n## What to investigate next\n')[1])
+  t.is(result.split('\n## Full results\n')[0], normalizedDocument.split('\n## Full results\n')[0])
+  t.is(
+    result.split('\n## What to investigate next\n')[1],
+    normalizedDocument.split('\n## What to investigate next\n')[1],
+  )
   t.is((result.match(/^### v(?:22|24)\./gm) ?? []).length, 6)
   t.is((result.match(/^\| (?:all|configs|javascript|multi|readdir) \|/gm) ?? []).length, 60)
   t.is((result.match(/^\| v(?:22|24)\./gm) ?? []).length, 14)
   t.true(result.includes(reports[0].cases[0].implementations.vooya.medianMs.toFixed(3)))
   t.is(render(reports, sweeps, result), result)
+})
+
+test('competitor renderer accepts CRLF documents and preserves prose with normalized newlines', (t) => {
+  const reports = read('competitors')
+  const sweeps = read('competitors-readdir-concurrency')
+  const crlfDocument = normalizedDocument.replace(/\n/g, '\r\n')
+  const result = render(reports, sweeps, crlfDocument)
+  t.is(result, render(reports, sweeps, normalizedDocument))
+  t.false(result.includes('\r'))
+  t.is(result.split('\n## Full results\n')[0], normalizedDocument.split('\n## Full results\n')[0])
+  t.is(
+    result.split('\n## What to investigate next\n')[1],
+    normalizedDocument.split('\n## What to investigate next\n')[1],
+  )
 })
 
 test('competitor renderer rejects partial, inconsistent, and tampered measurements', (t) => {
