@@ -3,7 +3,22 @@
 Use Vooya FS when the unit of work is a tree or a batch, and keep ordinary one-off
 calls in `node:fs`.
 
-## Strong candidates
+## Choose by the result you need
+
+These are candidates to measure against your existing implementation. Evidence
+below comes from the unreleased checkout on macOS; it is not a speed guarantee for
+npm 0.1.0 or another operating system.
+
+| Needed result                   | Candidate                    | Check before adopting                                                                                                                                          |
+| ------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Names from a directory tree     | [readdir](/api/readdir)      | Compare with fdir as well as Node; [worker count matters](/guide/competitor-evidence#focused-readdir-concurrency-diagnostic).                                  |
+| Paths matching patterns         | [glob](/api/glob)            | Pattern and symlink semantics may select Node; [async does not lead every peer](/guide/competitor-evidence).                                                   |
+| Paths plus metadata and filters | [scan](/api/scan)            | Avoid repeated JS metadata calls, but [tiny trees lose](/guide/all-api-evidence#scan).                                                                         |
+| Whole-file Buffer or text       | [readFile](/api/read-file)   | Compare your sizes and encodings; [batch results differ from single calls](/guide/all-api-evidence#readfile).                                                  |
+| Copy or delete a tree           | [cp](/api/cp), [rm](/api/rm) | Measure worker counts and required options; sync forms on main use Node. [cp](/guide/all-api-evidence#cp) and [rm](/guide/all-api-evidence#rm) include losses. |
+| Streams, watchers, open handles | Node                         | Retain Node's lifecycle, backpressure and event APIs.                                                                                                          |
+
+## Workload examples
 
 ### Repository and monorepo indexing
 

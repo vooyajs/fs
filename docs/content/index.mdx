@@ -2,11 +2,20 @@
 
 Vooya FS is a Rust-powered execution engine for **batch filesystem work in Node.js**.
 It continues the former Rush-FS project under the Vooya name, with a narrower and
-more honest promise: keep Node-compatible APIs where useful, and cross into Rust
-only when a recursive or fused operation can amortize the native boundary.
+focused promise: keep familiar Node APIs and prioritize native optimizations
+where substantial I/O, recursive or fused work can amortize the boundary cost.
 
-> The `@vooya/fs` rename and the APIs on this development branch have not been
-> published to npm.
+> **Documentation version: main (unreleased changes).** `@vooya/fs@0.1.0` is
+> available on npm. The compatibility fixes and benchmark results on this site
+> describe the newer source checkout, not that published package.
+> [Install the release or try main](/guide/quick-start).
+
+## Start here
+
+- [Install and run your first scan](/guide/quick-start)
+- [Choose an API for your workload](/guide/use-cases)
+- [Compare all 26 APIs with Node and peers](/guide/all-api-evidence)
+- [Resolve installation and compatibility questions](/guide/troubleshooting)
 
 ## One boundary, one batch
 

@@ -4,7 +4,7 @@ import 'nextra-theme-docs/style.css'
 import './globals.css'
 
 export const metadata = {
-  metadataBase: new URL('https://github.com/vooyajs/fs'),
+  metadataBase: new URL('https://rush-fs-docs.vercel.app'),
   title: { template: '%s | Vooya FS' },
   description:
     'Native batch filesystem operations for Node.js, powered by Rust and measured at explicit workload boundaries.',
