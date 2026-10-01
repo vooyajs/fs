@@ -48,3 +48,9 @@ Vooya FS is faster for typical access checks; for F_OK-only sync checks Node.js 
 - **Constants**: Use `constants.F_OK`, `R_OK`, `W_OK`, `X_OK` from `node:fs` (or the numeric values).
 - **Known gap**: Missing-path and permission errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node path inputs**: `Buffer` paths and `URL` paths are not part of the current Vooya FS `access` surface.
+
+## Competitor measurements
+
+See the [full access comparison table](/guide/all-api-evidence#access) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

@@ -89,3 +89,9 @@ Buffer paths use Node. Encoding can be passed as a string or options object;
 `buffer` preserves filename bytes, including Dirent names. Recursive Buffer
 requests use Node to retain runtime-specific behavior. Symlink traversal follows
 the supported runtime's sync/Promise distinction. Empty paths reject.
+
+## Competitor measurements
+
+See the [full readdir comparison table](/guide/all-api-evidence#readdir) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

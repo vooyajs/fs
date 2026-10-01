@@ -36,3 +36,9 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 - **Current Windows gap**: Vooya FS currently validates path existence but does not fully mirror Node's readonly-related chmod behavior on Windows.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs**: String mode values, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `chmod` surface.
+
+## Competitor measurements
+
+See the [full chmod comparison table](/guide/all-api-evidence#chmod) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

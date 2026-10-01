@@ -170,7 +170,14 @@ function globRoute(pattern, options) {
     (opts.exclude === undefined ||
       (Array.isArray(opts.exclude) &&
         opts.exclude.every(
-          (pattern) => typeof pattern === 'string' && !/[?[\]!()+{}]|\\/.test(pattern) && !pattern.endsWith('/'),
+          (pattern) =>
+            typeof pattern === 'string' &&
+            !/[?[\]!()+{}]|\\/.test(pattern) &&
+            !pattern.endsWith('/') &&
+            (opts.gitIgnore ||
+              (!pattern.includes('*') &&
+                !pattern.includes(':') &&
+                pattern.split('/').every((part) => part !== '' && part !== '.' && part !== '..'))),
         ))) &&
     (opts.cwd === undefined || cwd !== undefined)
   if (!supported && opts.gitIgnore) {
@@ -178,7 +185,18 @@ function globRoute(pattern, options) {
     error.code = 'ERR_INVALID_ARG_VALUE'
     throw error
   }
-  return supported ? [pattern, { ...opts, cwd }] : undefined
+  // Adjacent globstars are one globstar in Node's matcher, including root inclusion.
+  const normalized = supported
+    ? patterns.map((value) =>
+        value
+          .split('/')
+          .filter((part, i, parts) => part !== '**' || parts[i - 1] !== '**')
+          .join('/'),
+      )
+    : undefined
+  return supported
+    ? [typeof pattern === 'string' ? normalized[0] : normalized, { ...opts, cwd }, !opts.gitIgnore]
+    : undefined
 }
 
 // Explicit assignments preserve CommonJS named exports for ESM consumers.
@@ -274,13 +292,26 @@ module.exports.readFile = async function readFile(path, options) {
 }
 module.exports.globSync = function globSync(pattern, options) {
   const args = globRoute(pattern, options)
-  return args ? syncCall('globSync', args) : fs.globSync(pattern, options)
+  if (args) {
+    try {
+      return syncCall('globSync', args)
+    } catch (error) {
+      if (error?.code !== 'ERR_VOOYA_GLOB_NODE_FALLBACK') throw error
+    }
+  }
+  return fs.globSync(pattern, options)
 }
 module.exports.glob = function glob(pattern, options) {
   // Preserve the actual Promise batch API while accepting Node's for-await usage.
   const batch = (async () => {
     const args = globRoute(pattern, options)
-    if (args) return asyncCall('glob', args)
+    if (args) {
+      try {
+        return await asyncCall('glob', args)
+      } catch (error) {
+        if (error?.code !== 'ERR_VOOYA_GLOB_NODE_FALLBACK') throw error
+      }
+    }
     const entries = []
     for await (const entry of promises.glob(pattern, options)) entries.push(entry)
     return entries

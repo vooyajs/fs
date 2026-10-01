@@ -87,19 +87,33 @@ fn normalize_write_file_options(
   }
 }
 
+enum WriteData<'a> {
+  Text(&'a str),
+  Bytes(&'a [u8]),
+}
+
+impl<'a> From<&'a Either<String, Buffer>> for WriteData<'a> {
+  fn from(data: &'a Either<String, Buffer>) -> Self {
+    match data {
+      Either::A(text) => Self::Text(text),
+      Either::B(bytes) => Self::Bytes(bytes),
+    }
+  }
+}
+
 fn write_file_impl(
-  path_str: String,
-  data: Either<String, Buffer>,
+  path_str: &str,
+  data: WriteData<'_>,
   options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
-  let path = Path::new(&path_str);
+  let path = Path::new(path_str);
   let opts = normalize_write_file_options(options);
 
   let flag = opts.flag.as_deref().unwrap_or("w");
   let encoding = opts.encoding.as_deref();
-  let bytes: Vec<u8> = match &data {
-    Either::A(s) => encode_string(s, encoding)?,
-    Either::B(b) => b.to_vec(),
+  let bytes = match data {
+    WriteData::Text(s) => std::borrow::Cow::Owned(encode_string(s, encoding)?),
+    WriteData::Bytes(bytes) => std::borrow::Cow::Borrowed(bytes),
   };
 
   let mut open_opts = OpenOptions::new();
@@ -158,7 +172,7 @@ pub fn write_file_sync(
   data: Either<String, Buffer>,
   options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
-  write_file_impl(path, data, options)
+  write_file_impl(&path, WriteData::from(&data), options)
 }
 
 // ========= async version =========
@@ -175,12 +189,15 @@ impl Task for WriteFileTask {
   type JsValue = ();
 
   fn compute(&mut self) -> Result<Self::Output> {
-    let data = if let Some(s) = self.string_data.take() {
-      Either::A(s)
-    } else {
-      Either::B(Buffer::from(self.bytes_data.take().unwrap_or_default()))
+    // Drop the owned snapshot on the worker after I/O, rather than retaining it
+    // until the JavaScript event loop gets around to resolving this task.
+    let text = self.string_data.take();
+    let bytes = self.bytes_data.take();
+    let data = match text.as_deref() {
+      Some(text) => WriteData::Text(text),
+      None => WriteData::Bytes(bytes.as_deref().unwrap_or_default()),
     };
-    write_file_impl(self.path.clone(), data, self.options.clone())
+    write_file_impl(&self.path, data, self.options.take())
   }
 
   fn resolve(&mut self, _env: Env, _output: Self::Output) -> Result<Self::JsValue> {
@@ -209,8 +226,8 @@ pub fn write_file(
 // appendFile is writeFile with flag='a'
 
 fn append_file_impl(
-  path_str: String,
-  data: Either<String, Buffer>,
+  path_str: &str,
+  data: WriteData<'_>,
   options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
   let opts = normalize_write_file_options(options);
@@ -228,7 +245,7 @@ pub fn append_file_sync(
   data: Either<String, Buffer>,
   options: Option<Either<String, WriteFileOptions>>,
 ) -> Result<()> {
-  append_file_impl(path, data, options)
+  append_file_impl(&path, WriteData::from(&data), options)
 }
 
 pub struct AppendFileTask {
@@ -243,12 +260,15 @@ impl Task for AppendFileTask {
   type JsValue = ();
 
   fn compute(&mut self) -> Result<Self::Output> {
-    let data = if let Some(s) = self.string_data.take() {
-      Either::A(s)
-    } else {
-      Either::B(Buffer::from(self.bytes_data.take().unwrap_or_default()))
+    // Drop the owned snapshot on the worker after I/O, rather than retaining it
+    // until the JavaScript event loop gets around to resolving this task.
+    let text = self.string_data.take();
+    let bytes = self.bytes_data.take();
+    let data = match text.as_deref() {
+      Some(text) => WriteData::Text(text),
+      None => WriteData::Bytes(bytes.as_deref().unwrap_or_default()),
     };
-    append_file_impl(self.path.clone(), data, self.options.clone())
+    append_file_impl(&self.path, data, self.options.take())
   }
 
   fn resolve(&mut self, _env: Env, _output: Self::Output) -> Result<Self::JsValue> {

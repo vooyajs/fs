@@ -238,7 +238,14 @@ fn scan_impl(root_str: String, options: Option<ScanOptions>) -> Result<Vec<ScanE
           .to_string_lossy()
           .to_string(),
         kind: kind.to_string(),
-        size: metadata.len() as f64,
+        // Node/libuv reports zero for Windows directories. This uses the
+        // selected metadata: unfollowed symlinks are not directories, while
+        // followed directory links use their target's directory metadata.
+        size: if cfg!(windows) && metadata.is_dir() {
+          0.0
+        } else {
+          metadata.len() as f64
+        },
         mode: metadata_mode(&metadata),
         mtime_ms: modified_ms(&metadata),
         depth: entry.depth() as u32,

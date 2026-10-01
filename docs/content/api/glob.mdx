@@ -36,7 +36,20 @@ The native walker benefits larger recursive trees. Matcher and worker startup
 can make tiny or shallow trees slower than Node. See the
 [batch evidence report](/guide/batch-evidence) for current measurements and limits.
 
-### Local scale report
+### Shared traversal
+
+Compatible native patterns in one call share a walker. For example,
+`glob(['**/*.ts', '**/*.js'], { cwd })` scans the tree once. Patterns with
+different literal roots, hidden-entry traversal rules, or terminal `**` root
+inclusion remain separate; results are still deduplicated across those walks.
+Workers collect matches locally and merge after traversal. This reduces shared
+locking while retaining the existing fully materialized result and unspecified order.
+
+See the [native overhead report](/guide/native-overheads) for before/after data,
+Node baselines, tiny-tree overhead and memory tradeoffs. Advanced patterns routed
+to Node retain Node's own traversal behavior.
+
+### Earlier single-pattern scale report
 
 {/* vooya-fs-perf:start glob */}
 
@@ -56,9 +69,9 @@ _Generated from local performance reports. Do not edit this block by hand._
 
 ## Notes
 
-- **gitIgnore**: When true, respects .gitignore (and similar) for exclusion; Vooya FS extension.
+- **gitIgnore**: When true, respects .gitignore (and similar) for exclusion. This native extension does not expand directory symlinks found during traversal; explicit literal symlink roots can still be traversed. It retains native string-array wildcard exclusions using the ignore/globset matcher; directory and terminal-globstar boundaries can differ from Node. Callback and advanced exclusions reject explicitly rather than dropping ignore-file semantics.
 - **concurrency**: Vooya FS extension; default 4. Measure before increasing it.
-- **exclude**: Patterns are rooted at cwd; excluding a directory prunes its descendants. Callback exclusions use Node.
+- **exclude**: Patterns are rooted at cwd. Ordinary wildcard and callback exclusions use Node to preserve directory/root boundary behavior; simple relative literal string-array exclusions remain native. `gitIgnore: true` retains its native wildcard-exclusion rules.
 - **Rooted matching**: `*.txt` only matches entries at `cwd`; use `**/*.txt` for recursive matches.
 - **Scale guidance**: `test/performance/glob` tracks tiny/small/medium/large behavior so the docs can keep the bridge-overhead and large-tree benefit boundaries visible.
 
@@ -70,3 +83,61 @@ The entire result is materialized before iteration. Character classes, Unicode
 `?`, extglobs, callback excludes and other advanced patterns use Node; the
 [execution policy](/api/compatibility) lists the native subset. `gitIgnore` is
 restricted to native-supported patterns and rejects incompatible combinations.
+
+## Competitor measurements
+
+See the [full glob comparison table](/guide/all-api-evidence#glob) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.
+
+## Compatibility retries
+
+The public entry starts supported patterns on the native walker. If it discovers
+a directory symlink, ordinary glob calls retry the complete query with Node:
+Node can expand a matching symlink for the remaining pattern without recursively
+following every link. Partial native results are discarded, and both strings and
+Dirents retain Node's results. Such a call pays for the initial native work as
+well as the Node retry; it is not a native acceleration claim. The `gitIgnore`
+extension retains its documented native no-follow behavior instead of retrying.
+
+Repeated adjacent globstars such as `**/**` are normalized before native planning,
+so terminal globstars include the same root entry as Node. Regular trees without
+directory symlinks and without wildcard excludes still use native shared walks.
+
+## Compatibility review measurements
+
+The review fixed directory-symlink traversal, adjacent globstars and wildcard
+exclusions. Ordinary `**/*` calls on trees without links still use the native
+route. The table below measures that unchanged native workload before and after
+the compatibility fix, through the public sync/Promise APIs. It does not measure
+the cost of retrying a directory-symlink query through Node and does not claim
+that fallback is accelerated.
+
+Release builds on Apple M4 Pro, macOS arm64, Node 22.22.0/24.21.0; two warmups,
+ten samples, warm filesystem cache, no concurrent builds/tests. Before is
+`c66fe07`; after is `7d8f66e`, with source/binary identity retained in the focused reports.
+The fixtures contain 4 or 1,000 files of 4 KiB and nested/empty directories.
+Times are median milliseconds; memory is median RSS change in bytes, not peak
+memory. Both Node baselines are shown to expose run-to-run variation. This is a
+correctness fix; small timing differences do not establish a speed improvement.
+
+| Node | Fixture   | Mode  | Node before ms | Node after ms | Vooya before ms | Vooya after ms | RSS before bytes | RSS after bytes |
+| ---- | --------- | ----- | -------------: | ------------: | --------------: | -------------: | ---------------: | --------------: |
+| 22   | tiny-tree | sync  |          0.218 |         0.252 |           1.788 |          1.757 |                0 |               0 |
+| 22   | tiny-tree | async |          0.385 |         0.324 |           1.812 |          1.795 |                0 |               0 |
+| 22   | tree-1000 | sync  |          3.900 |         4.002 |           3.593 |          3.837 |                0 |               0 |
+| 22   | tree-1000 | async |          5.469 |         5.659 |           3.647 |          3.681 |                0 |               0 |
+| 24   | tiny-tree | sync  |          0.213 |         0.238 |           1.735 |          1.754 |                0 |               0 |
+| 24   | tiny-tree | async |          0.310 |         0.338 |           1.819 |          2.521 |                0 |               0 |
+| 24   | tree-1000 | sync  |          3.588 |         3.758 |           3.596 |          3.622 |                0 |               0 |
+| 24   | tree-1000 | async |          4.904 |         5.135 |           3.703 |          3.707 |                0 |               0 |
+
+Node 24 tiny async increased from 1.819 to 2.521 ms in this focused rerun;
+the full-matrix sample was slower still. Keep this regression visible and do not
+recommend native glob for tiny trees. The 1,000-file async median remained about
+3.7 ms. Retain the correctness fix, then investigate small-input scheduling
+separately before making any additional performance claim.
+
+[Before Node 22](/evidence/glob-review-before-node22.json), [before Node 24](/evidence/glob-review-before-node24.json), [after Node 22](/evidence/glob-review-after-node22.json), [after Node 24](/evidence/glob-review-after-node24.json).
+
+Reproduce each revision with `pnpm build`, then `pnpm perf:all-apis --apis glob --output .perf/glob-review.json` using each runtime. The final full-matrix command is documented in [Benchmarks](/benchmarks).

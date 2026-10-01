@@ -1,0 +1,550 @@
+# All API performance comparisons
+
+All **26 exported operation families** are measured through the public package, in synchronous and Promise forms. Each API has its own table below, including every measured loss. This is a baseline for choosing native work, not a claim that replacing every Node call with Rust is beneficial.
+
+## Reading the results
+
+Measured on **Apple M4 Pro, 14 logical CPUs, darwin/arm64**, release build. Runtimes: v22.22.0, v24.21.0. 2 warmups and 10 samples per cell; tables show median **milliseconds for the entire workload**, lower is better. The reports include p90, raw wall/CPU samples, memory deltas and logical throughput. These are local warm-cache results; Windows/Linux performance has not been measured.
+
+- `single` is one call; `batch-256` is 256 distinct paths (sync sequential, async bounded to eight in flight). This is caller batching, not a Vooya bulk-call extension.
+- Tree cases have 4 or 1,000 files of 4 KiB each, nested directories and one empty directory. File cases also cover an 8 MiB Buffer. UTF-8 cases contain non-ASCII text; stat/lstat separately exercise links.
+- fs-extra and graceful-fs are Node wrappers for ordinary calls. They are useful migration baselines, not independent Rust engines. rimraf and mkdirp have both their default and explicit manual implementations shown.
+- `Vooya c4` explicitly selects four internal traversal workers. `Node fallback` means the public Vooya API delegates to Node; sync cp/rm have no native acceleration, including their c4 column.
+- `copyFile / preserve` is a composed stat + copy + timestamp/mode restoration workload matching copy-file. `scan` peers compose crawl + lstat + complete metadata objects + sorting; Node has no identical scan method.
+- Every sample starts with freshly prepared equivalent state. Setup, GC, independent result/content/metadata validation and cleanup are excluded. Mutations are fully checked after timing. No fsync/flush is requested; copies may use filesystem cloning. Logical throughput is not physical disk bandwidth.
+- RSS/heap/external deltas are **not peaks**. Sub-millisecond single-call rankings are particularly noisy. Neither cold I/O, process startup, error races nor event-loop responsiveness is measured.
+
+Versions: fs-extra 11.4.1; graceful-fs 4.2.11; rimraf 6.1.3; mkdirp 3.0.1; copy-file 11.1.0; fdir 6.5.0; tinyglobby 0.2.17; fast-glob 3.3.3; glob 13.0.6.
+
+[Adapter contracts, peer sources and reproduction instructions](https://github.com/vooyajs/fs/blob/main/test/performance/api-comparisons/README.md). The earlier [real-repository glob/readdir comparison](/guide/competitor-evidence) provides additional tree shapes and multi-pattern workloads.
+
+## Batch overview
+
+One representative **async** row per API/runtime: batch-256 (Buffer or default variant), or tree-1000. The full tables below also show synchronous, tiny, large-file and other variants. The peer column is the fastest non-Vooya implementation in that row, including Node and its wrappers; close differences are not robust rankings.
+
+| API        | Node runtime | Node ms | Best peer ms         | Vooya ms | Node / Vooya |
+| ---------- | ------------ | ------- | -------------------- | -------- | ------------ |
+| access     | v22.22.0     | 1.011   | fs-extra 0.814       | 0.754    | 1.34×        |
+| access     | v24.21.0     | 0.832   | graceful-fs 0.806    | 0.721    | 1.15×        |
+| appendFile | v22.22.0     | 5.050   | node 5.050           | 5.386    | 0.94×        |
+| appendFile | v24.21.0     | 5.163   | fs-extra 5.076       | 4.814    | 1.07×        |
+| chmod      | v22.22.0     | 1.260   | node 1.260           | 1.520    | 0.83×        |
+| chmod      | v24.21.0     | 1.358   | node 1.358           | 1.608    | 0.84×        |
+| chown      | v22.22.0     | 1.197   | node 1.197           | 1.483    | 0.81×        |
+| chown      | v24.21.0     | 1.200   | node 1.200           | 1.454    | 0.83×        |
+| copyFile   | v22.22.0     | 10.392  | fs-extra 10.282      | 10.463   | 0.99×        |
+| copyFile   | v24.21.0     | 10.700  | fs-extra 10.230      | 10.508   | 1.02×        |
+| cp         | v22.22.0     | 155.804 | fs-extra 60.992      | 100.329  | 1.55×        |
+| cp         | v24.21.0     | 156.143 | fs-extra 57.583      | 103.539  | 1.51×        |
+| exists     | v22.22.0     | 1.041   | fs-extra 0.905       | 0.836    | 1.25×        |
+| exists     | v24.21.0     | 0.887   | graceful-fs 0.880    | 0.716    | 1.24×        |
+| glob       | v22.22.0     | 5.779   | fdir 1.208           | 3.750    | 1.54×        |
+| glob       | v24.21.0     | 5.190   | fdir 1.188           | 3.753    | 1.38×        |
+| link       | v22.22.0     | 34.086  | graceful-fs 33.174   | 33.121   | 1.03×        |
+| link       | v24.21.0     | 34.108  | graceful-fs 33.126   | 32.840   | 1.04×        |
+| lstat      | v22.22.0     | 1.106   | fs-extra 1.003       | 0.965    | 1.15×        |
+| lstat      | v24.21.0     | 0.966   | graceful-fs 0.882    | 0.950    | 1.02×        |
+| mkdir      | v22.22.0     | 17.899  | node 17.899          | 17.635   | 1.01×        |
+| mkdir      | v24.21.0     | 18.227  | fs-extra 18.137      | 17.968   | 1.01×        |
+| mkdtemp    | v22.22.0     | 6.134   | fs-extra 5.942       | 6.455    | 0.95×        |
+| mkdtemp    | v24.21.0     | 6.034   | node 6.034           | 6.574    | 0.92×        |
+| readFile   | v22.22.0     | 3.458   | fs-extra 2.354       | 1.756    | 1.97×        |
+| readFile   | v24.21.0     | 3.384   | fs-extra 2.312       | 1.817    | 1.86×        |
+| readdir    | v22.22.0     | 6.050   | fdir 1.223           | 1.488    | 4.06×        |
+| readdir    | v24.21.0     | 5.732   | fdir 1.228           | 1.638    | 3.50×        |
+| readlink   | v22.22.0     | 0.867   | node 0.867           | 0.831    | 1.04×        |
+| readlink   | v24.21.0     | 1.094   | fs-extra 0.918       | 0.756    | 1.45×        |
+| realpath   | v22.22.0     | 1.917   | node 1.917           | 1.622    | 1.18×        |
+| realpath   | v24.21.0     | 1.812   | node 1.812           | 1.622    | 1.12×        |
+| rename     | v22.22.0     | 8.234   | graceful-fs 7.440    | 7.355    | 1.12×        |
+| rename     | v24.21.0     | 7.351   | node 7.351           | 7.383    | 1.00×        |
+| rm         | v22.22.0     | 28.889  | rimraf-manual 26.186 | 45.565   | 0.63×        |
+| rm         | v24.21.0     | 28.562  | rimraf-manual 25.841 | 42.918   | 0.67×        |
+| rmdir      | v22.22.0     | 5.151   | fs-extra 5.038       | 4.917    | 1.05×        |
+| rmdir      | v24.21.0     | 5.164   | graceful-fs 5.047    | 5.219    | 0.99×        |
+| scan       | v22.22.0     | 11.681  | fdir 6.311           | 6.636    | 1.76×        |
+| scan       | v24.21.0     | 10.587  | tinyglobby 5.897     | 6.370    | 1.66×        |
+| stat       | v22.22.0     | 1.034   | graceful-fs 0.890    | 0.964    | 1.07×        |
+| stat       | v24.21.0     | 1.096   | graceful-fs 0.907    | 1.005    | 1.09×        |
+| symlink    | v22.22.0     | 6.343   | graceful-fs 6.327    | 6.300    | 1.01×        |
+| symlink    | v24.21.0     | 6.380   | graceful-fs 6.349    | 6.387    | 1.00×        |
+| truncate   | v22.22.0     | 4.000   | graceful-fs 3.927    | 3.178    | 1.26×        |
+| truncate   | v24.21.0     | 4.186   | fs-extra 4.103       | 3.349    | 1.25×        |
+| unlink     | v22.22.0     | 5.034   | graceful-fs 4.959    | 4.983    | 1.01×        |
+| unlink     | v24.21.0     | 5.003   | graceful-fs 4.973    | 4.978    | 1.00×        |
+| utimes     | v22.22.0     | 1.135   | node 1.135           | 1.602    | 0.71×        |
+| utimes     | v24.21.0     | 1.230   | node 1.230           | 1.466    | 0.84×        |
+| writeFile  | v22.22.0     | 9.003   | node 9.003           | 8.027    | 1.12×        |
+| writeFile  | v24.21.0     | 8.817   | fs-extra 8.690       | 7.935    | 1.11×        |
+
+## Per-API tables
+
+### access
+
+F_OK on existing regular files. Permission failures are not timed.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.007 | 0.007    | 0.006       | 0.007 | native      |
+| v22.22.0 | single / default    | async | 0.037 | 0.030    | 0.024       | 0.040 | native      |
+| v22.22.0 | batch-256 / default | sync  | 0.383 | 0.353    | 0.354       | 0.392 | native      |
+| v22.22.0 | batch-256 / default | async | 1.011 | 0.814    | 0.872       | 0.754 | native      |
+| v24.21.0 | single / default    | sync  | 0.007 | 0.008    | 0.006       | 0.006 | native      |
+| v24.21.0 | single / default    | async | 0.031 | 0.026    | 0.023       | 0.023 | native      |
+| v24.21.0 | batch-256 / default | sync  | 0.365 | 0.348    | 0.353       | 0.362 | native      |
+| v24.21.0 | batch-256 / default | async | 0.832 | 0.811    | 0.806       | 0.721 | native      |
+
+### appendFile
+
+Append one payload to an existing file containing an identical payload. Fresh state per sample; no flush.
+
+| Runtime  | Workload / variant | Mode  | node   | fs-extra | graceful-fs | vooya  | Vooya route |
+| -------- | ------------------ | ----- | ------ | -------- | ----------- | ------ | ----------- |
+| v22.22.0 | single / buffer    | sync  | 0.051  | 0.053    | 0.061       | 0.047  | native      |
+| v22.22.0 | single / buffer    | async | 0.180  | 0.191    | 0.130       | 0.084  | native      |
+| v22.22.0 | batch-256 / buffer | sync  | 8.289  | 8.251    | 7.966       | 7.976  | native      |
+| v22.22.0 | batch-256 / buffer | async | 5.050  | 5.054    | 5.172       | 5.386  | native      |
+| v22.22.0 | single / utf8      | sync  | 0.051  | 0.050    | 0.051       | 0.059  | native      |
+| v22.22.0 | single / utf8      | async | 0.177  | 0.133    | 0.124       | 0.082  | native      |
+| v22.22.0 | batch-256 / utf8   | sync  | 8.326  | 8.441    | 8.506       | 8.470  | native      |
+| v22.22.0 | batch-256 / utf8   | async | 5.351  | 5.367    | 5.343       | 4.951  | native      |
+| v22.22.0 | 8MiB / buffer      | sync  | 0.614  | 0.610    | 0.600       | 0.606  | native      |
+| v22.22.0 | 8MiB / buffer      | async | 0.939  | 0.712    | 0.752       | 0.782  | native      |
+| v24.21.0 | single / buffer    | sync  | 0.052  | 0.063    | 0.064       | 0.060  | native      |
+| v24.21.0 | single / buffer    | async | 0.126  | 0.102    | 0.105       | 0.073  | native      |
+| v24.21.0 | batch-256 / buffer | sync  | 8.880  | 9.422    | 8.729       | 8.942  | native      |
+| v24.21.0 | batch-256 / buffer | async | 5.163  | 5.076    | 5.085       | 4.814  | native      |
+| v24.21.0 | single / utf8      | sync  | 0.060  | 0.057    | 0.056       | 0.051  | native      |
+| v24.21.0 | single / utf8      | async | 0.127  | 0.101    | 0.106       | 0.072  | native      |
+| v24.21.0 | batch-256 / utf8   | sync  | 10.101 | 10.027   | 10.178      | 10.191 | native      |
+| v24.21.0 | batch-256 / utf8   | async | 5.327  | 5.251    | 5.322       | 5.168  | native      |
+| v24.21.0 | 8MiB / buffer      | sync  | 0.628  | 0.637    | 0.647       | 0.625  | native      |
+| v24.21.0 | 8MiB / buffer      | async | 0.983  | 0.729    | 0.728       | 0.836  | native      |
+
+### chmod
+
+Change regular-file permissions to 0640. This is a POSIX workload.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.022 | 0.020    | 0.018       | 0.019 | native      |
+| v22.22.0 | single / default    | async | 0.060 | 0.066    | 0.067       | 0.052 | native      |
+| v22.22.0 | batch-256 / default | sync  | 2.377 | 2.383    | 2.343       | 2.366 | native      |
+| v22.22.0 | batch-256 / default | async | 1.260 | 1.387    | 1.436       | 1.520 | native      |
+| v24.21.0 | single / default    | sync  | 0.020 | 0.021    | 0.020       | 0.019 | native      |
+| v24.21.0 | single / default    | async | 0.055 | 0.063    | 0.058       | 0.051 | native      |
+| v24.21.0 | batch-256 / default | sync  | 2.490 | 2.480    | 2.516       | 2.454 | native      |
+| v24.21.0 | batch-256 / default | async | 1.358 | 1.473    | 1.513       | 1.608 | native      |
+
+### chown
+
+Set each file to the current uid/gid. This measures the allowed syscall path, not a privileged ownership change.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.021 | 0.019    | 0.021       | 0.019 | native      |
+| v22.22.0 | single / default    | async | 0.065 | 0.063    | 0.061       | 0.053 | native      |
+| v22.22.0 | batch-256 / default | sync  | 2.476 | 2.377    | 2.300       | 2.428 | native      |
+| v22.22.0 | batch-256 / default | async | 1.197 | 1.450    | 1.456       | 1.483 | native      |
+| v24.21.0 | single / default    | sync  | 0.018 | 0.019    | 0.019       | 0.019 | native      |
+| v24.21.0 | single / default    | async | 0.056 | 0.057    | 0.053       | 0.051 | native      |
+| v24.21.0 | batch-256 / default | sync  | 2.628 | 2.614    | 2.586       | 2.581 | native      |
+| v24.21.0 | batch-256 / default | async | 1.200 | 1.490    | 1.347       | 1.454 | native      |
+
+### copyFile
+
+Default rows copy bytes/mode to a fresh destination. Preserve rows also restore timestamps/mode and request advisory cloning. copy-file only participates in the latter contract. Filesystem cloning can dominate large-file results; these numbers are not disk bandwidth.
+
+| Runtime  | Workload / variant       | Mode  | node   | fs-extra | graceful-fs | copy-file | vooya  | Vooya route |
+| -------- | ------------------------ | ----- | ------ | -------- | ----------- | --------- | ------ | ----------- |
+| v22.22.0 | single / default         | sync  | 0.113  | 0.114    | 0.112       | —         | 0.105  | native      |
+| v22.22.0 | single / default         | async | 0.133  | 0.141    | 0.138       | —         | 0.134  | native      |
+| v22.22.0 | batch-256 / default      | sync  | 22.889 | 23.014   | 22.896      | —         | 22.546 | native      |
+| v22.22.0 | batch-256 / default      | async | 10.392 | 10.282   | 10.530      | —         | 10.463 | native      |
+| v22.22.0 | 8MiB / buffer            | sync  | 4.098  | 4.112    | 4.093       | —         | 0.128  | native      |
+| v22.22.0 | 8MiB / buffer            | async | 4.086  | 4.137    | 4.127       | —         | 0.181  | native      |
+| v22.22.0 | preserve-8MiB / preserve | sync  | 4.060  | 4.112    | 4.092       | 4.141     | 0.193  | native      |
+| v22.22.0 | preserve-8MiB / preserve | async | 4.165  | 4.163    | 4.201       | 4.178     | 0.249  | native      |
+| v24.21.0 | single / default         | sync  | 0.114  | 0.116    | 0.114       | —         | 0.107  | native      |
+| v24.21.0 | single / default         | async | 0.165  | 0.140    | 0.153       | —         | 0.131  | native      |
+| v24.21.0 | batch-256 / default      | sync  | 23.619 | 23.587   | 23.509      | —         | 23.395 | native      |
+| v24.21.0 | batch-256 / default      | async | 10.700 | 10.230   | 10.493      | —         | 10.508 | native      |
+| v24.21.0 | 8MiB / buffer            | sync  | 4.096  | 4.149    | 4.108       | —         | 0.133  | native      |
+| v24.21.0 | 8MiB / buffer            | async | 4.297  | 4.262    | 4.303       | —         | 0.230  | native      |
+| v24.21.0 | preserve-8MiB / preserve | sync  | 4.187  | 4.179    | 4.217       | 4.225     | 0.208  | native      |
+| v24.21.0 | preserve-8MiB / preserve | async | 4.331  | 4.299    | 4.286       | 4.412     | 0.292  | native      |
+
+### cp
+
+Recursive tree copy, new destination, timestamps not explicitly preserved. fs-extra uses copy; graceful-fs uses cp. Vooya sync is Node fallback; c4 does not change that route.
+
+| Runtime  | Workload / variant  | Mode  | node    | fs-extra | graceful-fs | vooya   | vooya-c4 | Vooya route   |
+| -------- | ------------------- | ----- | ------- | -------- | ----------- | ------- | -------- | ------------- |
+| v22.22.0 | tiny-tree / default | sync  | 0.618   | 0.936    | 0.632       | 0.672   | 0.621    | Node fallback |
+| v22.22.0 | tiny-tree / default | async | 1.425   | 0.939    | 1.451       | 0.706   | 0.638    | native        |
+| v22.22.0 | tree-1000 / default | sync  | 93.282  | 117.164  | 94.034      | 94.644  | 94.643   | Node fallback |
+| v22.22.0 | tree-1000 / default | async | 155.804 | 60.992   | 155.812     | 100.329 | 50.498   | native        |
+| v24.21.0 | tiny-tree / default | sync  | 0.627   | 1.001    | 0.666       | 0.659   | 0.649    | Node fallback |
+| v24.21.0 | tiny-tree / default | async | 1.467   | 0.912    | 1.412       | 0.787   | 0.623    | native        |
+| v24.21.0 | tree-1000 / default | sync  | 96.697  | 118.474  | 96.529      | 96.938  | 96.488   | Node fallback |
+| v24.21.0 | tree-1000 / default | async | 156.143 | 57.583   | 155.658     | 103.539 | 51.354   | native        |
+
+### exists
+
+Existing and missing paths are separate. Node async is access mapped to a Boolean; fs-extra uses pathExists.
+
+| Runtime  | Workload / variant    | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | --------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default      | sync  | 0.005 | 0.006    | 0.005       | 0.007 | native      |
+| v22.22.0 | single / default      | async | 0.036 | 0.030    | 0.028       | 0.029 | native      |
+| v22.22.0 | batch-256 / default   | sync  | 0.359 | 0.358    | 0.357       | 0.528 | native      |
+| v22.22.0 | batch-256 / default   | async | 1.041 | 0.905    | 0.906       | 0.836 | native      |
+| v22.22.0 | missing-256 / missing | sync  | 0.289 | 0.304    | 0.283       | 0.313 | native      |
+| v22.22.0 | missing-256 / missing | async | 1.706 | 1.197    | 1.230       | 0.775 | native      |
+| v24.21.0 | single / default      | sync  | 0.004 | 0.007    | 0.006       | 0.008 | native      |
+| v24.21.0 | single / default      | async | 0.027 | 0.028    | 0.027       | 0.029 | native      |
+| v24.21.0 | batch-256 / default   | sync  | 0.341 | 0.369    | 0.362       | 0.500 | native      |
+| v24.21.0 | batch-256 / default   | async | 0.887 | 0.937    | 0.880       | 0.716 | native      |
+| v24.21.0 | missing-256 / missing | sync  | 0.287 | 0.306    | 0.293       | 0.321 | native      |
+| v24.21.0 | missing-256 / missing | async | 1.590 | 1.169    | 1.168       | 0.709 | native      |
+
+### glob
+
+Pattern `**/*`, relative strings for files and directories. No dotfiles or symlinks in this synthetic fixture. fs-extra/graceful-fs wrap Node glob.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | fdir  | fast-glob | tinyglobby | glob  | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | --------- | ---------- | ----- | ----- | ----------- |
+| v22.22.0 | tiny-tree / default | sync  | 0.247 | 0.260    | 0.240       | 0.225 | 0.337     | 0.303      | 0.586 | 1.559 | native      |
+| v22.22.0 | tiny-tree / default | async | 0.388 | 0.346    | 0.343       | 0.317 | 0.390     | 0.319      | 0.524 | 2.191 | native      |
+| v22.22.0 | tree-1000 / default | sync  | 4.012 | 3.991    | 3.987       | 2.212 | 2.343     | 2.321      | 3.864 | 3.298 | native      |
+| v22.22.0 | tree-1000 / default | async | 5.779 | 5.667    | 5.861       | 1.208 | 1.381     | 1.381      | 2.895 | 3.750 | native      |
+| v24.21.0 | tiny-tree / default | sync  | 0.247 | 0.258    | 0.222       | 0.237 | 0.311     | 0.264      | 0.545 | 1.797 | native      |
+| v24.21.0 | tiny-tree / default | async | 0.393 | 0.392    | 0.346       | 0.315 | 0.368     | 0.305      | 0.476 | 3.294 | native      |
+| v24.21.0 | tree-1000 / default | sync  | 3.817 | 3.806    | 3.834       | 2.186 | 2.368     | 2.345      | 3.901 | 3.669 | native      |
+| v24.21.0 | tree-1000 / default | async | 5.190 | 4.986    | 5.080       | 1.188 | 1.351     | 1.258      | 2.724 | 3.753 | native      |
+
+### link
+
+Create a hard link and verify its inode and link count.
+
+| Runtime  | Workload / variant  | Mode  | node   | fs-extra | graceful-fs | vooya  | Vooya route |
+| -------- | ------------------- | ----- | ------ | -------- | ----------- | ------ | ----------- |
+| v22.22.0 | single / default    | sync  | 0.237  | 0.236    | 0.224       | 0.229  | native      |
+| v22.22.0 | single / default    | async | 0.261  | 0.254    | 0.261       | 0.251  | native      |
+| v22.22.0 | batch-256 / default | sync  | 53.505 | 53.391   | 53.477      | 53.406 | native      |
+| v22.22.0 | batch-256 / default | async | 34.086 | 33.781   | 33.174      | 33.121 | native      |
+| v24.21.0 | single / default    | sync  | 0.237  | 0.231    | 0.227       | 0.234  | native      |
+| v24.21.0 | single / default    | async | 0.294  | 0.262    | 0.259       | 0.281  | native      |
+| v24.21.0 | batch-256 / default | sync  | 53.375 | 53.085   | 53.475      | 53.258 | native      |
+| v24.21.0 | batch-256 / default | async | 34.108 | 33.275   | 33.126      | 32.840 | native      |
+
+### lstat
+
+Separate regular-file and symbolic-link metadata cases. This suite also checks file/link classification.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.009 | 0.008    | 0.008       | 0.014 | native      |
+| v22.22.0 | single / default    | async | 0.030 | 0.030    | 0.025       | 0.033 | native      |
+| v22.22.0 | batch-256 / default | sync  | 0.531 | 0.520    | 0.538       | 0.706 | native      |
+| v22.22.0 | batch-256 / default | async | 1.106 | 1.003    | 1.021       | 0.965 | native      |
+| v22.22.0 | single / symlink    | sync  | 0.012 | 0.009    | 0.010       | 0.012 | native      |
+| v22.22.0 | single / symlink    | async | 0.033 | 0.035    | 0.030       | 0.033 | native      |
+| v22.22.0 | batch-256 / symlink | sync  | 0.674 | 0.667    | 0.663       | 0.830 | native      |
+| v22.22.0 | batch-256 / symlink | async | 0.964 | 0.845    | 0.905       | 0.884 | native      |
+| v24.21.0 | single / default    | sync  | 0.009 | 0.008    | 0.008       | 0.014 | native      |
+| v24.21.0 | single / default    | async | 0.035 | 0.033    | 0.031       | 0.034 | native      |
+| v24.21.0 | batch-256 / default | sync  | 0.543 | 0.562    | 0.531       | 0.664 | native      |
+| v24.21.0 | batch-256 / default | async | 0.966 | 0.890    | 0.882       | 0.950 | native      |
+| v24.21.0 | single / symlink    | sync  | 0.010 | 0.010    | 0.010       | 0.016 | native      |
+| v24.21.0 | single / symlink    | async | 0.032 | 0.036    | 0.029       | 0.037 | native      |
+| v24.21.0 | batch-256 / symlink | sync  | 0.692 | 0.697    | 0.666       | 0.786 | native      |
+| v24.21.0 | batch-256 / symlink | async | 0.956 | 0.835    | 0.813       | 0.923 | native      |
+
+### mkdir
+
+Create missing a/b parents recursively. Compare directory effects; peer-specific return values are outside the shared contract.
+
+| Runtime  | Workload / variant  | Mode  | node   | fs-extra | graceful-fs | mkdirp | mkdirp-manual | vooya  | Vooya route |
+| -------- | ------------------- | ----- | ------ | -------- | ----------- | ------ | ------------- | ------ | ----------- |
+| v22.22.0 | single / default    | sync  | 0.118  | 0.115    | 0.121       | 0.181  | 0.170         | 0.142  | native      |
+| v22.22.0 | single / default    | async | 0.221  | 0.212    | 0.210       | 0.327  | 0.221         | 0.153  | native      |
+| v22.22.0 | batch-256 / default | sync  | 26.863 | 26.916   | 26.970      | 33.665 | 30.685        | 29.744 | native      |
+| v22.22.0 | batch-256 / default | async | 17.899 | 18.097   | 18.233      | 20.144 | 18.753        | 17.635 | native      |
+| v24.21.0 | single / default    | sync  | 0.126  | 0.130    | 0.128       | 0.202  | 0.182         | 0.150  | native      |
+| v24.21.0 | single / default    | async | 0.231  | 0.222    | 0.222       | 0.345  | 0.233         | 0.161  | native      |
+| v24.21.0 | batch-256 / default | sync  | 27.443 | 27.297   | 27.216      | 33.891 | 30.874        | 30.122 | native      |
+| v24.21.0 | batch-256 / default | async | 18.227 | 18.137   | 18.457      | 19.016 | 18.285        | 17.968 | native      |
+
+### mkdtemp
+
+Create a unique directory for every prefix; verify each returned path exists.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya  | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ------ | ----------- |
+| v22.22.0 | single / default    | sync  | 0.050 | 0.049    | 0.051       | 0.076  | native      |
+| v22.22.0 | single / default    | async | 0.076 | 0.084    | 0.065       | 0.099  | native      |
+| v22.22.0 | batch-256 / default | sync  | 9.654 | 9.598    | 9.576       | 12.022 | native      |
+| v22.22.0 | batch-256 / default | async | 6.134 | 5.942    | 6.111       | 6.455  | native      |
+| v24.21.0 | single / default    | sync  | 0.060 | 0.058    | 0.060       | 0.088  | native      |
+| v24.21.0 | single / default    | async | 0.077 | 0.071    | 0.067       | 0.087  | native      |
+| v24.21.0 | batch-256 / default | sync  | 9.737 | 9.754    | 9.659       | 12.372 | native      |
+| v24.21.0 | batch-256 / default | async | 6.034 | 6.080    | 6.034       | 6.574  | native      |
+
+### readFile
+
+Whole-file materialization, Buffer or mixed non-ASCII UTF-8. No streaming or line-range extension measured.
+
+| Runtime  | Workload / variant | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------ | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / buffer    | sync  | 0.028 | 0.032    | 0.031       | 0.041 | native      |
+| v22.22.0 | single / buffer    | async | 0.119 | 0.108    | 0.095       | 0.060 | native      |
+| v22.22.0 | batch-256 / buffer | sync  | 3.066 | 3.038    | 3.012       | 3.480 | native      |
+| v22.22.0 | batch-256 / buffer | async | 3.458 | 2.354    | 2.632       | 1.756 | native      |
+| v22.22.0 | single / utf8      | sync  | 0.045 | 0.042    | 0.038       | 0.044 | native      |
+| v22.22.0 | single / utf8      | async | 0.128 | 0.119    | 0.108       | 0.061 | native      |
+| v22.22.0 | batch-256 / utf8   | sync  | 5.764 | 5.791    | 5.701       | 6.354 | native      |
+| v22.22.0 | batch-256 / utf8   | async | 6.215 | 5.024    | 5.041       | 3.379 | native      |
+| v22.22.0 | 8MiB / buffer      | sync  | 0.429 | 0.433    | 0.438       | 0.447 | native      |
+| v22.22.0 | 8MiB / buffer      | async | 0.685 | 0.644    | 0.635       | 0.489 | native      |
+| v24.21.0 | single / buffer    | sync  | 0.032 | 0.035    | 0.031       | 0.051 | native      |
+| v24.21.0 | single / buffer    | async | 0.115 | 0.119    | 0.101       | 0.055 | native      |
+| v24.21.0 | batch-256 / buffer | sync  | 3.444 | 3.405    | 3.400       | 3.915 | native      |
+| v24.21.0 | batch-256 / buffer | async | 3.384 | 2.312    | 2.336       | 1.817 | native      |
+| v24.21.0 | single / utf8      | sync  | 0.044 | 0.040    | 0.037       | 0.044 | native      |
+| v24.21.0 | single / utf8      | async | 0.124 | 0.113    | 0.106       | 0.065 | native      |
+| v24.21.0 | batch-256 / utf8   | sync  | 5.816 | 5.872    | 5.785       | 6.455 | native      |
+| v24.21.0 | batch-256 / utf8   | async | 4.072 | 2.645    | 2.604       | 3.563 | native      |
+| v24.21.0 | 8MiB / buffer      | sync  | 0.451 | 0.439    | 0.435       | 0.461 | native      |
+| v24.21.0 | 8MiB / buffer      | async | 0.690 | 0.678    | 0.667       | 0.489 | native      |
+
+### readdir
+
+Recursive relative-string listing, including directories. fdir is an independent crawler; fs-extra/graceful-fs wrap Node.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | fdir  | vooya | vooya-c4 | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----- | -------- | ----------- |
+| v22.22.0 | tiny-tree / default | sync  | 0.159 | 0.142    | 0.135       | 0.158 | 0.209 | 0.186    | native      |
+| v22.22.0 | tiny-tree / default | async | 0.214 | 0.202    | 0.202       | 0.166 | 0.174 | 0.181    | native      |
+| v22.22.0 | tree-1000 / default | sync  | 5.028 | 4.976    | 4.975       | 1.853 | 1.383 | 1.331    | native      |
+| v22.22.0 | tree-1000 / default | async | 6.050 | 6.068    | 6.081       | 1.223 | 1.488 | 1.390    | native      |
+| v24.21.0 | tiny-tree / default | sync  | 0.130 | 0.134    | 0.135       | 0.160 | 0.253 | 0.317    | native      |
+| v24.21.0 | tiny-tree / default | async | 0.249 | 0.251    | 0.224       | 0.286 | 0.279 | 0.303    | native      |
+| v24.21.0 | tree-1000 / default | sync  | 4.828 | 4.836    | 4.824       | 1.975 | 1.501 | 1.368    | native      |
+| v24.21.0 | tree-1000 / default | async | 5.732 | 6.106    | 5.724       | 1.228 | 1.638 | 1.284    | native      |
+
+### readlink
+
+Read a relative file-symlink target; no dereferencing.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.018 | 0.013    | 0.014       | 0.013 | native      |
+| v22.22.0 | single / default    | async | 0.038 | 0.033    | 0.031       | 0.031 | native      |
+| v22.22.0 | batch-256 / default | sync  | 1.127 | 1.125    | 1.099       | 0.718 | native      |
+| v22.22.0 | batch-256 / default | async | 0.867 | 1.025    | 1.076       | 0.831 | native      |
+| v24.21.0 | single / default    | sync  | 0.017 | 0.018    | 0.019       | 0.015 | native      |
+| v24.21.0 | single / default    | async | 0.041 | 0.039    | 0.040       | 0.037 | native      |
+| v24.21.0 | batch-256 / default | sync  | 1.162 | 1.150    | 1.110       | 0.716 | native      |
+| v24.21.0 | batch-256 / default | async | 1.094 | 0.918    | 1.034       | 0.756 | native      |
+
+### realpath
+
+Resolve existing absolute regular-file paths. No symlink chain in this workload.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.029 | 0.030    | 0.028       | 0.025 | native      |
+| v22.22.0 | single / default    | async | 0.050 | 0.209    | 0.220       | 0.045 | native      |
+| v22.22.0 | batch-256 / default | sync  | 3.722 | 3.807    | 3.685       | 2.353 | native      |
+| v22.22.0 | batch-256 / default | async | 1.917 | 12.154   | 11.319      | 1.622 | native      |
+| v24.21.0 | single / default    | sync  | 0.027 | 0.031    | 0.027       | 0.024 | native      |
+| v24.21.0 | single / default    | async | 0.051 | 0.205    | 0.207       | 0.044 | native      |
+| v24.21.0 | batch-256 / default | sync  | 3.738 | 3.779    | 3.705       | 2.322 | native      |
+| v24.21.0 | batch-256 / default | async | 1.812 | 11.103   | 10.614      | 1.622 | native      |
+
+### rename
+
+Move within the same temporary directory/filesystem; verify destination bytes and source disappearance.
+
+| Runtime  | Workload / variant  | Mode  | node   | fs-extra | graceful-fs | vooya  | Vooya route |
+| -------- | ------------------- | ----- | ------ | -------- | ----------- | ------ | ----------- |
+| v22.22.0 | single / default    | sync  | 0.081  | 0.074    | 0.070       | 0.072  | native      |
+| v22.22.0 | single / default    | async | 0.082  | 0.082    | 0.080       | 0.079  | native      |
+| v22.22.0 | batch-256 / default | sync  | 13.996 | 14.010   | 13.933      | 14.040 | native      |
+| v22.22.0 | batch-256 / default | async | 8.234  | 7.648    | 7.440       | 7.355  | native      |
+| v24.21.0 | single / default    | sync  | 0.070  | 0.074    | 0.067       | 0.074  | native      |
+| v24.21.0 | single / default    | async | 0.091  | 0.093    | 0.085       | 0.088  | native      |
+| v24.21.0 | batch-256 / default | sync  | 13.938 | 13.838   | 13.823      | 13.919 | native      |
+| v24.21.0 | batch-256 / default | async | 7.351  | 7.688    | 7.795       | 7.383  | native      |
+
+### rm
+
+Remove a freshly populated tree. fs-extra remove and rimraf default use Node on this platform; explicit rimraf-manual is also shown. Vooya sync is Node fallback.
+
+| Runtime  | Workload / variant  | Mode  | node   | fs-extra | graceful-fs | rimraf | rimraf-manual | vooya  | vooya-c4 | Vooya route   |
+| -------- | ------------------- | ----- | ------ | -------- | ----------- | ------ | ------------- | ------ | -------- | ------------- |
+| v22.22.0 | tiny-tree / default | sync  | 0.427  | 0.426    | 0.421       | 0.434  | 0.354         | 0.414  | 0.408    | Node fallback |
+| v22.22.0 | tiny-tree / default | async | 0.611  | 0.610    | 0.600       | 0.620  | 0.495         | 0.332  | 0.441    | native        |
+| v22.22.0 | tree-1000 / default | sync  | 46.075 | 45.810   | 45.975      | 45.800 | 41.775        | 45.786 | 46.091   | Node fallback |
+| v22.22.0 | tree-1000 / default | async | 28.889 | 28.813   | 28.931      | 29.472 | 26.186        | 45.565 | 23.579   | native        |
+| v24.21.0 | tiny-tree / default | sync  | 0.352  | 0.366    | 0.356       | 0.363  | 0.368         | 0.352  | 0.351    | Node fallback |
+| v24.21.0 | tiny-tree / default | async | 0.687  | 0.641    | 0.678       | 0.646  | 0.545         | 0.350  | 0.590    | native        |
+| v24.21.0 | tree-1000 / default | sync  | 46.970 | 46.678   | 46.866      | 46.807 | 41.512        | 46.742 | 46.784   | Node fallback |
+| v24.21.0 | tree-1000 / default | async | 28.562 | 28.495   | 28.080      | 28.076 | 25.841        | 42.918 | 23.003   | native        |
+
+### rmdir
+
+Remove empty directories only; recursive deletion is in rm.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.038 | 0.032    | 0.031       | 0.035 | native      |
+| v22.22.0 | single / default    | async | 0.071 | 0.055    | 0.053       | 0.055 | native      |
+| v22.22.0 | batch-256 / default | sync  | 8.679 | 8.678    | 8.501       | 8.644 | native      |
+| v22.22.0 | batch-256 / default | async | 5.151 | 5.038    | 5.173       | 4.917 | native      |
+| v24.21.0 | single / default    | sync  | 0.042 | 0.038    | 0.038       | 0.038 | native      |
+| v24.21.0 | single / default    | async | 0.061 | 0.061    | 0.060       | 0.058 | native      |
+| v24.21.0 | batch-256 / default | sync  | 8.686 | 8.742    | 8.603       | 8.665 | native      |
+| v24.21.0 | batch-256 / default | async | 5.164 | 5.198    | 5.047       | 5.219 | native      |
+
+### scan
+
+Return sorted path/name/kind/size/mode/mtime/depth for files and directories. Node, fs-extra, graceful-fs, fdir and tinyglobby are explicitly composed pipelines with lstat; async metadata concurrency is eight. All construction/sorting is timed.
+
+| Runtime  | Workload / variant  | Mode  | node   | fs-extra | graceful-fs | fdir  | tinyglobby | vooya | vooya-c4 | Vooya route |
+| -------- | ------------------- | ----- | ------ | -------- | ----------- | ----- | ---------- | ----- | -------- | ----------- |
+| v22.22.0 | tiny-tree / default | sync  | 0.156  | 0.155    | 0.157       | 0.190 | 0.366      | 3.253 | 2.432    | native      |
+| v22.22.0 | tiny-tree / default | async | 0.291  | 0.265    | 0.259       | 0.246 | 0.382      | 3.252 | 1.714    | native      |
+| v22.22.0 | tree-1000 / default | sync  | 7.863  | 7.819    | 7.934       | 5.143 | 5.628      | 6.575 | 5.881    | native      |
+| v22.22.0 | tree-1000 / default | async | 11.681 | 11.546   | 11.062      | 6.311 | 6.841      | 6.636 | 5.052    | native      |
+| v24.21.0 | tiny-tree / default | sync  | 0.165  | 0.157    | 0.159       | 0.198 | 0.366      | 3.363 | 1.805    | native      |
+| v24.21.0 | tiny-tree / default | async | 0.322  | 0.338    | 0.296       | 0.320 | 0.421      | 3.370 | 1.785    | native      |
+| v24.21.0 | tree-1000 / default | sync  | 7.508  | 7.599    | 7.441       | 5.188 | 5.651      | 6.526 | 5.705    | native      |
+| v24.21.0 | tree-1000 / default | async | 10.587 | 10.422   | 10.445      | 6.057 | 5.897      | 6.370 | 5.061    | native      |
+
+### stat
+
+Metadata for regular files and following symbolic links, measured separately.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.011 | 0.010    | 0.010       | 0.016 | native      |
+| v22.22.0 | single / default    | async | 0.033 | 0.036    | 0.035       | 0.034 | native      |
+| v22.22.0 | batch-256 / default | sync  | 0.593 | 0.544    | 0.562       | 0.689 | native      |
+| v22.22.0 | batch-256 / default | async | 1.034 | 0.891    | 0.890       | 0.964 | native      |
+| v22.22.0 | single / symlink    | sync  | 0.016 | 0.011    | 0.011       | 0.016 | native      |
+| v22.22.0 | single / symlink    | async | 0.034 | 0.034    | 0.030       | 0.039 | native      |
+| v22.22.0 | batch-256 / symlink | sync  | 1.000 | 0.937    | 0.984       | 1.047 | native      |
+| v22.22.0 | batch-256 / symlink | async | 0.935 | 0.910    | 0.819       | 0.768 | native      |
+| v24.21.0 | single / default    | sync  | 0.010 | 0.010    | 0.009       | 0.016 | native      |
+| v24.21.0 | single / default    | async | 0.039 | 0.037    | 0.030       | 0.038 | native      |
+| v24.21.0 | batch-256 / default | sync  | 0.580 | 0.563    | 0.557       | 0.687 | native      |
+| v24.21.0 | batch-256 / default | async | 1.096 | 0.987    | 0.907       | 1.005 | native      |
+| v24.21.0 | single / symlink    | sync  | 0.011 | 0.010    | 0.012       | 0.016 | native      |
+| v24.21.0 | single / symlink    | async | 0.036 | 0.035    | 0.032       | 0.038 | native      |
+| v24.21.0 | batch-256 / symlink | sync  | 0.940 | 0.945    | 0.950       | 1.077 | native      |
+| v24.21.0 | batch-256 / symlink | async | 0.950 | 0.758    | 0.779       | 0.872 | native      |
+
+### symlink
+
+Create relative file symlinks and verify their targets.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya  | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ------ | ----------- |
+| v22.22.0 | single / default    | sync  | 0.052 | 0.055    | 0.060       | 0.065  | native      |
+| v22.22.0 | single / default    | async | 0.074 | 0.074    | 0.074       | 0.077  | native      |
+| v22.22.0 | batch-256 / default | sync  | 9.700 | 9.758    | 9.771       | 10.638 | native      |
+| v22.22.0 | batch-256 / default | async | 6.343 | 6.442    | 6.327       | 6.300  | native      |
+| v24.21.0 | single / default    | sync  | 0.063 | 0.053    | 0.057       | 0.061  | native      |
+| v24.21.0 | single / default    | async | 0.080 | 0.074    | 0.077       | 0.077  | native      |
+| v24.21.0 | batch-256 / default | sync  | 9.669 | 9.632    | 9.523       | 10.685 | native      |
+| v24.21.0 | batch-256 / default | async | 6.380 | 6.474    | 6.349       | 6.387  | native      |
+
+### truncate
+
+Shrink existing 4 KiB files to 1 KiB; verify retained bytes.
+
+| Runtime  | Workload / variant  | Mode  | node   | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ------ | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.069  | 0.072    | 0.071       | 0.062 | native      |
+| v22.22.0 | single / default    | async | 0.149  | 0.127    | 0.113       | 0.085 | native      |
+| v22.22.0 | batch-256 / default | sync  | 10.756 | 10.745   | 10.799      | 9.241 | native      |
+| v22.22.0 | batch-256 / default | async | 4.000  | 3.950    | 3.927       | 3.178 | native      |
+| v24.21.0 | single / default    | sync  | 0.073  | 0.074    | 0.072       | 0.063 | native      |
+| v24.21.0 | single / default    | async | 0.158  | 0.132    | 0.139       | 0.088 | native      |
+| v24.21.0 | batch-256 / default | sync  | 10.912 | 10.798   | 10.945      | 9.238 | native      |
+| v24.21.0 | batch-256 / default | async | 4.186  | 4.103    | 4.138       | 3.349 | native      |
+
+### unlink
+
+Remove existing regular files, one path per call.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.051 | 0.042    | 0.044       | 0.047 | native      |
+| v22.22.0 | single / default    | async | 0.064 | 0.067    | 0.061       | 0.065 | native      |
+| v22.22.0 | batch-256 / default | sync  | 7.768 | 7.620    | 7.572       | 8.381 | native      |
+| v22.22.0 | batch-256 / default | async | 5.034 | 4.977    | 4.959       | 4.983 | native      |
+| v24.21.0 | single / default    | sync  | 0.047 | 0.046    | 0.043       | 0.043 | native      |
+| v24.21.0 | single / default    | async | 0.065 | 0.070    | 0.063       | 0.072 | native      |
+| v24.21.0 | batch-256 / default | sync  | 7.774 | 7.865    | 7.722       | 8.277 | native      |
+| v24.21.0 | batch-256 / default | async | 5.003 | 5.018    | 4.973       | 4.978 | native      |
+
+### utimes
+
+Set fixed access and modification timestamps and verify both.
+
+| Runtime  | Workload / variant  | Mode  | node  | fs-extra | graceful-fs | vooya | Vooya route |
+| -------- | ------------------- | ----- | ----- | -------- | ----------- | ----- | ----------- |
+| v22.22.0 | single / default    | sync  | 0.027 | 0.022    | 0.019       | 0.024 | native      |
+| v22.22.0 | single / default    | async | 0.044 | 0.043    | 0.042       | 0.042 | native      |
+| v22.22.0 | batch-256 / default | sync  | 2.123 | 2.105    | 2.028       | 2.725 | native      |
+| v22.22.0 | batch-256 / default | async | 1.135 | 1.275    | 1.336       | 1.602 | native      |
+| v24.21.0 | single / default    | sync  | 0.025 | 0.024    | 0.023       | 0.025 | native      |
+| v24.21.0 | single / default    | async | 0.050 | 0.049    | 0.046       | 0.050 | native      |
+| v24.21.0 | batch-256 / default | sync  | 2.294 | 2.152    | 2.115       | 2.737 | native      |
+| v24.21.0 | batch-256 / default | async | 1.230 | 1.316    | 1.405       | 1.466 | native      |
+
+### writeFile
+
+Write to fresh distinct paths, Buffer or mixed non-ASCII UTF-8. No flush or overwrite-race semantics measured.
+
+| Runtime  | Workload / variant | Mode  | node   | fs-extra | graceful-fs | vooya  | Vooya route |
+| -------- | ------------------ | ----- | ------ | -------- | ----------- | ------ | ----------- |
+| v22.22.0 | single / buffer    | sync  | 0.092  | 0.093    | 0.090       | 0.088  | native      |
+| v22.22.0 | single / buffer    | async | 0.167  | 0.145    | 0.145       | 0.108  | native      |
+| v22.22.0 | batch-256 / buffer | sync  | 14.710 | 14.597   | 14.528      | 14.515 | native      |
+| v22.22.0 | batch-256 / buffer | async | 9.003  | 9.280    | 9.249       | 8.027  | native      |
+| v22.22.0 | single / utf8      | sync  | 0.085  | 0.082    | 0.093       | 0.085  | native      |
+| v22.22.0 | single / utf8      | async | 0.161  | 0.143    | 0.133       | 0.092  | native      |
+| v22.22.0 | batch-256 / utf8   | sync  | 14.962 | 15.012   | 15.000      | 15.137 | native      |
+| v22.22.0 | batch-256 / utf8   | async | 9.098  | 9.180    | 9.254       | 8.157  | native      |
+| v22.22.0 | 8MiB / buffer      | sync  | 0.686  | 0.639    | 0.665       | 0.643  | native      |
+| v22.22.0 | 8MiB / buffer      | async | 0.998  | 0.825    | 0.764       | 0.850  | native      |
+| v24.21.0 | single / buffer    | sync  | 0.082  | 0.078    | 0.076       | 0.082  | native      |
+| v24.21.0 | single / buffer    | async | 0.148  | 0.129    | 0.119       | 0.096  | native      |
+| v24.21.0 | batch-256 / buffer | sync  | 14.467 | 14.628   | 14.330      | 14.344 | native      |
+| v24.21.0 | batch-256 / buffer | async | 8.817  | 8.690    | 9.097       | 7.935  | native      |
+| v24.21.0 | single / utf8      | sync  | 0.081  | 0.083    | 0.077       | 0.087  | native      |
+| v24.21.0 | single / utf8      | async | 0.152  | 0.128    | 0.135       | 0.103  | native      |
+| v24.21.0 | batch-256 / utf8   | sync  | 15.255 | 15.250   | 15.263      | 15.518 | native      |
+| v24.21.0 | batch-256 / utf8   | async | 9.346  | 8.843    | 8.891       | 8.246  | native      |
+| v24.21.0 | 8MiB / buffer      | sync  | 0.678  | 0.667    | 0.678       | 0.677  | native      |
+| v24.21.0 | 8MiB / buffer      | async | 1.046  | 0.826    | 0.814       | 0.906  | native      |
+
+## Raw evidence and reproduction
+
+- [Node 22 raw samples](/evidence/all-apis-node22.json)
+- [Node 24 raw samples](/evidence/all-apis-node24.json)
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test:competitor-contract
+pnpm perf:all-apis --output .perf/all-apis.json
+# Focus a follow-up:
+pnpm perf:all-apis --apis cp,rm,scan --output .perf/batches.json
+```
+
+No runtime default or implementation was changed for these measurements. Before promoting a fast path, repeat the relevant distributions in the target application and platform, with the required options and durability.

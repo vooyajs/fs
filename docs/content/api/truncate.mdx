@@ -36,3 +36,9 @@ Single syscall; on par with Node.js. See [Benchmarks](/benchmarks).
 - **Negative lengths**: Current supported Node versions clamp negative values to `0`; Vooya FS matches that observed behavior.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs/APIs**: `Buffer` paths, `URL` paths, and file-descriptor `ftruncate` APIs are not part of the current Vooya FS `truncate` surface.
+
+## Competitor measurements
+
+See the [full truncate comparison table](/guide/all-api-evidence#truncate) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

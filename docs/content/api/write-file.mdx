@@ -37,34 +37,31 @@ and stop at padding.
 
 ## Performance
 
-From repo benchmarks (`pnpm build && pnpm bench`):
+Buffer writes borrow the input bytes for synchronous calls. Promise calls keep
+one entry-time copy so the worker owns a stable snapshot, then write directly
+from that snapshot. This removes a redundant payload-sized allocation and copy;
+it is not a zero-copy or faster-disk guarantee. String encoding is unchanged.
 
-| Scenario                 | Node.js | Vooya FS | Ratio                                    |
-| ------------------------ | ------- | -------- | ---------------------------------------- |
-| writeFile small (string) | 74 µs   | 66 µs    | 0.9x                                     |
-| writeFile small (Buffer) | 115 µs  | 103 µs   | 0.9x                                     |
-| writeFile 4 MB string    | 2.93 ms | 5.69 ms  | Node.js faster (large string over N-API) |
+See the [native overhead report](/guide/native-overheads) for release-build
+Node 22/24 comparisons, including small inputs, raw samples and memory limits.
+Large Buffer workloads are the intended target; small writes remain dominated
+by scheduling, opening the file and filesystem cost. These APIs do not implement
+Node's `flush` option, so the measurements compare writes without an explicit flush.
 
-Single-file writes are on par with Node.js for small payloads; for very large strings Node.js can be faster due to N-API copy cost.
+Local macOS arm64 medians, two warmups and ten samples; times include the
+public entry. Inputs are Buffer subarrays, concurrency 1, warm cache, no flush.
 
-### Local scale report
+| Node     | Input / method | Node ms | Before ms | After ms |
+| -------- | -------------- | ------: | --------: | -------: |
+| v22.22.0 | 64 B async     |   0.145 |     0.058 |    0.069 |
+| v22.22.0 | 8 MiB async    |   0.933 |     0.898 |    0.778 |
+| v22.22.0 | 8 MiB sync     |   0.749 |     0.814 |    0.748 |
+| v24.21.0 | 64 B async     |   0.147 |     0.070 |    0.072 |
+| v24.21.0 | 8 MiB async    |   0.991 |     0.978 |    0.846 |
+| v24.21.0 | 8 MiB sync     |   0.716 |     0.807 |    0.702 |
 
-{/* vooya-fs-perf:start writeFile */}
-
-_Generated from local performance reports. Do not edit this block by hand._
-
-- Runtime: v22.22.0 on darwin/arm64
-- Samples: 2 warmup runs, 10 measured runs
-- Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
-
-| Scale         | Fixture | Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
-| ------------- | ------: | ------: | -------: | -----------: | -------: | -----------: |
-| small-string  |       - | 0.24 ms |  0.09 ms | 2.56x faster |  16.0 KB |          0 B |
-| medium-string |       - | 0.20 ms |  0.12 ms | 1.64x faster |      0 B |          0 B |
-| large-string  |       - | 1.82 ms |  1.54 ms | 1.18x faster |      0 B |          0 B |
-| medium-buffer |       - | 0.21 ms |  0.13 ms | 1.62x faster |      0 B |          0 B |
-
-{/* vooya-fs-perf:end writeFile */}
+Small-input results include regressions; reduced copying does not imply a speedup
+for every payload or filesystem. RSS samples in the report are not peak memory.
 
 ## Notes
 
@@ -73,5 +70,20 @@ _Generated from local performance reports. Do not edit this block by hand._
 - **Mode**: Applies when a file is created and is filtered by the process umask; writing an existing file does not reset its permissions.
 - **Supported input shape**: Vooya FS currently accepts string paths and `string | Buffer` data. Node also accepts `URL` / `Buffer` paths and more typed array data shapes; those are deferred.
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node options**: `AbortSignal` and file-handle targets are not part of the current Vooya FS `writeFile` surface.
+- **Unsupported Node options**: `AbortSignal`, `flush`, and file-handle targets are not part of the current Vooya FS `writeFile` surface.
 - **Large data**: Writing a very large string (e.g. 4 MB) crosses the N-API boundary and can be slower than Node.js; prefer `Buffer` for large binary data where possible.
+
+### Buffer ownership
+
+`Buffer.subarray()` writes only the selected bytes, including a nonzero offset.
+Async calls snapshot those bytes before returning the Promise; later mutation of
+the original Buffer does not change that operation's input. This is Vooya's
+ownership policy, not a promise that Node snapshots mutable inputs identically.
+Await writes to the same file in the required order; separate concurrent calls
+are not an ordering primitive.
+
+## Competitor measurements
+
+See the [full writeFile comparison table](/guide/all-api-evidence#writefile) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

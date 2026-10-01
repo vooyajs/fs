@@ -1,0 +1,154 @@
+# Native overhead evidence
+
+This unreleased iteration builds on `db835af` (the Node compatibility PR). It
+changes three existing native paths: compatible glob patterns share a walk,
+workers collect glob results locally, and Buffer writes avoid redundant copies.
+Public signatures and native/Node routing are unchanged.
+
+## Method and scope
+
+- Public `api.js` entry, including N-API crossings, release builds (`pnpm build`).
+- Node 22.22.0 and 24.21.0; macOS arm64, Apple M4 Pro, 14 logical CPUs.
+- Two warmups and ten measured samples per implementation/case. Tables show the
+  median in milliseconds. Node, old Vooya and new Vooya rotate execution order
+  each iteration. Raw samples retain outliers; there are no CI speed assertions.
+- Glob fixtures: 8, 2,000 and 20,000 files, up to 50 files per directory, with four
+  extensions. Counts include 2, 41 and 401 directories respectively. Workers: 4.
+  Single pattern is `**/*`; four patterns are `**/*.ts`, `**/*.js`, `**/*.md`,
+  `**/*.txt`. Single pattern also returns directories. Node's async iterator is
+  fully collected so both APIs return the same batch.
+- Writes: 64 B, 64 KiB and 8 MiB Buffer subarrays at byte offset 16; concurrency 1.
+  Each destination is reset to an empty file outside timing. No explicit flush
+  or fsync in any implementation. A synchronous result also passes through the
+  harness's `await`, adding the same small continuation overhead to all versions.
+- Reused fixtures and warm filesystem cache on local storage. Setup, validation,
+  GC before timing and cleanup are outside timing. Exact names/Dirent predicates
+  and output bytes are checked after every sample, including warmups.
+- RSS deltas are sampled immediately before/after each operation, **not peak
+  memory**. They include allocator retention and reclamation and do not quantify
+  the number of payload copies. Native output ownership and JS conversion are
+  included in latency. No platform-wide or cold-cache performance claim is made.
+
+## Glob results
+
+| Node     |  Files | Pattern/result | Node ms | Before ms | After ms | Before / after |
+| -------- | -----: | -------------- | ------: | --------: | -------: | -------------: |
+| v22.22.0 |      8 | single         |   0.453 |     1.808 |    1.750 |          1.03x |
+| v22.22.0 |      8 | four           |   0.378 |     7.469 |    1.783 |          4.19x |
+| v22.22.0 |      8 | four-dirents   |   0.454 |     7.526 |    1.783 |          4.22x |
+| v22.22.0 |  2,000 | single         |   6.651 |     3.866 |    3.714 |          1.04x |
+| v22.22.0 |  2,000 | four           |  13.589 |    14.305 |    3.792 |          3.77x |
+| v22.22.0 |  2,000 | four-dirents   |  13.131 |    14.797 |    4.229 |          3.50x |
+| v22.22.0 | 20,000 | single         |  62.166 |    13.983 |   14.176 |          0.99x |
+| v22.22.0 | 20,000 | four           | 118.274 |    49.860 |   14.070 |          3.54x |
+| v22.22.0 | 20,000 | four-dirents   | 118.765 |    56.955 |   18.209 |          3.13x |
+| v24.21.0 |      8 | single         |   0.362 |     1.731 |    1.745 |          0.99x |
+| v24.21.0 |      8 | four           |   0.470 |     6.864 |    1.888 |          3.64x |
+| v24.21.0 |      8 | four-dirents   |   0.474 |     8.253 |    1.853 |          4.45x |
+| v24.21.0 |  2,000 | single         |   6.103 |     3.824 |    3.772 |          1.01x |
+| v24.21.0 |  2,000 | four           |  12.050 |    14.128 |    3.816 |          3.70x |
+| v24.21.0 |  2,000 | four-dirents   |  12.119 |    14.858 |    4.220 |          3.52x |
+| v24.21.0 | 20,000 | single         |  58.814 |    13.700 |   13.057 |          1.05x |
+| v24.21.0 | 20,000 | four           | 110.097 |    47.220 |   12.590 |          3.75x |
+| v24.21.0 | 20,000 | four-dirents   | 113.354 |    53.458 |   18.896 |          2.83x |
+
+Grouping removes repeated traversal and worker setup; the strongest benefit is
+multiple compatible patterns. Single-pattern results are broadly comparable to
+the old implementation: this report does not establish an independent speedup
+from local collection alone. Tiny trees remain slower than Node despite the
+large improvement over the old four-walk implementation.
+
+The planner keeps distinct literal roots, hidden traversal policies and terminal
+`**` root inclusion in separate groups. It does not merge overlapping roots into
+one broader scan. A single walker yields each path once, so cross-walk hash-based
+deduplication is skipped when only one group remains. Different groups still
+perform deduplication. Workers merge their vectors once when they finish.
+
+Local vectors can retain spare capacity, and merging briefly holds local and
+combined allocations at the same time. Results remain fully materialized; this
+is not a streaming or bounded-memory API.
+
+## Buffer write results
+
+| Node     | Operation      |     Bytes | Node ms | Before ms | After ms | Before / after |
+| -------- | -------------- | --------: | ------: | --------: | -------: | -------------: |
+| v22.22.0 | writeFile      |        64 |   0.145 |     0.058 |    0.069 |          0.84x |
+| v22.22.0 | appendFile     |        64 |   0.118 |     0.052 |    0.064 |          0.82x |
+| v22.22.0 | writeFileSync  |        64 |   0.056 |     0.054 |    0.045 |          1.20x |
+| v22.22.0 | appendFileSync |        64 |   0.055 |     0.046 |    0.050 |          0.93x |
+| v22.22.0 | writeFile      |    65,536 |   0.131 |     0.078 |    0.081 |          0.96x |
+| v22.22.0 | appendFile     |    65,536 |   0.131 |     0.073 |    0.071 |          1.02x |
+| v22.22.0 | writeFileSync  |    65,536 |   0.054 |     0.057 |    0.050 |          1.14x |
+| v22.22.0 | appendFileSync |    65,536 |   0.049 |     0.050 |    0.045 |          1.11x |
+| v22.22.0 | writeFile      | 8,388,608 |   0.933 |     0.898 |    0.778 |          1.15x |
+| v22.22.0 | appendFile     | 8,388,608 |   1.027 |     0.948 |    0.829 |          1.14x |
+| v22.22.0 | writeFileSync  | 8,388,608 |   0.749 |     0.814 |    0.748 |          1.09x |
+| v22.22.0 | appendFileSync | 8,388,608 |   0.780 |     0.909 |    0.767 |          1.19x |
+| v24.21.0 | writeFile      |        64 |   0.147 |     0.070 |    0.072 |          0.97x |
+| v24.21.0 | appendFile     |        64 |   0.130 |     0.056 |    0.058 |          0.96x |
+| v24.21.0 | writeFileSync  |        64 |   0.043 |     0.036 |    0.035 |          1.04x |
+| v24.21.0 | appendFileSync |        64 |   0.037 |     0.037 |    0.032 |          1.14x |
+| v24.21.0 | writeFile      |    65,536 |   0.161 |     0.069 |    0.066 |          1.05x |
+| v24.21.0 | appendFile     |    65,536 |   0.124 |     0.061 |    0.062 |          0.98x |
+| v24.21.0 | writeFileSync  |    65,536 |   0.041 |     0.043 |    0.041 |          1.05x |
+| v24.21.0 | appendFileSync |    65,536 |   0.066 |     0.048 |    0.052 |          0.92x |
+| v24.21.0 | writeFile      | 8,388,608 |   0.991 |     0.978 |    0.846 |          1.16x |
+| v24.21.0 | appendFile     | 8,388,608 |   1.036 |     1.002 |    0.902 |          1.11x |
+| v24.21.0 | writeFileSync  | 8,388,608 |   0.716 |     0.807 |    0.702 |          1.15x |
+| v24.21.0 | appendFileSync | 8,388,608 |   0.695 |     0.787 |    0.671 |          1.17x |
+
+The 8 MiB cases improve over the previous implementation across both runtimes in
+these final runs. Small inputs show mixed results, including regressions, and
+sync writes do not consistently beat Node. An exploratory run also showed noisy
+8 MiB regressions under filesystem writeback; this is a CPU-copy reduction, not
+a guarantee against disk scheduling or cache effects. Do not select this API
+solely for a tiny-write speed claim.
+
+Synchronous Buffer input is borrowed for the duration of the call. Promise calls
+still copy once at entry, guaranteeing an owned snapshot until completion; the
+worker writes that snapshot directly without rebuilding a N-API Buffer or copying
+it again. The owned snapshot is released on the worker after I/O, even if the JS event
+loop is busy. There is no new unsafe code. String encoding paths are unchanged and
+have no new performance claim. The removed allocation is one payload-sized Vec
+per Buffer operation; actual process peak memory is not established here.
+
+## Raw evidence and reproduction
+
+- [Node 22 samples](/evidence/native-overheads-node22.json)
+- [Node 24 samples](/evidence/native-overheads-node24.json)
+
+Each report records CPU/runtime, source and binary SHA-256 hashes, the baseline
+revision, timings and per-sample RSS deltas. The source hashes identify the exact
+native patch before the documentation/evidence commit.
+
+Build the baseline separately, preserving its public wrapper and native loader:
+
+```sh
+baseline_dir=$(mktemp -d)
+git archive db835afca93871cb91cc3696a884eab9648bca95 | tar -x -C "$baseline_dir"
+(cd "$baseline_dir" && pnpm install --frozen-lockfile && pnpm build)
+pnpm build
+node --expose-gc scripts/benchmark-native-overheads.mjs "$baseline_dir" .perf/native-overheads-node22.json
+npm exec --yes --package=node@24 -- node --expose-gc scripts/benchmark-native-overheads.mjs "$baseline_dir" .perf/native-overheads-node24.json
+```
+
+Run the first measurement with Node 22.22.0 and the second with Node 24.21.0 to
+match the recorded runtimes; the `node@24` tag may later resolve to another patch.
+Run without concurrent builds/tests/benchmarks. The two releases load through
+distinct public entry paths in the same process. The fixture is temporary and
+removed on successful completion or an exception inside measurement.
+
+## Compatibility validation
+
+Local macOS arm64 release checks: 451 tests on each of Node 22 and 24, TypeScript,
+Oxlint, Rust formatting, Clippy and documentation build. Regression coverage tests
+public sync and Promise glob results against Node, including overlapping roots,
+root exclusions, ignored files, symlinks and Dirent predicates. Buffer tests cover
+nonzero-offset/empty slices, unchanged input bytes, concurrent entry snapshots
+and sequential append ordering. Snapshot tests verify Vooya's existing ownership
+policy; they do not claim Node snapshots mutable caller buffers identically.
+
+The PR runs Node 22/24 tests on Linux, Windows and macOS x64/arm64. See the PR
+checks for actual platform results; local macOS evidence is not Windows/Linux
+performance validation. CI now runs on all PR base branches to validate stacked
+changes as well as changes targeting main.
