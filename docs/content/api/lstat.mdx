@@ -55,3 +55,9 @@ _Generated from local performance reports. Do not edit this block by hand._
 - **Symlinks**: Use `lstat` to detect and inspect symlinks; use `stat` to get the resolved file’s stats.
 - **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node options**: `bigint`, `throwIfNoEntry`, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `lstat` surface.
+
+## Competitor measurements
+
+See the [full lstat comparison table](/guide/all-api-evidence#lstat) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

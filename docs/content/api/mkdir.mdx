@@ -37,3 +37,9 @@ Single-directory and recursive mkdir are atomic/serial operations. No specific b
 - **mode**: Applied when directories are created and filtered by the process umask. Use octal (e.g. `0o755`).
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs**: String mode values, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `mkdir` surface.
+
+## Competitor measurements
+
+See the [full mkdir comparison table](/guide/all-api-evidence#mkdir) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

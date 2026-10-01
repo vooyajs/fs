@@ -1,5 +1,7 @@
 # readFile
 
+> This page describes unreleased checkout changes. See [Node compatibility and execution policy](/api/compatibility) for native fast paths, Node routes and verified limits.
+
 Read the entire contents of a file. Returns a `Buffer` or a decoded string depending on `encoding`.
 
 ## Basic usage
@@ -7,7 +9,7 @@ Read the entire contents of a file. Returns a `Buffer` or a decoded string depen
 ```ts
 import { readFile } from '@vooya/fs'
 
-// As UTF-8 string (default)
+// As UTF-8 string (explicit encoding)
 const text = await readFile('./package.json', { encoding: 'utf8' })
 
 // As Buffer
@@ -18,16 +20,19 @@ const base64 = await readFile('./file.bin', { encoding: 'base64' })
 const hex = await readFile('./file.bin', { encoding: 'hex' })
 ```
 
+Encoding names are case-insensitive. Whole-file UTF-8 reads replace malformed byte
+sequences with the replacement character, matching Node. The `lines` extension applies the same decoding after selecting raw line bytes.
+
 ## Methods
 
 ### `readFile(path, options?)`
 
 **Async.** Returns `Promise<string | Buffer>`.
 
-| Argument  | Type   | Description          |
-| --------- | ------ | -------------------- |
-| `path`    | string | File path.           |
-| `options` | object | Optional. See below. |
+| Argument  | Type                  | Description          |
+| --------- | --------------------- | -------------------- |
+| `path`    | string / Buffer / URL | File path.           |
+| `options` | object                | Optional. See below. |
 
 **Options:**
 
@@ -43,10 +48,10 @@ const hex = await readFile('./file.bin', { encoding: 'hex' })
 
 ## Performance
 
-- **Small files / Buffer**: Vooya FS is on par with Node.js (e.g. ~0.9–1.1× in micro-benchmarks). There is a small N-API overhead per call.
-- **Larger UTF-8 reads**: Vooya FS can be ~2× faster for 64 KB–4 MB UTF-8 reads in benchmarks, due to efficient decoding on the Rust side.
-
-See [Benchmarks](/benchmarks) (e.g. `readFile` 4 MB utf8, 64 KB utf8).
+Whole-file results depend on encoding, file size and runtime. The clearest benefit
+is reading an early line range: the native reader stops at the requested upper
+bound instead of loading the entire file. See [Batch API evidence](/guide/batch-evidence)
+for current measurements and the exact baseline used for the line-range comparison.
 
 ### Local scale report
 
@@ -60,11 +65,11 @@ _Generated from local performance reports. Do not edit this block by hand._
 
 | Scale            | Fixture |  Node.js | Vooya FS |          Ratio | Node RSS | Vooya FS RSS |
 | ---------------- | ------: | -------: | -------: | -------------: | -------: | -----------: |
-| small-utf8       |       - |  0.19 ms |  0.05 ms |   3.79x faster |  16.0 KB |          0 B |
-| medium-utf8      |       - |  0.12 ms |  0.04 ms |   2.85x faster |  16.0 KB |          0 B |
-| large-utf8       |       - |  1.01 ms |  0.76 ms |   1.33x faster |   4.2 MB |          0 B |
-| large-buffer     |       - |  0.40 ms |  0.21 ms |   1.94x faster |   3.2 KB |       3.2 KB |
-| large-lines-head |       - | 17.36 ms |  0.08 ms | 214.78x faster |   4.8 KB |          0 B |
+| small-utf8       |       - |  0.16 ms |  0.05 ms |   2.99x faster |      0 B |          0 B |
+| medium-utf8      |       - |  0.16 ms |  0.06 ms |   2.45x faster |      0 B |          0 B |
+| large-utf8       |       - |  0.83 ms |  0.67 ms |   1.24x faster |   4.1 MB |          0 B |
+| large-buffer     |       - |  0.36 ms |  0.19 ms |   1.83x faster |      0 B |          0 B |
+| large-lines-head |       - | 15.94 ms |  0.06 ms | 261.71x faster |      0 B |          0 B |
 
 {/* vooya-fs-perf:end readFile */}
 
@@ -74,6 +79,12 @@ _Generated from local performance reports. Do not edit this block by hand._
 - **Flags**: Standard flags (e.g. `r`, `r+`) are supported. Use the same semantics as Node.js for compatibility.
 - **Lines extension**: `lines` is a Vooya FS extension for text reads, not a Node.js option.
 - **Early line ranges**: The native reader stops once `to` is reached. This can avoid reading and decoding the remainder of a large text file; the scale report includes a 16 MB / first-100-lines case.
-- **Known gap**: Missing-path errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
-- **Unsupported Node options**: `AbortSignal`, `Buffer` paths, and `URL` paths are not part of the current Vooya FS `readFile` surface.
+- **Errors**: Missing-path errors expose `code`, `path`, `syscall` and `errno`.
+- **Node options**: The public entry supports AbortSignal, Buffer/file URL paths and FileHandle inputs; advanced options use Node. The `lines` extension cannot be combined with cancellation or file handles.
 - **Large files**: Reading the whole file into memory is the same as Node.js; for very large files consider streaming (Node.js `fs.createReadStream`; Vooya FS does not provide a stream API for this yet).
+
+## Competitor measurements
+
+See the [full readFile comparison table](/guide/all-api-evidence#readfile) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

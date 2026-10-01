@@ -2,6 +2,61 @@
 
 欢迎参与 vooya-fs 开发！本文档将引导你从零开始搭建环境、理解项目架构、实现新 API、编写测试，直到提交一个完整的 PR。
 
+## 开发契约（必须遵守）
+
+Vooya FS 的方向是：**通过 napi-rs 和稳定的 Node-API，让 Node.js 以尽量无侵入的
+方式接入 Rust 生态，并获得原生层面可验证的性能收益。** 在明确支持的范围内，
+保持 Node 的签名、选项、返回值和错误语义，让调用方通常只需替换 import。
+扩展能力和兼容边界必须公开说明。
+
+### 功能准入与完成条件
+
+1. **先说明价值。** 明确真实工作负载、Node 基线、可复用的 Rust 库或算法，以及
+   收益来自哪里：更好的算法、减少遍历/复制/分配、批处理、合并操作或有界并行。
+   引入 crate 时评估维护状态、许可、平台支持和绑定成本。API 数量或改写成 Rust
+   本身不能作为新增原生实现的理由。
+2. **行为对齐。** 从公开包入口 `@vooya/fs` 对照 Node 22/24，使用独立 fixture，
+   分别核对同步和 Promise 的类型、路径、选项、结果、错误字段和副作用。
+   不得通过少做工作或改变语义换取加速比。Node 执行路径可用于保持兼容，
+   但它的速度不能算作 Rust 加速。
+3. **实现、测试、文档一起交付。** 功能和行为变更须在同一变更中更新相关测试、
+   API SDD、用户文档和 CHANGELOG；修复须有回归测试。影响 README 或兼容性声明
+   时同步更新。纯内部重构可复用现有测试和文档，但须说明具体理由，不能通过
+   无意义地修改文件来满足检查项。
+4. **测量受影响的路径。** 涉及热路径、调度、依赖、内存分配、复制和路由的变更，
+   须用 release 构建，从公开包入口对比变更前后及 Node；把 N-API 转换和结果构造
+   计入成本。保留原始样本、复现命令与结论，分别放到 `docs/public/evidence` 和
+   对应文档中。已有基准可复用；未覆盖的场景须补充。
+5. **根据证据决定推荐范围。** 原生快路径成为默认或获得推荐前，须证明目标负载
+   上有可重复的收益。没有统一的加速百分比要求。必须公开小规模退化、性能回归
+   和内存/延迟权衡。没有收益时保留必要的正确性修复，撤回加速声明并重新评估
+   原生实现或适用范围；未测量的性能工作标记为未验证。
+
+### 性能证据要求
+
+记录 Node 版本、OS/CPU、变更前后版本或补丁标识、release 构建、数据规模和形状、
+选项/编码、并发数、预热和样本数、缓存条件。保证比较的输出和副作用等价。
+关注延迟、适用时的吞吐量，以及涉及物化/分配时的内存；RSS 前后差值不是峰值。
+保留样本分布，不能只挑最好成绩。整文件读取与流式/局部读取的基线须明确命名。
+
+至少包含 tiny/small 和有代表性的目标规模。通常从 2 次预热、10 次采样开始；
+较少的探索性样本须说明原因。噪声较大时在受控条件下复测，计时时避免其他重负载。
+不得把单平台结果推广到全部平台，或把 Node 回退路径的成绩当作原生收益。
+共享 CI 上的固定加速比不作硬性断言；可复现的性能证据由评审检查。
+
+### 验证与评审
+
+行为/性能变更完成前执行相关检查：`pnpm build`、`pnpm test`、`pnpm typecheck`、
+`pnpm lint`、`cargo fmt -- --check`、`cargo clippy --all-targets --all-features -- -D warnings`
+和 `pnpm doc:build`。API/绑定变更还要通过 Node 22/24 与平台 CI 矩阵。
+无法执行的平台运行时验证须明确记录，交叉编译不能代替运行测试。
+纯文档变更执行格式、链接/内容检查，站点内容变化时构建文档，无须跑无关的文件系统基准。
+
+[PR 模板](.github/PULL_REQUEST_TEMPLATE.md)记录证据与适用性说明；CI 验证可执行检查，
+评审验证负载等价性、收益和限制。[AGENTS.md](AGENTS.md)约束后续编码代理。
+参见[兼容策略](docs/content/api/compatibility.mdx)与[性能证据](docs/content/guide/batch-evidence.mdx)。
+完整英文规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
 ## 目录
 
 - [环境准备](#环境准备)
@@ -185,7 +240,7 @@ pub fn symlink(target: String, path: String) -> AsyncTask<SymlinkTask> {
 
 - **Options 结构体**：用 `#[napi(object)]` + `Option<T>` 字段
 - **返回多态类型**：用 `Either<A, B>`（如返回 `string[] | Dirent[]`）
-- **错误前缀**：始终模拟 Node.js 格式（`ENOENT:`、`EACCES:`、`EEXIST:` 等）
+- **错误结构**：适用时保持 `code`、`syscall`、`path`、`dest`、`errno`，使用 `src/fs_error.rs` 从工作线程传递错误；只有消息前缀不够。
 - **平台差异**：用 `#[cfg(unix)]` / `#[cfg(not(unix))]` 处理
 
 ### 第三步：注册模块
@@ -287,7 +342,7 @@ builder.build_parallel().run(/* ... */);
 
 ```typescript
 import test from 'ava'
-import { symlinkSync, symlink } from '../index.js'
+import { symlinkSync, symlink } from '@vooya/fs'
 import { existsSync, mkdirSync, readlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -305,9 +360,9 @@ test('symlinkSync: should create a symbolic link', (t) => {
   // 测试正常功能
 })
 
-test('symlinkSync: should throw on non-existent target', (t) => {
+test('symlinkSync: should throw for a missing destination parent', (t) => {
   // 测试错误处理
-  t.throws(() => symlinkSync('/no/such/path', dest), { message: /ENOENT/ })
+  t.throws(() => symlinkSync('target', '/no/such/parent/link'), { message: /ENOENT/ })
 })
 
 // ===== 异步版本测试 =====
@@ -338,7 +393,7 @@ test('symlinkSync: should match node:fs behavior', (t) => {
 
 ```typescript
 import * as nodeFs from 'node:fs'
-import { statSync } from '../index.js'
+import { statSync } from '@vooya/fs'
 
 test('statSync: should match node:fs stat values', (t) => {
   const nodeStat = nodeFs.statSync('./package.json')
@@ -353,7 +408,7 @@ test('statSync: should match node:fs stat values', (t) => {
 
 #### 3. 错误处理测试
 
-验证错误消息格式与 Node.js 一致（`ENOENT`、`EACCES`、`EEXIST` 等）：
+对照 Node 检查结构化错误字段与副作用；下面的消息检查仅作补充：
 
 ```typescript
 test('should throw ENOENT on missing file', (t) => {
@@ -411,7 +466,7 @@ pnpm bench glob         # 只运行 glob 基准
 ```typescript
 import { run, bench, group } from 'mitata'
 import * as fs from 'node:fs'
-import { someSync } from '../index.js'
+import { someSync } from '@vooya/fs'
 
 // 对标 Node.js 原生实现
 group('Some API', () => {
@@ -477,22 +532,17 @@ pnpm bench
 
 ### PR Checklist
 
-- [ ] 在 `src/` 下创建了对应的 `.rs` 文件
-- [ ] 在 `src/lib.rs` 中注册了新模块
-- [ ] `pnpm build:debug` 编译通过，零 warning
-- [ ] 在 `__test__/` 下编写了测试（功能 + 双跑对比 + 错误处理）
-- [ ] `pnpm test` 全部通过
-- [ ] 更新了 `README.md` 和 `README.zh-CN.md` 的 Roadmap 状态
-- [ ] **文档**：新增或修改 API 时，需在 `docs/content/api/` 下新增或更新对应页面（见 [文档](#文档) 与 `.cursor/rules/docs-conventions.mdc`）。性能部分需运行 `pnpm bench` 并用表格展示，至少与 Node.js `fs` 对比。
-- [ ] （如适用）在 `benchmark/` 下编写了性能测试并附上结果
+使用 [PR 模板](.github/PULL_REQUEST_TEMPLATE.md)和上面的开发契约作为完成清单。
+新增 Rust 模块时登记 `src/lib.rs`；测试和性能证据须覆盖公开包入口及变更行为，
+不能只验证生成的原生绑定。
 
 ---
 
 ## 文档
 
 - **每个已支持的 API 都应有对应的文档页**，位于 `docs/content/api/`。文档站（Nextra）在 `docs/` 目录，在仓库根目录执行 `pnpm doc:dev` 可本地预览。
-- **当你新增或修改某个 API 时**，需在 `docs/content/api/` 下新增或更新对应文件（如 `docs/content/api/readdir.mdx`），并在 `docs/content/api/_meta.js` 中登记。每个 API 页须包含：**基础用法**、**方法**（签名与选项）、**性能**（来自 `pnpm bench` 的数据，表格形式，至少与 Node.js `fs` 对比）、**其他补充**（已知问题、使用建议）。完整约定见 `.cursor/rules/docs-conventions.mdc`。
-- **保持文档同步**：若修改了行为或选项，请同步更新该 API 文档和 README 的 Roadmap，避免文档与实现不一致。
+- **当你新增或修改某个 API 时**，需在 `docs/content/api/` 下新增或更新对应文件（如 `docs/content/api/readdir.mdx`），并在 `docs/content/api/_meta.js` 中登记。每个 API 页须包含：**基础用法**、**方法**（签名与选项）、**性能**（来自 `pnpm bench` 的数据，表格形式，至少与 Node.js `fs` 对比）、**其他补充**（已知问题、使用建议）。证据要求以上面的开发契约为准。
+- **保持文档同步**：若修改了行为或选项，请同步更新该 API 文档和 README 中受影响的声明，避免文档与实现不一致。
 
 ---
 
@@ -502,10 +552,10 @@ GitHub Actions 会在 push / PR 时自动执行：
 
 1. **Lint** — `oxlint` + `cargo fmt --check` + `cargo clippy`
 2. **Build** — 跨平台编译（macOS x64/arm64, Windows x64, Linux x64）
-3. **Test** — 在 macOS / Windows / Linux 上运行测试（Node 20 & 22）
-4. **Publish** — 版本 tag 触发自动发布到 npm
+3. **Test** — 在 macOS / Windows / Linux 上运行测试（Node 22 & 24）
+4. **Documentation** — 构建文档站；发布由独立 Release 工作流手动触发
 
-本地开发只需关注 `pnpm build:debug` + `pnpm test`，CI 会处理跨平台验证。
+开发阶段可用 debug 构建迭代；提交评审前须满足上面的开发契约，CI 补充跨平台验证。
 
 ### 发布前/后检查（维护者）
 
@@ -516,4 +566,4 @@ GitHub Actions 会在 push / PR 时自动执行：
    - `Cargo.toml` → `version = "x.y.z"`
    - npm 不允许覆盖已发布版本；若上次发布半途失败但版本已上 npm（例如 0.0.4 已存在），需先改为新版本号（如 0.0.5）再重新发布。
 2. **更新 [CHANGELOG.md](CHANGELOG.md)**：将 **\[Unreleased]** 下的条目移到新的 `## [x.y.z] - YYYY-MM-DD` 小节，并在文末补充该版本的链接（`[x.y.z]: https://github.com/vooyajs/fs/compare/vA.B.C...vx.y.z`）。
-3. **执行发布**：推送到 `main` 后，在 **Actions → Release → Run workflow** 中运行，或执行 `git tag vx.y.z && git push origin vx.y.z`。
+3. **执行发布**：推送到 `main` 后，在 **Actions → Release → Run workflow** 中运行。工作流在 npm 发布成功后创建 `fs-vx.y.z` 标签。

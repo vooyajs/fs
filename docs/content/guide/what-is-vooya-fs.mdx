@@ -3,14 +3,28 @@
 Vooya FS is the next phase of **Rush-FS**: a Node.js filesystem library whose
 implementation is written primarily in Rust and exposed through stable Node-API.
 
-The rename is more than packaging. The project now follows three constraints:
+The purpose is to let Node.js applications adopt Rust ecosystem capabilities
+through **napi-rs and stable Node-API**, with minimal changes to application code.
+Within the declared compatibility surface, familiar signatures, options, results
+and errors let callers usually change an import. Native algorithms and libraries,
+batching, fused work and bounded parallelism must earn their place with measured
+end-to-end performance benefits, including boundary conversion costs.
 
-1. **Compatibility is tested, not implied.** Node 22/24 behavior is the oracle for
-   supported APIs, and unsupported input shapes are documented.
-2. **Native code must earn the boundary.** We target recursive, batched, parallel,
-   or fused work—not every small syscall.
-3. **Performance claims carry scale.** Tiny, small, medium, and large fixtures are
-   reported separately, including cases where Node wins.
+Development follows three requirements:
+
+1. **Behavior is checked against Node 22/24.** Public-entry tests cover the declared
+   contract; extensions and exceptions are explicit.
+2. **Features ship with tests and documentation.** Implementation, regression
+   coverage, API contracts and user guidance stay in the same change.
+3. **Native performance claims require evidence.** Compare prior/proposed release
+   builds with Node on equivalent workloads; retain raw samples and report small
+   cases, regressions and memory tradeoffs. Node execution routes support
+   compatibility and carry no Rust acceleration claim.
+
+See the [compatibility policy](/api/compatibility) and
+[current performance evidence](/guide/batch-evidence) for supported boundaries.
+The repository's CONTRIBUTING.md, CONTRIBUTING-CN.md, AGENTS.md and PR template
+apply these requirements to contributors and coding agents.
 
 ## Node-compatible surface and Vooya extensions
 

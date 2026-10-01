@@ -16,7 +16,9 @@ Vooya FS should lose or be close to Node on tiny directories because N-API bridg
 - `withFileTypes` listing with Dirent predicates.
 - Recursive listing with normalized path separators and order-insensitive comparison.
 - Missing directory rejection/error behavior.
-- Known gap: `encoding: "buffer"` is documented as unsupported and must remain explicit.
+- Encoding shorthand, Buffer names and encoded Dirents; the public layer delegates recursive Buffer combinations to Node.
+- Empty paths and file roots reject; unreadable descendants propagate structured errors.
+- Sync traversal and Promise traversal retain Node's distinct recursive symlink behavior.
 
 ## Scale Matrix
 
@@ -36,5 +38,5 @@ Vooya FS should lose or be close to Node on tiny directories because N-API bridg
 
 - Source doc: `docs/content/api/readdir.mdx`.
 - Docs must state that tiny/non-recursive directory reads can be slower than Node because bridge overhead dominates.
-- Docs must keep `encoding: "buffer"` listed as unsupported until conformance coverage says otherwise.
+- Docs must describe Buffer output and the public Node route for recursive Buffer combinations.
 - If performance reports identify a new break-even point or best-practice boundary, update the Performance and Notes sections.

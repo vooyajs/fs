@@ -2,6 +2,77 @@
 
 Welcome to contributing to vooya-fs! This document walks you through environment setup, project structure, implementing new APIs, writing tests, and opening a PR.
 
+## Development contract (required)
+
+Vooya FS uses **napi-rs and stable Node-API to bring Rust ecosystem capabilities
+into Node.js with minimal application changes**. On the supported surface, callers
+retain familiar Node signatures, options, return values and error semantics;
+changing an import should normally be enough. Extensions and compatibility limits
+must be explicit. Native performance benefits determine which implementations we
+invest in and recommend.
+
+### Admission and completion gates
+
+1. **State the value before implementation.** Identify a real workload, the Node
+   baseline, the Rust library/algorithm to reuse, and the expected native benefit:
+   fewer passes/copies/allocations, better algorithms, batching or bounded
+   parallelism. Assess a new crate's maintenance, license, supported platforms and
+   binding cost. API coverage or Rust implementation alone is insufficient.
+2. **Preserve observable behavior.** Compare the public `@vooya/fs` entry against
+   Node 22/24 on independent fixtures. Check sync and Promise forms separately,
+   including types, paths, options, results, errors and side effects. Never omit
+   work or weaken semantics to improve a benchmark. Existing Node routes remain
+   legitimate compatibility implementations and carry no Rust speedup claim.
+3. **Deliver implementation, tests and docs together.** Features and behavior
+   changes require relevant tests, the API SDD, user-facing API docs and a
+   CHANGELOG entry in the same change. Fixes need regression tests. Update README
+   and the compatibility policy when their claims change. Internal refactors may
+   reuse existing tests/docs with a specific explanation; touching files without
+   changing their substance does not satisfy this requirement.
+4. **Measure affected native work.** Hot-path, scheduling, dependency, allocation,
+   copying and routing changes require relevant before/after release benchmarks
+   against Node. Measure through the public package, including N-API conversion
+   and result construction. Retain raw samples, commands and conclusions under
+   `docs/public/evidence` and the relevant documentation. An existing fixture may
+   be reused; add one when the changed scenario is not represented.
+5. **Review the result before recommending a fast path.** A repeatable gain on the
+   intended workload is required; no universal percentage applies. Report small
+   workloads, regressions and memory/latency tradeoffs. If gains are absent, retain
+   necessary correctness fixes, withdraw acceleration claims and reconsider the
+   native route or scope. Missing evidence means performance is unverified.
+
+### Evidence requirements
+
+Record runtime version, OS/CPU, prior/proposed revision or patch identity, release
+build, fixture shape/count/size, options/encoding, concurrency, warmups, sample
+count and cache conditions. Compare equivalent results and side effects. Report
+latency and throughput where relevant, and memory for materialization/allocation
+changes. Distinguish RSS deltas from peak memory; retain distributions rather than
+only a best run. Whole-file and streaming/partial-read baselines must be named.
+
+Use tiny/small fixtures plus a representative target scale. Ten measured samples
+and two warmups are the standard starting point; explain smaller exploratory
+runs. Repeat noisy comparisons under controlled conditions. Do not run competing
+heavy jobs during timing, extrapolate one platform to all platforms, or disguise
+Node fallback measurements as native gains. Timing ratios are reviewed evidence,
+not brittle CI pass/fail assertions on shared runners.
+
+### Review and checks
+
+A behavior/performance PR is ready only when the above artifacts agree and relevant
+checks pass: `pnpm build`, `pnpm test`, `pnpm typecheck`, `pnpm lint`,
+`cargo fmt -- --check`, `cargo clippy --all-targets --all-features -- -D warnings`,
+and `pnpm doc:build`. API/binding changes use the Node 22/24 and platform CI matrix;
+record unavailable runs explicitly. Cross-compilation is not runtime validation.
+Documentation-only changes need formatting, link/content review and a docs build
+when site content changes, not unrelated filesystem benchmarks.
+
+The [PR template](.github/PULL_REQUEST_TEMPLATE.md) records evidence and exceptions.
+CI verifies executable checks; reviewers verify workload equivalence, benefit and
+limits. [AGENTS.md](AGENTS.md) applies these rules to coding agents. Existing
+[compatibility policy](docs/content/api/compatibility.mdx) and
+[batch evidence](docs/content/guide/batch-evidence.mdx) show the current boundary.
+
 ## Table of contents
 
 - [Environment setup](#environment-setup)
@@ -107,6 +178,7 @@ vooya-fs/
 ├── reference/             # Node.js fs source reference
 │   ├── fs.js               # Node.js main fs module
 │   └── internal/fs/        # Node.js internal implementation
+├── api.js / api.d.ts       # Public compatibility routing and types
 ├── index.js                # napi-rs generated JS loader
 ├── index.d.ts              # napi-rs generated type declarations
 ├── Cargo.toml              # Rust dependencies
@@ -195,7 +267,7 @@ pub fn symlink(target: String, path: String) -> AsyncTask<SymlinkTask> {
 
 - **Options:** Use `#[napi(object)]` and `Option<T>` fields
 - **Polymorphic return:** Use `Either<A, B>` (e.g. `string[] | Dirent[]`)
-- **Error prefix:** Match Node.js style (`ENOENT:`, `EACCES:`, `EEXIST:`, etc.)
+- **Errors:** Preserve structured `code`, `syscall`, `path`, `dest` and `errno` where applicable; use `src/fs_error.rs` to carry errors from worker threads. A message prefix alone is insufficient.
 - **Platform differences:** Use `#[cfg(unix)]` / `#[cfg(not(unix))]`
 
 ### Step 3: Register the module
@@ -303,7 +375,7 @@ For the SDD-first conformance workflow, new high-value API work also uses:
 
 ```typescript
 import test from 'ava'
-import { symlinkSync, symlink } from '../index.js'
+import { symlinkSync, symlink } from '@vooya/fs'
 import { existsSync, mkdirSync, readlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -319,8 +391,8 @@ test('symlinkSync: should create a symbolic link', (t) => {
   // ...
 })
 
-test('symlinkSync: should throw on non-existent target', (t) => {
-  t.throws(() => symlinkSync('/no/such/path', dest), { message: /ENOENT/ })
+test('symlinkSync: should throw for a missing destination parent', (t) => {
+  t.throws(() => symlinkSync('target', '/no/such/parent/link'), { message: /ENOENT/ })
 })
 
 // Async tests
@@ -349,7 +421,7 @@ Call both `node:fs` and vooya-fs and compare results. Essential for API compatib
 
 ```typescript
 import * as nodeFs from 'node:fs'
-import { statSync } from '../index.js'
+import { statSync } from '@vooya/fs'
 
 test('statSync: should match node:fs stat values', (t) => {
   const nodeStat = nodeFs.statSync('./package.json')
@@ -364,7 +436,7 @@ test('statSync: should match node:fs stat values', (t) => {
 
 #### 3. Error handling tests
 
-Assert error message format matches Node.js (`ENOENT`, `EACCES`, `EEXIST`, etc.):
+Compare structured error fields and side effects with Node. Message-prefix checks below are supplemental, not sufficient alone:
 
 ### SDD and docs alignment
 
@@ -443,7 +515,7 @@ Create `benchmark/<api_name>.ts`:
 ```typescript
 import { run, bench, group } from 'mitata'
 import * as fs from 'node:fs'
-import { someSync } from '../index.js'
+import { someSync } from '@vooya/fs'
 
 group('Some API', () => {
   bench('Node.js', () => fs.someSync(args)).baseline()
@@ -545,22 +617,18 @@ Split commits by API and change type. Do not bundle unrelated API work into one 
 
 ### PR checklist
 
-- [ ] New `.rs` file under `src/`
-- [ ] Module registered in `src/lib.rs`
-- [ ] `pnpm build:debug` passes with no warnings
-- [ ] Tests in `__test__/` (functional + parity + error cases)
-- [ ] `pnpm test` passes
-- [ ] README.md and README.zh-CN.md Roadmap updated
-- [ ] **Docs**: When adding or changing an API, add or update the corresponding page under `docs/content/api/` (see [Documentation](#documentation) and `.cursor/rules/docs-conventions.mdc`). For SDD/TDD work, compare `test/conformance/<api>/sdd.md` against the docs page and sync important conclusions. Run `pnpm bench` or `pnpm perf:fs <api> --json <path>` for the Performance section and use table(s) with at least Node.js `fs` as baseline.
-- [ ] (If applicable) Benchmark added and results included in PR
+Use the [PR template](.github/PULL_REQUEST_TEMPLATE.md) and the development
+contract above as the completion checklist. Register new Rust modules when
+needed; public-entry conformance tests and performance evidence must cover the
+changed behavior, not just the generated binding.
 
 ---
 
 ## Documentation
 
 - **Every supported API must have a doc page** under `docs/content/api/`. The docs site (Nextra) is in the `docs/` directory; run `pnpm doc:dev` from the repo root to preview.
-- **When you add or change an API**, add or update the corresponding file (e.g. `docs/content/api/readdir.mdx`) and register it in `docs/content/api/_meta.js`. Each API page must include: **Basic usage**, **Methods** (signatures and options), **Performance** (data from `pnpm bench`, in table form, at least vs Node.js `fs`), and **Notes** (known issues, tips). See `.cursor/rules/docs-conventions.mdc` for the full convention.
-- **Keep docs in sync**: If you change behavior or options, update the API doc and the README roadmap so the docs stay accurate.
+- **When you add or change an API**, add or update the corresponding file (e.g. `docs/content/api/readdir.mdx`) and register it in `docs/content/api/_meta.js`. Each API page must include: **Basic usage**, **Methods** (signatures and options), **Performance** (data from `pnpm bench`, in table form, at least vs Node.js `fs`), and **Notes** (known issues, tips). The development contract above defines the required evidence.
+- **Keep docs in sync**: If you change behavior or options, update the API doc and affected README claims so the docs stay accurate.
 - **Use SDD as a docs checkpoint**: For APIs with `test/conformance/<api>/sdd.md`, the SDD's Docs Alignment section is the minimum checklist for keeping official docs consistent with conformance and performance findings.
 
 ### Deploying the docs
@@ -582,10 +650,10 @@ GitHub Actions on push/PR:
 
 1. **Lint** — oxlint, `cargo fmt --check`, `cargo clippy`
 2. **Build** — Cross-platform (macOS x64/arm64, Windows x64, Linux x64)
-3. **Test** — Tests on macOS, Windows, Linux (Node 20 & 22)
-4. **Publish** — Triggered by version tags; see [Release workflow](.github/workflows/Release.yml)
+3. **Test** — Tests on macOS, Windows, Linux (Node 22 & 24)
+4. **Documentation** — `pnpm doc:build`. Publishing is separate: the [Release workflow](.github/workflows/Release.yml) uses manual dispatch.
 
-For local development, `pnpm build:debug` and `pnpm test` are enough; CI handles cross-platform checks.
+Use debug builds for iteration; satisfy the development contract above before review. CI provides additional platform coverage.
 
 ### Release checklist (maintainers)
 
@@ -596,4 +664,4 @@ When cutting a new version (before running the Release workflow):
    - `Cargo.toml` → `version = "x.y.z"`
    - npm does not allow re-publishing the same version; if a previous run partially published (e.g. 0.0.4 already on npm), bump to the next version (e.g. 0.0.5) and release again.
 2. **Update [CHANGELOG.md](CHANGELOG.md):** move items from **\[Unreleased]** into a new `## [x.y.z] - YYYY-MM-DD` section, and add the version link at the bottom (`[x.y.z]: https://github.com/vooyajs/fs/compare/vA.B.C...vx.y.z`).
-3. **Run Release:** push to `main`, then either **Actions → Release → Run workflow** or `git tag vx.y.z && git push origin vx.y.z`.
+3. **Run Release:** push to `main`, then use **Actions → Release → Run workflow**. The workflow creates `fs-vx.y.z` only after successful npm publication.

@@ -7,8 +7,11 @@ Vooya FS exposes two related surfaces:
 - **Batch extensions** combine work or make native execution policy explicit.
 
 Compatibility is defined by the conformance suite, not by “drop-in replacement”
-marketing. Current paths are strings, callback APIs are absent, and some advanced
-Node options are intentionally deferred.
+marketing. Core batch APIs accept string, Buffer and file URL paths. A public
+compatibility layer uses Node for options outside the measured native path. Other
+exports retain their documented subsets; callback API forms remain absent.
+
+See the [Node compatibility backlog](/api/compatibility) for remaining API and behavioral gaps.
 
 ## Batch extensions
 
@@ -41,14 +44,14 @@ thread; sync calls block like their Node counterparts.
 
 ## Deliberately not implemented
 
-| Surface                                                | Reason / current alternative                                                                                  |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `open`, `close`, `read`, `write`, `fstat`, `ftruncate` | A safe cross-boundary file-descriptor lifecycle is a separate design problem. Use `node:fs` for fd workflows. |
-| `opendir`                                              | Native directory iterator lifetime and backpressure are not part of the current batch surface. Use `readdir`. |
-| `watch`, `watchFile`                                   | Cross-platform event delivery needs a long-lived event bridge. Use Node watchers.                             |
-| `createReadStream`, `createWriteStream`                | Streams require Node-native backpressure and piping semantics. Use Node streams.                              |
-| callback APIs                                          | The current library is promise-first plus synchronous APIs.                                                   |
-| `URL` / `Buffer` paths                                 | Current path inputs are strings.                                                                              |
+| Surface                                                                    | Reason / current alternative                                                                                  |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `open`, `close`, `read`, `write`, `fstat`, `ftruncate`                     | A safe cross-boundary file-descriptor lifecycle is a separate design problem. Use `node:fs` for fd workflows. |
+| `opendir`                                                                  | Native directory iterator lifetime and backpressure are not part of the current batch surface. Use `readdir`. |
+| `watch`, `watchFile`                                                       | Cross-platform event delivery needs a long-lived event bridge. Use Node watchers.                             |
+| `createReadStream`, `createWriteStream`                                    | Streams require Node-native backpressure and piping semantics. Use Node streams.                              |
+| callback APIs                                                              | The current library is promise-first plus synchronous APIs.                                                   |
+| `URL` / `Buffer` paths outside core batches outside the core batch surface | Check each operation; core batch APIs support these through the public entry.                                 |
 
 The SDDs in `test/conformance` record the precise oracle, functional matrix, known
 gaps, and documentation obligations for each supported API.

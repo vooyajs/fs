@@ -1,5 +1,5 @@
 const nodeFs = require('node:fs/promises')
-const { rm } = require('../../../index.js')
+const { rm } = require('@vooya/fs')
 const { copyFixture, createScaleFixture, removeFixture } = require('../../fixtures/fs-scale.ts')
 const { measure, printComparison } = require('../_helpers/measure.ts')
 

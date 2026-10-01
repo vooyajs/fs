@@ -39,3 +39,18 @@ Vooya FS should be close to or slower than Node on tiny copies. It should become
 - Docs must explain that recursive directory copy is the main performance target.
 - Docs must keep tiny/small copy overhead visible if performance reports show Vooya FS losing or only matching Node.
 - If concurrency guidance changes, update both the Options and Performance sections.
+
+## Public entry and boundary regressions
+
+`../public/batch.spec.ts` checks the shipped `@vooya/fs` entry against the same
+Node runtime. See `docs/content/api/compatibility.mdx` for native vs Node execution
+policy, intentional extensions and unsupported combinations. Benchmarks import
+the public package; compatibility routes must not be presented as native speedups.
+
+## Buffer path routing
+
+UTF-8 Buffer paths are a native Unix Promise-copy extension. Windows and advanced
+options delegate unchanged to Node; tests compare Node's Buffer-path rejection
+on those routes rather than requiring successful copies everywhere. Portable
+copy inputs are string paths and file URLs. No implementation behavior changes
+are needed for this platform-oracle correction.

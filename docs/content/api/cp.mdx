@@ -1,6 +1,8 @@
 # cp
 
-Copy files and directories recursively (Node.js 16.7+). Supports **concurrency** (Vooya FS extension) for faster tree copy.
+> This page describes unreleased checkout changes. See [Node compatibility and execution policy](/api/compatibility) for native fast paths, Node routes and verified limits.
+
+Copy files and directories recursively. Supports **concurrency** (Vooya FS extension) for faster tree copy.
 
 ## Basic usage
 
@@ -17,13 +19,19 @@ await cp('./src', './dest', { recursive: true, force: true, concurrency: 4 })
 
 **Async.** Returns `Promise<void>`.
 
-| Argument  | Type   | Description                      |
-| --------- | ------ | -------------------------------- |
-| `src`     | string | Source path (file or directory). |
-| `dest`    | string | Destination path.                |
-| `options` | object | Optional. See below.             |
+| Argument  | Type                  | Description                      |
+| --------- | --------------------- | -------------------------------- |
+| `src`     | string / Buffer / URL | Source path (file or directory). |
+| `dest`    | string / Buffer / URL | Destination path.                |
+| `options` | object                | Optional. See below.             |
 
-**Options:** `recursive` (boolean), `force` (boolean, default true), `errorOnExist`, `preserveTimestamps`, `dereference`, `verbatimSymlinks`, **`concurrency`** (number, Vooya FS, default 1).
+UTF-8 Buffer paths are accepted by the native Unix Promise route as a Vooya
+extension. Node 22/24 Promise copy rejects Buffer paths on the delegated routes,
+including Windows and filter callbacks. Use strings or file URLs for portable
+copy calls; delegation preserves the Node error instead of silently converting
+its input.
+
+**Options:** `filter` (sync or Promise callback), `mode` (copy flags), `recursive` (boolean), `force` (boolean, default true), `errorOnExist`, `preserveTimestamps`, `dereference`, `verbatimSymlinks`, **`concurrency`** (number, Vooya FS, default 1).
 
 ### `cpSync(src, dest, options?)`
 
@@ -31,20 +39,9 @@ await cp('./src', './dest', { recursive: true, force: true, concurrency: 4 })
 
 ## Performance
 
-From repo benchmarks (`pnpm build && pnpm bench`), Apple Silicon, release build:
+See the [current batch evidence](/guide/batch-evidence) for measured results.
 
-| Scenario              | Node.js   | Vooya FS 4T | Speedup  |
-| --------------------- | --------- | ----------- | -------- |
-| Flat dir (500 files)  | 86.45 ms  | 32.88 ms    | **2.6x** |
-| Tree dir (~363 nodes) | 108.73 ms | 46.88 ms    | **2.3x** |
-
-| Scenario              | Vooya FS 1T | Vooya FS 4T | Vooya FS 8T |
-| --------------------- | ----------- | ----------- | ----------- |
-| Flat dir (500 files)  | 61.56 ms    | 32.88 ms    | 36.67 ms    |
-| Tree dir (~84 nodes)  | 16.94 ms    | 10.62 ms    | 9.76 ms     |
-| Tree dir (~363 nodes) | 75.39 ms    | 46.88 ms    | 46.18 ms    |
-
-Optimal **concurrency** on Apple Silicon is about **4 threads**; beyond that I/O becomes the bottleneck.
+The scale benchmark uses **4 workers**. Tune this for your tree and storage; it is not a universal optimum.
 
 ### Local scale report
 
@@ -53,14 +50,14 @@ Optimal **concurrency** on Apple Silicon is about **4 threads**; beyond that I/O
 _Generated from local performance reports. Do not edit this block by hand._
 
 - Runtime: v22.22.0 on darwin/arm64
-- Samples: 2 warmup runs, 7 measured runs
+- Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
 | Scale  |               Fixture |   Node.js |  Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
 | ------ | --------------------: | --------: | --------: | -----------: | -------: | -----------: |
-| tiny   |      8 files / 2 dirs |   2.24 ms |   0.76 ms | 2.95x faster |  36.6 KB |       2.3 KB |
-| small  |   104 files / 13 dirs |  20.18 ms |   6.80 ms | 2.97x faster |  16.0 KB |       4.6 KB |
-| medium | 2728 files / 341 dirs | 513.46 ms | 182.18 ms | 2.82x faster | 989.7 KB |          0 B |
+| tiny   |      8 files / 2 dirs |   1.80 ms |   0.62 ms | 2.89x faster |  16.0 KB |       1.6 KB |
+| small  |   104 files / 13 dirs |  17.22 ms |   5.65 ms | 3.05x faster |  24.0 KB |       3.2 KB |
+| medium | 2728 files / 341 dirs | 463.38 ms | 150.08 ms | 3.09x faster |   1.3 MB |    -115.2 KB |
 
 {/* vooya-fs-perf:end cp */}
 
@@ -68,3 +65,17 @@ _Generated from local performance reports. Do not edit this block by hand._
 
 - **concurrency**: Vooya FS extension. Increase (e.g. 4) for large directory trees; default is 1.
 - **Symlinks**: Options `dereference` and `verbatimSymlinks` behave like Node.js. Recursive copy does not follow symlinks by default.
+
+## Compatibility routing
+
+Promise copies use Rust for the common Unix path. Filters, dereference, copy modes,
+Windows and non-UTF-8 paths use Node. `cpSync` uses Node's native implementation,
+whose symlink behavior differs from the Promise implementation on supported runtimes.
+`force: true` takes precedence over `errorOnExist`. Copying a path onto itself or
+into its descendants rejects before destination creation.
+
+## Competitor measurements
+
+See the [full cp comparison table](/guide/all-api-evidence#cp) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

@@ -1,0 +1,552 @@
+{
+  "generatedAt": "2026-09-30T06:17:28.045Z",
+  "options": {
+    "iterations": 3,
+    "warmup": 1
+  },
+  "runtime": {
+    "node": "v22.22.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M4 Pro",
+    "pid": 64772
+  },
+  "comparisons": [
+    {
+      "api": "glob",
+      "scale": "tiny",
+      "fixture": {
+        "files": 8,
+        "dirs": 2,
+        "profile": {
+          "name": "tiny",
+          "breadth": 1,
+          "depth": 1,
+          "filesPerDir": 4,
+          "fileSize": 32
+        }
+      },
+      "node": {
+        "name": "node glob recursive",
+        "durationMs": 0.3665973333333312,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [0.4094169999999906, 0.35137500000000443, 0.33899999999999864],
+          "min": 0.33899999999999864,
+          "max": 0.4094169999999906,
+          "median": 0.35137500000000443,
+          "mean": 0.3665973333333312,
+          "trimmedMean": 0.3665973333333312
+        },
+        "before": {
+          "rss": 79839232,
+          "heapUsed": 5107176,
+          "external": 1983559
+        },
+        "after": {
+          "rss": 79872000,
+          "heapUsed": 5155752,
+          "external": 1980163
+        },
+        "delta": {
+          "rss": 10922.666666666666,
+          "heapUsed": 21490.666666666668,
+          "external": -732
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [16384, 0, 16384],
+            "min": 0,
+            "max": 16384,
+            "median": 16384,
+            "mean": 10922.666666666666,
+            "trimmedMean": 10922.666666666666
+          },
+          "heapUsed": {
+            "samples": [20352, 18648, 25472],
+            "min": 18648,
+            "max": 25472,
+            "median": 20352,
+            "mean": 21490.666666666668,
+            "trimmedMean": 21490.666666666668
+          },
+          "external": {
+            "samples": [-3396, 600, 600],
+            "min": -3396,
+            "max": 600,
+            "median": 600,
+            "mean": -732,
+            "trimmedMean": -732
+          }
+        }
+      },
+      "vooya": {
+        "name": "vooya glob recursive",
+        "durationMs": 1.7483613333333305,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [1.8323329999999913, 1.7082920000000001, 1.704459],
+          "min": 1.704459,
+          "max": 1.8323329999999913,
+          "median": 1.7082920000000001,
+          "mean": 1.7483613333333305,
+          "trimmedMean": 1.7483613333333305
+        },
+        "before": {
+          "rss": 80904192,
+          "heapUsed": 5163432,
+          "external": 1979563
+        },
+        "after": {
+          "rss": 81231872,
+          "heapUsed": 5166616,
+          "external": 1979363
+        },
+        "delta": {
+          "rss": 87381.33333333333,
+          "heapUsed": 5280,
+          "external": -66.66666666666667
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [212992, 16384, 32768],
+            "min": 16384,
+            "max": 212992,
+            "median": 32768,
+            "mean": 87381.33333333333,
+            "trimmedMean": 87381.33333333333
+          },
+          "heapUsed": {
+            "samples": [4136, 5520, 6184],
+            "min": 4136,
+            "max": 6184,
+            "median": 5520,
+            "mean": 5280,
+            "trimmedMean": 5280
+          },
+          "external": {
+            "samples": [-200, 0, 0],
+            "min": -200,
+            "max": 0,
+            "median": 0,
+            "mean": -66.66666666666667,
+            "trimmedMean": -66.66666666666667
+          }
+        }
+      },
+      "ratio": 4.769159986615671,
+      "ratioLabel": "4.77x slower",
+      "runtime": {
+        "node": "v22.22.0",
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M4 Pro",
+        "pid": 64772
+      }
+    },
+    {
+      "api": "glob",
+      "scale": "small",
+      "fixture": {
+        "files": 104,
+        "dirs": 13,
+        "profile": {
+          "name": "small",
+          "breadth": 3,
+          "depth": 2,
+          "filesPerDir": 8,
+          "fileSize": 256
+        }
+      },
+      "node": {
+        "name": "node glob recursive",
+        "durationMs": 0.9080276666666549,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [1.0090829999999897, 0.8938329999999866, 0.8211669999999884],
+          "min": 0.8211669999999884,
+          "max": 1.0090829999999897,
+          "median": 0.8938329999999866,
+          "mean": 0.9080276666666549,
+          "trimmedMean": 0.9080276666666549
+        },
+        "before": {
+          "rss": 82477056,
+          "heapUsed": 5306912,
+          "external": 1997171
+        },
+        "after": {
+          "rss": 82509824,
+          "heapUsed": 5325400,
+          "external": 1999171
+        },
+        "delta": {
+          "rss": 10922.666666666666,
+          "heapUsed": 15792,
+          "external": 2533.3333333333335
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [16384, 16384, 0],
+            "min": 0,
+            "max": 16384,
+            "median": 16384,
+            "mean": 10922.666666666666,
+            "trimmedMean": 10922.666666666666
+          },
+          "heapUsed": {
+            "samples": [17520, 15136, 14720],
+            "min": 14720,
+            "max": 17520,
+            "median": 15136,
+            "mean": 15792,
+            "trimmedMean": 15792
+          },
+          "external": {
+            "samples": [2000, 2800, 2800],
+            "min": 2000,
+            "max": 2800,
+            "median": 2800,
+            "mean": 2533.3333333333335,
+            "trimmedMean": 2533.3333333333335
+          }
+        }
+      },
+      "vooya": {
+        "name": "vooya glob recursive",
+        "durationMs": 2.721611333333333,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [1.7789169999999928, 3.1563330000000036, 3.2295840000000027],
+          "min": 1.7789169999999928,
+          "max": 3.2295840000000027,
+          "median": 3.1563330000000036,
+          "mean": 2.721611333333333,
+          "trimmedMean": 2.721611333333333
+        },
+        "before": {
+          "rss": 82591744,
+          "heapUsed": 5326736,
+          "external": 1996371
+        },
+        "after": {
+          "rss": 82624512,
+          "heapUsed": 5339208,
+          "external": 1996171
+        },
+        "delta": {
+          "rss": 0,
+          "heapUsed": 1581.3333333333333,
+          "external": -66.66666666666667
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [0, 0, 0],
+            "min": 0,
+            "max": 0,
+            "median": 0,
+            "mean": 0,
+            "trimmedMean": 0
+          },
+          "heapUsed": {
+            "samples": [4088, 328, 328],
+            "min": 328,
+            "max": 4088,
+            "median": 328,
+            "mean": 1581.3333333333333,
+            "trimmedMean": 1581.3333333333333
+          },
+          "external": {
+            "samples": [-200, 0, 0],
+            "min": -200,
+            "max": 0,
+            "median": 0,
+            "mean": -66.66666666666667,
+            "trimmedMean": -66.66666666666667
+          }
+        }
+      },
+      "ratio": 2.997277983086457,
+      "ratioLabel": "3.00x slower",
+      "runtime": {
+        "node": "v22.22.0",
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M4 Pro",
+        "pid": 64772
+      }
+    },
+    {
+      "api": "glob",
+      "scale": "medium",
+      "fixture": {
+        "files": 2728,
+        "dirs": 341,
+        "profile": {
+          "name": "medium",
+          "breadth": 4,
+          "depth": 4,
+          "filesPerDir": 8,
+          "fileSize": 1024
+        }
+      },
+      "node": {
+        "name": "node glob recursive",
+        "durationMs": 18.13191633333334,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [18.68633299999999, 17.671250000000043, 18.03816599999999],
+          "min": 17.671250000000043,
+          "max": 18.68633299999999,
+          "median": 18.03816599999999,
+          "mean": 18.13191633333334,
+          "trimmedMean": 18.13191633333334
+        },
+        "before": {
+          "rss": 91144192,
+          "heapUsed": 5501592,
+          "external": 2013563
+        },
+        "after": {
+          "rss": 100892672,
+          "heapUsed": 5799216,
+          "external": 2016571
+        },
+        "delta": {
+          "rss": 3244032,
+          "heapUsed": 241578.66666666666,
+          "external": 10269.333333333334
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [3948544, 2981888, 2801664],
+            "min": 2801664,
+            "max": 3948544,
+            "median": 2981888,
+            "mean": 3244032,
+            "trimmedMean": 3244032
+          },
+          "heapUsed": {
+            "samples": [205680, 287000, 232056],
+            "min": 205680,
+            "max": 287000,
+            "median": 232056,
+            "mean": 241578.66666666666,
+            "trimmedMean": 241578.66666666666
+          },
+          "external": {
+            "samples": [-9592, 20200, 20200],
+            "min": -9592,
+            "max": 20200,
+            "median": 20200,
+            "mean": 10269.333333333334,
+            "trimmedMean": 10269.333333333334
+          }
+        }
+      },
+      "vooya": {
+        "name": "vooya glob recursive",
+        "durationMs": 5.479472333333338,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [5.502707999999984, 5.479917, 5.455792000000031],
+          "min": 5.455792000000031,
+          "max": 5.502707999999984,
+          "median": 5.479917,
+          "mean": 5.479472333333338,
+          "trimmedMean": 5.479472333333338
+        },
+        "before": {
+          "rss": 101335040,
+          "heapUsed": 5777600,
+          "external": 1996371
+        },
+        "after": {
+          "rss": 101335040,
+          "heapUsed": 5779760,
+          "external": 1996171
+        },
+        "delta": {
+          "rss": 0,
+          "heapUsed": 704,
+          "external": -66.66666666666667
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [0, 0, 0],
+            "min": 0,
+            "max": 0,
+            "median": 0,
+            "mean": 0,
+            "trimmedMean": 0
+          },
+          "heapUsed": {
+            "samples": [1280, 456, 376],
+            "min": 376,
+            "max": 1280,
+            "median": 456,
+            "mean": 704,
+            "trimmedMean": 704
+          },
+          "external": {
+            "samples": [-200, 0, 0],
+            "min": -200,
+            "max": 0,
+            "median": 0,
+            "mean": -66.66666666666667,
+            "trimmedMean": -66.66666666666667
+          }
+        }
+      },
+      "ratio": 0.30220039804948745,
+      "ratioLabel": "3.31x faster",
+      "runtime": {
+        "node": "v22.22.0",
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M4 Pro",
+        "pid": 64772
+      }
+    },
+    {
+      "api": "glob",
+      "scale": "large",
+      "fixture": {
+        "files": 156248,
+        "dirs": 19531,
+        "profile": {
+          "name": "large",
+          "breadth": 5,
+          "depth": 6,
+          "filesPerDir": 8,
+          "fileSize": 1024
+        }
+      },
+      "node": {
+        "name": "node glob recursive",
+        "durationMs": 1181.1054723333327,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [1200.3213329999999, 1168.786, 1174.2090839999983],
+          "min": 1168.786,
+          "max": 1200.3213329999999,
+          "median": 1174.2090839999983,
+          "mean": 1181.1054723333327,
+          "trimmedMean": 1181.1054723333327
+        },
+        "before": {
+          "rss": 315211776,
+          "heapUsed": 5810296,
+          "external": 2013771
+        },
+        "after": {
+          "rss": 325582848,
+          "heapUsed": 18478064,
+          "external": 2040762
+        },
+        "delta": {
+          "rss": 4385450.666666667,
+          "heapUsed": 13354765.333333334,
+          "external": 40130.333333333336
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [7995392, 3670016, 1490944],
+            "min": 1490944,
+            "max": 7995392,
+            "median": 3670016,
+            "mean": 4385450.666666667,
+            "trimmedMean": 4385450.666666667
+          },
+          "heapUsed": {
+            "samples": [13681040, 12686408, 13696848],
+            "min": 12686408,
+            "max": 13696848,
+            "median": 13681040,
+            "mean": 13354765.333333334,
+            "trimmedMean": 13354765.333333334
+          },
+          "external": {
+            "samples": [29400, 41391, 49600],
+            "min": 29400,
+            "max": 49600,
+            "median": 41391,
+            "mean": 40130.333333333336,
+            "trimmedMean": 40130.333333333336
+          }
+        }
+      },
+      "vooya": {
+        "name": "vooya glob recursive",
+        "durationMs": 194.75055566666802,
+        "iterations": 3,
+        "warmup": 1,
+        "duration": {
+          "samples": [196.40412500000093, 195.43370900000082, 192.41383300000234],
+          "min": 192.41383300000234,
+          "max": 196.40412500000093,
+          "median": 195.43370900000082,
+          "mean": 194.75055566666802,
+          "trimmedMean": 194.75055566666802
+        },
+        "before": {
+          "rss": 352665600,
+          "heapUsed": 18215136,
+          "external": 1991162
+        },
+        "after": {
+          "rss": 368820224,
+          "heapUsed": 18216152,
+          "external": 1990962
+        },
+        "delta": {
+          "rss": 5384874.666666667,
+          "heapUsed": 328,
+          "external": -66.66666666666667
+        },
+        "memoryDelta": {
+          "rss": {
+            "samples": [14811136, 0, 1343488],
+            "min": 0,
+            "max": 14811136,
+            "median": 1343488,
+            "mean": 5384874.666666667,
+            "trimmedMean": 5384874.666666667
+          },
+          "heapUsed": {
+            "samples": [232, 376, 376],
+            "min": 232,
+            "max": 376,
+            "median": 376,
+            "mean": 328,
+            "trimmedMean": 328
+          },
+          "external": {
+            "samples": [-200, 0, 0],
+            "min": -200,
+            "max": 0,
+            "median": 0,
+            "mean": -66.66666666666667,
+            "trimmedMean": -66.66666666666667
+          }
+        }
+      },
+      "ratio": 0.1648883696067622,
+      "ratioLabel": "6.06x faster",
+      "runtime": {
+        "node": "v22.22.0",
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M4 Pro",
+        "pid": 64772
+      }
+    }
+  ]
+}

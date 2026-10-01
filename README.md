@@ -7,6 +7,7 @@
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
   <a href="https://github.com/vooyajs/fs">Repository</a> ·
+  <a href="https://rush-fs-docs.vercel.app/benchmarks">Benchmarks & Docs</a> ·
   <a href="https://vooyajs.com/">Vooya</a> ·
   <a href="https://vooyajs.github.io/vooya-lab/">Vooya Lab</a>
 </p>
@@ -21,8 +22,21 @@ It is not intended to make every `node:fs` call faster. Tiny operations such as
 walks, globbing, recursive copy/removal, and combined traversal + metadata work.
 
 > [!IMPORTANT]
-> The `@vooya/fs` rename and the APIs documented on this branch are under
-> development. No npm package is published by this change.
+> npm already contains `@vooya/fs@0.1.0`. The compatibility iteration in this
+> checkout is unreleased; build from source to test the new behaviors described here.
+
+## Product direction and development contract
+
+Through napi-rs and stable Node-API, Vooya FS brings Rust ecosystem capabilities
+to Node.js with minimal application changes. Familiar Node APIs reduce adoption
+cost; repeatable native performance benefits determine what we optimize and
+recommend. Native algorithms, mature Rust libraries, batching, fused work and
+bounded parallelism are means to that end.
+
+Feature changes ship with tests and documentation. Performance-sensitive changes
+also require before/after evidence against Node, including regressions and limits.
+See the [development contract](./CONTRIBUTING.md#development-contract-required)
+and [agent instructions](./AGENTS.md).
 
 ## The boundary
 
@@ -67,14 +81,14 @@ for (const source of sources) {
 ```
 
 On the local Apple M4 Pro / Node 22.22 development benchmark, scanning a fixture
-with 2,728 files and 341 directories took about **10.7 ms** with Vooya FS versus
-**34.0 ms** for recursive `node:fs.readdir` followed by `lstat` calls. On a tiny
+with 2,728 files and 341 directories took about **10.8 ms** with Vooya FS versus
+**31.1 ms** for recursive `node:fs.readdir` followed by `lstat` calls. On a tiny
 8-file fixture, Node was faster. The scale boundary is part of the API story,
 not a footnote.
 
 The existing `readFile(..., { lines })` extension shows the same fusion principle:
-selecting the first 100 lines of a 16 MB text file took about **0.08 ms**, versus
-**17.36 ms** for Node reading, decoding, splitting, and slicing the whole file. This
+selecting the first 100 lines of a 16 MB text file took about **0.06 ms**, versus
+**15.94 ms** for Node reading, decoding, splitting, and slicing the whole file. This
 is an API-shape advantage, not evidence that every single-file read is 200x faster.
 
 ## Node-aligned operations
@@ -101,9 +115,10 @@ The package also exposes promise and sync variants for `access`, `appendFile`,
 `readFile`, `readlink`, `realpath`, `rename`, `rmdir`, `stat`, `symlink`,
 `truncate`, `unlink`, `utimes`, and `writeFile`.
 
-Compatibility is deliberately scoped. Current paths are strings, callback APIs
-are not provided, and some advanced Node options remain unsupported. See the
-[API documentation](./docs/content/api/index.mdx) and conformance SDDs under
+Compatibility is deliberately scoped. The unreleased batch entry accepts string,
+Buffer and file URL paths, and routes advanced Node options to Node when needed.
+Callback-style APIs are not provided. See the
+[compatibility policy](./docs/content/api/compatibility.mdx) and conformance SDDs under
 [`test/conformance`](./test/conformance) for exact boundaries.
 
 ## Native first; WASM optional later
@@ -141,7 +156,16 @@ corepack pnpm test
 corepack pnpm doc:build
 ```
 
-Run evidence-oriented benchmarks with:
+The [official benchmark hub](https://rush-fs-docs.vercel.app/benchmarks) links all
+26 per-API comparison tables, upstream workloads and raw evidence. Reproduce both
+Node versions sequentially with installed runtime paths:
+
+```bash
+pnpm perf:matrix --node22 /path/to/node22 --node24 /path/to/node24 \
+  --output .perf/reproduction
+```
+
+Run focused evidence-oriented benchmarks with:
 
 ```bash
 corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
@@ -169,6 +193,10 @@ into a runtime requirement change.
   WASM, and host-framework boundaries.
 - [Vooya FS](https://github.com/vooyajs/fs) applies the same evidence-gated
   boundary design to Node filesystem workloads with a native Rust runtime.
+
+## Current compatibility iteration
+
+[API execution policy and limits](./docs/content/api/compatibility.mdx) · [Measured batch evidence](./docs/content/guide/batch-evidence.mdx)
 
 ## License
 

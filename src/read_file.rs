@@ -4,11 +4,12 @@ use napi_derive::napi;
 use std::fs;
 use std::path::Path;
 
-fn decode_data(data: Vec<u8>, encoding: Option<&str>) -> Result<Either<String, Buffer>> {
-  match encoding {
+pub(crate) fn decode_data(data: Vec<u8>, encoding: Option<&str>) -> Result<Either<String, Buffer>> {
+  let normalized = encoding.map(str::to_ascii_lowercase);
+  match normalized.as_deref() {
     Some("utf8" | "utf-8") => {
-      let s =
-        String::from_utf8(data).map_err(|e| Error::from_reason(format!("Invalid UTF-8: {}", e)))?;
+      let s = String::from_utf8(data)
+        .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
       Ok(Either::A(s))
     }
     Some("ascii") => {
@@ -104,57 +105,40 @@ fn read_file_with_lines(
     return Ok(String::new());
   }
 
-  let file = open_opts.open(path).map_err(|e| {
-    if e.kind() == std::io::ErrorKind::NotFound {
-      Error::from_reason(format!(
-        "ENOENT: no such file or directory, open '{}'",
-        path.to_string_lossy()
-      ))
-    } else if e.kind() == std::io::ErrorKind::PermissionDenied {
-      Error::from_reason(format!(
-        "EACCES: permission denied, open '{}'",
-        path.to_string_lossy()
-      ))
-    } else if e.kind() == std::io::ErrorKind::AlreadyExists {
-      Error::from_reason(format!(
-        "EEXIST: file already exists, open '{}'",
-        path.to_string_lossy()
-      ))
-    } else {
-      Error::from_reason(e.to_string())
-    }
-  })?;
-
-  let reader = BufReader::with_capacity(64 * 1024, file);
-  let mut result = String::new();
-  let mut current_line: u32 = 0;
-
-  for line_result in reader.lines() {
-    let line = line_result.map_err(|e| Error::from_reason(e.to_string()))?;
-    current_line += 1;
-
-    if current_line > range.to {
+  let file = open_opts
+    .open(path)
+    .map_err(|error| crate::fs_error::io(error, "open", path))?;
+  let mut reader = BufReader::with_capacity(64 * 1024, file);
+  let mut result = Vec::new();
+  let mut line = Vec::new();
+  let mut first = true;
+  for current in 1..=range.to {
+    line.clear();
+    if reader
+      .read_until(b'\n', &mut line)
+      .map_err(|error| crate::fs_error::io(error, "read", path))?
+      == 0
+    {
       break;
     }
-
-    if current_line >= range.from {
-      if !result.is_empty() {
-        result.push('\n');
+    if current < range.from {
+      continue;
+    }
+    if line.last() == Some(&b'\n') {
+      line.pop();
+      if line.last() == Some(&b'\r') {
+        line.pop();
       }
-      result.push_str(&line);
     }
+    if !first {
+      result.push(b'\n');
+    }
+    first = false;
+    result.extend_from_slice(&line);
   }
-
-  // Apply encoding transformation if needed
-  if encoding.is_some() && encoding != Some("utf8") && encoding != Some("utf-8") {
-    let bytes = result.into_bytes();
-    let decoded = decode_data(bytes, encoding)?;
-    match decoded {
-      Either::A(s) => Ok(s),
-      Either::B(_) => Ok(String::new()),
-    }
-  } else {
-    Ok(result)
+  match decode_data(result, encoding)? {
+    Either::A(value) => Ok(value),
+    Either::B(_) => Ok(String::new()),
   }
 }
 
@@ -213,42 +197,26 @@ fn read_file_impl(
     return Ok(Either::A(contents));
   }
 
-  let mut file = open_opts.open(path).map_err(|e| {
-    if e.kind() == std::io::ErrorKind::NotFound {
-      Error::from_reason(format!(
-        "ENOENT: no such file or directory, open '{}'",
-        path.to_string_lossy()
-      ))
-    } else if e.kind() == std::io::ErrorKind::PermissionDenied {
-      Error::from_reason(format!(
-        "EACCES: permission denied, open '{}'",
-        path.to_string_lossy()
-      ))
-    } else if e.kind() == std::io::ErrorKind::AlreadyExists {
-      Error::from_reason(format!(
-        "EEXIST: file already exists, open '{}'",
-        path.to_string_lossy()
-      ))
-    } else {
-      Error::from_reason(e.to_string())
-    }
-  })?;
+  let mut file = open_opts
+    .open(path)
+    .map_err(|error| crate::fs_error::io(error, "open", path))?;
 
   use std::io::Read;
   let mut data = Vec::new();
   file
     .read_to_end(&mut data)
-    .map_err(|e| Error::from_reason(e.to_string()))?;
+    .map_err(|error| crate::fs_error::io(error, "read", path))?;
 
   decode_data(data, opts.encoding.as_deref())
 }
 
 #[napi(js_name = "readFileSync")]
 pub fn read_file_sync(
+  env: Env,
   path: String,
   options: Option<Either<String, ReadFileOptions>>,
 ) -> Result<Either<String, Buffer>> {
-  read_file_impl(path, options)
+  read_file_impl(path, options).map_err(|error| crate::fs_error::into_js(env, error))
 }
 
 // ========= async version =========
@@ -264,6 +232,10 @@ impl Task for ReadFileTask {
 
   fn compute(&mut self) -> Result<Self::Output> {
     read_file_impl(self.path.clone(), self.options.clone())
+  }
+
+  fn reject(&mut self, env: Env, error: Error) -> Result<Self::JsValue> {
+    Err(crate::fs_error::into_js(env, error))
   }
 
   fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {

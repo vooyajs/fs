@@ -11,6 +11,11 @@ await appendFile('./log.txt', 'new line\n')
 await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
 ```
 
+The options argument also accepts an encoding string, for example `"utf8"` or `"hex"`.
+Encoding names are case-insensitive. ASCII and Latin-1 writes truncate each UTF-16
+code unit to its low byte, matching Node. Both Base64 variants accept either alphabet
+and stop at padding.
+
 ## Methods
 
 ### `appendFile(path, data, options?)`
@@ -21,7 +26,7 @@ await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
 | --------- | ---------------- | ------------------------------------- |
 | `path`    | string           | File path.                            |
 | `data`    | string \| Buffer | Data to append.                       |
-| `options` | object           | Optional: `encoding`, `mode`, `flag`. |
+| `options` | string \| object | Optional: `encoding`, `mode`, `flag`. |
 
 ### `appendFileSync(path, data, options?)`
 
@@ -29,16 +34,49 @@ await appendFile('./log.txt', buffer, { encoding: 'utf8', mode: 0o644 })
 
 ## Performance
 
-From repo benchmarks (`pnpm build && pnpm bench`):
+Buffer writes borrow the input bytes for synchronous calls. Promise calls keep
+one entry-time copy so the worker owns a stable snapshot, then write directly
+from that snapshot. This removes a redundant payload-sized allocation and copy;
+it is not a zero-copy or faster-disk guarantee. String encoding is unchanged.
 
-| Scenario   | Node.js | Vooya FS | Ratio |
-| ---------- | ------- | -------- | ----- |
-| appendFile | 30 µs   | 27 µs    | 0.9x  |
+See the [native overhead report](/guide/native-overheads) for release-build
+Node 22/24 comparisons, including small inputs, raw samples and memory limits.
+Large Buffer workloads are the intended target; small writes remain dominated
+by scheduling, opening the file and filesystem cost. These APIs do not implement
+Node's `flush` option, so the measurements compare writes without an explicit flush.
 
-On par with Node.js; single-file append is an atomic syscall.
+Local macOS arm64 medians, two warmups and ten samples; times include the
+public entry. Inputs are Buffer subarrays, concurrency 1, warm cache, no flush.
+
+| Node     | Input / method | Node ms | Before ms | After ms |
+| -------- | -------------- | ------: | --------: | -------: |
+| v22.22.0 | 64 B async     |   0.118 |     0.052 |    0.064 |
+| v22.22.0 | 8 MiB async    |   1.027 |     0.948 |    0.829 |
+| v22.22.0 | 8 MiB sync     |   0.780 |     0.909 |    0.767 |
+| v24.21.0 | 64 B async     |   0.130 |     0.056 |    0.058 |
+| v24.21.0 | 8 MiB async    |   1.036 |     1.002 |    0.902 |
+| v24.21.0 | 8 MiB sync     |   0.695 |     0.787 |    0.671 |
+
+Small-input results include regressions; reduced copying does not imply a speedup
+for every payload or filesystem. RSS samples in the report are not peak memory.
 
 ## Notes
 
 - **Encodings**: utf8, ascii, latin1, base64, base64url, hex. Same semantics as Node.js.
 - **Known gap**: Filesystem errors currently have Node-like messages, but do not expose Node-style `code`, `path`, and `syscall` fields yet.
 - **Unsupported Node inputs/options**: `Buffer` paths, `URL` paths, TypedArray/DataView data, `AbortSignal`, and newer `flush` behavior are not part of the current Vooya FS `appendFile` surface.
+
+### Buffer ownership
+
+`Buffer.subarray()` writes only the selected bytes, including a nonzero offset.
+Async calls snapshot those bytes before returning the Promise; later mutation of
+the original Buffer does not change that operation's input. This is Vooya's
+ownership policy, not a promise that Node snapshots mutable inputs identically.
+Await writes to the same file in the required order; separate concurrent calls
+are not an ordering primitive.
+
+## Competitor measurements
+
+See the [full appendFile comparison table](/guide/all-api-evidence#appendfile) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

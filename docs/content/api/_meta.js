@@ -1,5 +1,6 @@
 export default {
   index: 'Overview',
+  compatibility: 'Node compatibility',
   access: 'access',
   'append-file': 'appendFile',
   chmod: 'chmod',

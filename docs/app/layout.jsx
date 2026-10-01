@@ -15,7 +15,7 @@ export default async function RootLayout({ children }) {
     <Navbar
       logo={<span className="font-bold">Vooya FS</span>}
       projectLink="https://github.com/vooyajs/fs"
-      docsRepositoryBase="https://github.com/vooyajs/fs/tree/feat/vooya-fs-next/docs"
+      docsRepositoryBase="https://github.com/vooyajs/fs/tree/main/docs"
     />
   )
   const pageMap = await getPageMap()
@@ -27,7 +27,7 @@ export default async function RootLayout({ children }) {
           footer={<Footer>MIT {new Date().getFullYear()} © Vooya FS.</Footer>}
           pageMap={pageMap}
           editLink="Edit this page on GitHub"
-          docsRepositoryBase="https://github.com/vooyajs/fs/blob/feat/vooya-fs-next/docs"
+          docsRepositoryBase="https://github.com/vooyajs/fs/blob/main/docs"
           sidebar={{ defaultMenuCollapseLevel: 1 }}
         >
           {children}

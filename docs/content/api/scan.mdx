@@ -1,5 +1,7 @@
 # scan
 
+> This page describes unreleased checkout changes. See [Node compatibility and execution policy](/api/compatibility) for native fast paths, Node routes and verified limits.
+
 Walk a directory tree, apply rooted include/exclude patterns, and return metadata in
 one native operation. `scan` is a Vooya FS extension, not a Node `fs` compatibility
 API.
@@ -59,13 +61,17 @@ interface ScanEntry {
 Results are sorted by relative path for deterministic builds. Traversal and metadata
 errors reject the entire operation instead of returning an incomplete result.
 
+File sizes are byte lengths. Directory sizes follow Node's metadata convention:
+Windows directories report `0`; Unix directories retain their filesystem-reported
+size. With `followSymlinks: true`, directory links use the target directory's size.
+Unfollowed links retain link metadata and are not normalized as directories.
+
 ## When it wins
 
 `scan` is designed to replace recursive `readdir` followed by many `stat`/`lstat`
-calls and JavaScript-side filtering. The current development benchmark is slower on
-8- and 104-file fixtures, but about 3.2x faster on a 2,728-file fixture. Keep tiny
-trees in Node; use `scan` when traversal and metadata work are large enough to
-amortize the boundary.
+calls and JavaScript-side filtering. Native worker startup can dominate tiny
+trees. Use the [current evidence](/guide/batch-evidence) to choose workloads where
+traversal and metadata work are large enough to amortize that cost.
 
 ### Local scale report
 
@@ -79,8 +85,14 @@ _Generated from local performance reports. Do not edit this block by hand._
 
 | Scale  |               Fixture |  Node.js | Vooya FS |         Ratio | Node RSS | Vooya FS RSS |
 | ------ | --------------------: | -------: | -------: | ------------: | -------: | -----------: |
-| tiny   |      8 files / 2 dirs |  0.26 ms |  3.43 ms | 13.44x slower |  20.8 KB |       6.4 KB |
-| small  |   104 files / 13 dirs |  1.43 ms |  3.51 ms |  2.45x slower |  17.6 KB |       4.8 KB |
-| medium | 2728 files / 341 dirs | 33.98 ms | 10.70 ms |  3.18x faster | 718.4 KB |      52.8 KB |
+| tiny   |      8 files / 2 dirs |  0.18 ms |  3.48 ms | 19.57x slower |      0 B |       1.6 KB |
+| small  |   104 files / 13 dirs |  1.14 ms |  3.35 ms |  2.93x slower |      0 B |          0 B |
+| medium | 2728 files / 341 dirs | 31.05 ms | 10.83 ms |  2.87x faster | 204.8 KB |      20.8 KB |
 
 {/* vooya-fs-perf:end scan */}
+
+## Competitor measurements
+
+See the [full scan comparison table](/guide/all-api-evidence#scan) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.

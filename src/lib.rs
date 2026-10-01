@@ -6,6 +6,7 @@ pub mod chown;
 pub mod copy_file;
 pub mod cp;
 pub mod exists;
+mod fs_error;
 pub mod glob;
 pub mod link;
 pub mod mkdir;

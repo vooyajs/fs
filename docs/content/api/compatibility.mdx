@@ -1,0 +1,93 @@
+# Node compatibility and execution policy
+
+This unreleased iteration targets common filesystem batches on Node 22 and 24.
+The public entry point is `@vooya/fs`. `index.js` remains the generated native
+binding and is not a supported alternate package entry point.
+
+The baseline is the [Node filesystem API](https://nodejs.org/docs/latest-v22.x/api/fs.html).
+Compatibility tests call Node on independent fixtures and compare results, side
+effects and error fields. Performance reports measure the public package entry.
+
+## Core surface
+
+| API                         | Public behavior                                                                                               | Native work                                                                              | Node execution path                                                                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `readdir` / `readdirSync`   | String, Buffer and file URL paths; encoding strings/options; recursive results; Dirent names and parent paths | Parallel traversal, filename decoding and Dirent construction                            | Encodings outside the native set, recursive Buffer output and non-UTF-8 Buffer paths                                                                                                                           |
+| `glob` / `globSync`         | Pattern strings/arrays, exclusions, file URL cwd, Dirents; Promise batch plus async iteration                 | Common relative `*`, `**` and simple brace patterns; rooted exclusions; native traversal | Explicit dot paths, character classes/`?`, extglobs, numeric/nested braces, brace excludes, non-globstar directory wildcards, absolute/literal patterns, wildcard/callback excludes, directory-symlink retries |
+| `cp`                        | Recursive copy, overwrite policy, timestamps, symlinks, filters and copy modes                                | Unix Promise copies without callbacks, `dereference` or explicit copy modes              | Filter callbacks, dereference, copy modes, non-UTF-8 paths and Windows                                                                                                                                         |
+| `cpSync`                    | Node's synchronous copy behavior                                                                              | Node already performs synchronous copy natively                                          | Always Node; `concurrency` is validated but does not change its execution                                                                                                                                      |
+| `rm`                        | Recursive/force/retry options; non-recursive directories reject; symlink entries do not remove targets        | Unix recursive removal with bounded worker pools                                         | Non-recursive removal, Windows and non-UTF-8 paths                                                                                                                                                             |
+| `rmSync`                    | Node synchronous removal and runtime-specific errors                                                          | Node native implementation                                                               | Always Node; `concurrency` is validated and ignored                                                                                                                                                            |
+| `readFile` / `readFileSync` | Buffer/text results, file URLs, Buffer paths, encodings and Node read options                                 | Default `r` reads using supported encodings, plus the `lines` extension                  | Other flags, UTF-16 encodings, AbortSignal, FileHandle/fd inputs and non-UTF-8 paths                                                                                                                           |
+| `scan` / `scanSync`         | Rooted traversal, include/exclude, metadata, deterministic sorting                                            | Always native                                                                            | No Node equivalent                                                                                                                                                                                             |
+
+Native encodings are UTF-8, ASCII, Latin-1/binary, Base64, Base64URL and hex,
+with case-insensitive names. `readdir` also supports `encoding: 'buffer'`.
+The native bindings and Node routes use the same public methods; choosing a
+compatibility path is not a promise of acceleration for that option combination.
+There is no WASM fallback and no fallback for a missing native installation.
+
+## Deliberate differences and limits
+
+- Ordinary `glob` calls retry with Node if native traversal discovers a directory
+  symlink, preserving Node's pattern-dependent link expansion. The partial native
+  results are discarded; this retry can add overhead. No-link trees keep the native
+  route, and adjacent globstars are normalized before native planning.
+- `glob()` is still a real `Promise` of an array. It also provides `next`, `return`,
+  `throw` and `Symbol.asyncIterator`. Iteration materializes the complete batch;
+  it does not provide Node's incremental memory behavior. Ordering is not promised.
+- `scan`, `skipHidden`, `lines`, `gitIgnore` and `concurrency` are Vooya extensions.
+  `scan` is not a Node API. It requires a directory root and reports traversal
+  failures rather than returning incomplete metadata.
+- `gitIgnore: true` requires a native-supported glob pattern and string-array
+  excludes. This extension retains native ignore/globset wildcard-exclusion rules,
+  whose directory/root boundaries can differ from Node. It does not expand directory
+  symlinks found during traversal; explicit literal symlink roots can still be traversed. Unsupported combinations reject explicitly. Ignore files take
+  precedence over includes, including outside a Git repository.
+- `lines` uses one-based inclusive bounds. It preserves selected blank lines,
+  normalizes CRLF separators, decodes malformed UTF-8 with replacement characters,
+  and stops reading at the upper bound. Buffer mode ignores `lines`, as before.
+  It cannot be combined with signal, file handles, other flags or unsupported
+  encodings; those combinations reject explicitly.
+- `readdir` and `scan` propagate unreadable-directory errors. `glob` skips
+  unreadable or concurrently removed directories, matching Node's glob policy.
+- Common I/O errors expose `code`, `syscall`, `path` and `errno`; exact error
+  messages and stack traces are not a compatibility guarantee. The tests cover
+  missing paths, wrong path types, permission failures and copy conflicts.
+- Recursive symlink cycles are rejected by the native walker. Do not depend on
+  a particular traversal depth before a cycle is detected.
+
+## Concurrency
+
+The public entry validates an integer from 0 through 1024. A value of 1 selects
+serial work on the native path. Values above 1 set a per-call worker count.
+
+| Operation            | Omitted / zero                                   |
+| -------------------- | ------------------------------------------------ |
+| `readdir`            | Reuse the shared Rayon pool                      |
+| `glob`               | Omitted uses 4; zero uses the walker's heuristic |
+| `scan`               | Walker heuristic                                 |
+| `cp`, recursive `rm` | Serial                                           |
+
+Node compatibility routes ignore the worker-count extension after validating it.
+More workers can be slower; the evidence report identifies the tested count.
+
+## Verification and performance
+
+The regression matrix lives in `test/conformance/public/batch.spec.ts`, alongside
+native binding and operation-specific conformance suites. It covers sync/Promise
+calls, public exports and ESM imports, path forms, rooted glob exclusions,
+Unicode/case rules, ignore precedence, copy filters/overwrite/symlinks/modes/
+timestamps, recursive links, read cancellation, error fields, and worker limits.
+
+Use `pnpm build`, then `pnpm perf:fs --iterations 10 --warmup 2 --json .perf/core.json`
+to measure this checkout. Debug bindings are not suitable for performance claims.
+See the [batch evidence report](/guide/batch-evidence) for recorded results and
+platform verification limits.
+
+## Outside this iteration
+
+Other exported operations retain their existing documented subsets. Full Node
+replacement remains outside the product scope: callback APIs, file-descriptor
+lifecycle, watchers, streams, `opendir` and complete bigint-stat support require
+separate designs and workload evidence. They are not counted as completed here.

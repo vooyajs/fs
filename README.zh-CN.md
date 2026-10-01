@@ -7,6 +7,7 @@
 <p align="center">
   <a href="./README.md">English</a> ·
   <a href="https://github.com/vooyajs/fs">代码仓库</a> ·
+  <a href="https://rush-fs-docs.vercel.app/benchmarks">官方文档与性能对比</a> ·
   <a href="https://vooyajs.com/">Vooya</a> ·
   <a href="https://vooyajs.github.io/vooya-lab/">Vooya Lab</a>
 </p>
@@ -20,7 +21,17 @@ JavaScript → Rust 调用，替代成千上万次 JS 与文件系统之间的�
 “遍历 + 过滤 + metadata”这类可以在原生侧合并完成的工作。
 
 > [!IMPORTANT]
-> 当前分支正在完成 `@vooya/fs` 改名和新 API 整理。本次改造不会发布 npm 包。
+> npm 已发布 `@vooya/fs@0.1.0`。本工作区的兼容性迭代尚未发布；验证这些新行为请从源码构建。
+
+## 产品方向与开发约束
+
+通过 napi-rs 和稳定的 Node-API，让 Node.js 以尽量无侵入的方式接入 Rust 生态。
+API 对齐降低接入成本，可重复验证的原生性能收益决定优化与推荐范围。
+更好的原生算法、成熟 Rust 库、批处理、合并操作和有界并行都是实现手段。
+
+功能变更必须同步交付测试和文档；影响性能的变更还必须提供相对 Node 的前后
+实测证据，公开退化和适用边界。见[开发契约](./CONTRIBUTING-CN.md#开发契约必须遵守)
+及[编码代理规范](./AGENTS.md)。
 
 ## 我们优化的是边界
 
@@ -64,13 +75,13 @@ for (const source of sources) {
 ```
 
 在 Apple M4 Pro / Node 22.22 的本地开发基准中，对包含 2,728 个文件、341 个
-目录的 fixture 扫描，Vooya FS 约为 **10.7 ms**；Node 使用递归 `readdir`
-再逐项 `lstat` 约为 **34.0 ms**。但在只有 8 个文件的 fixture 上 Node 更快。
+目录的 fixture 扫描，Vooya FS 约为 **10.8 ms**；Node 使用递归 `readdir`
+再逐项 `lstat` 约为 **31.1 ms**。但在只有 8 个文件的 fixture 上 Node 更快。
 规模边界是产品设计的一部分，而不是被隐藏的脚注。
 
 已有的 `readFile(..., { lines })` 扩展也体现了相同的融合原则：从 16 MB 文本
-中读取前 100 行约为 **0.08 ms**，Node 读取、解码、切分并截取整个文件约为
-**17.36 ms**。这是 API 形状带来的优势，并不代表所有单文件读取都快 200 倍。
+中读取前 100 行约为 **0.06 ms**，Node 读取、解码、切分并截取整个文件约为
+**15.94 ms**。这是 API 形状带来的优势，并不代表所有单文件读取都快 200 倍。
 
 ## Node 对齐能力
 
@@ -96,8 +107,9 @@ await rm('./cache-copy', { recursive: true, force: true, concurrency: 4 })
 `rename`、`rmdir`、`stat`、`symlink`、`truncate`、`unlink`、`utimes`、
 `writeFile` 的 Promise 与同步版本。
 
-兼容范围是明确受限的：当前路径参数为字符串，不提供 callback API，部分
-Node 高级选项尚未实现。准确边界见 [API 文档](./docs/content/api/index.mdx)
+兼容范围是明确受限的：核心批量 API 的包入口支持字符串、Buffer 和 file URL
+路径；需要 JS 回调或其他高级语义时使用 Node 路径，不承诺这些配置也能加速。
+其他导出仍以各自文档为准，不提供 callback 风格的 API。准确边界见 [API 文档](./docs/content/api/index.mdx)
 和 [`test/conformance`](./test/conformance) 下的 SDD。
 
 ## 原生优先，WASM 以后作为显式选项
@@ -131,7 +143,15 @@ corepack pnpm test
 corepack pnpm doc:build
 ```
 
-运行带证据输出的性能基准：
+[官方性能入口](https://rush-fs-docs.vercel.app/benchmarks) 包含全部 26 组 API
+对比表、同行测试集和原始证据。指定已安装的 Node 路径即可顺序复跑两版运行时：
+
+```bash
+pnpm perf:matrix --node22 /path/to/node22 --node24 /path/to/node24 \
+  --output .perf/reproduction
+```
+
+运行单项性能基准：
 
 ```bash
 corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
@@ -143,7 +163,7 @@ corepack pnpm perf:fs scan --iterations 10 --warmup 2 --json .perf/scan.json
 ## 从 Rush-FS 迁移
 
 正式包名是 `@vooya/fs`，Rust crate 和原生二进制分别为 `vooya_fs`、
-`vooya-fs`。旧的 `@rush-fs/core` 和 `rush-fs` 版本仍可安装，但会在 npm
+`vooya-fs`。旧的 `@rush-fs/core` 和 `rush-fs` 版本仍可安装，但已在 npm
 上标记 deprecated，并给出明确的迁移提示。
 
 npm deprecation 是警告，不是包名重定向。这里有意不发布兼容转接包：
@@ -155,6 +175,10 @@ patch 更新改变运行时要求。
 - [Vooya](https://github.com/vooyajs/vooya)：浏览器组件编译器、运行时契约和框架适配器；
 - [Vooya Lab](https://github.com/vooyajs/vooya-lab)：展示经过测量的 Rust、WASM 与宿主边界；
 - [Vooya FS](https://github.com/vooyajs/fs)：把相同的证据驱动边界设计用于 Node 文件系统任务，并采用 Rust 原生运行时。
+
+## 当前兼容性迭代
+
+[API execution policy and limits](./docs/content/api/compatibility.mdx) · [Measured batch evidence](./docs/content/guide/batch-evidence.mdx)
 
 ## License
 

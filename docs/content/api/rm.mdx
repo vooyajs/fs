@@ -1,6 +1,8 @@
 # rm
 
-Remove files and directories. Supports recursive removal with optional **concurrency** (Vooya FS extension) for faster deletion of large trees.
+> This page describes unreleased checkout changes. See [Node compatibility and execution policy](/api/compatibility) for native fast paths, Node routes and verified limits.
+
+Remove files and directories. Supports recursive removal with optional **concurrency** (Vooya FS extension) for tuning recursive deletion.
 
 ## Basic usage
 
@@ -16,7 +18,7 @@ await rm('./temp-dir', { recursive: true })
 // Force (ignore errors when path does not exist) + retries
 await rm('./maybe-missing', { recursive: true, force: true, maxRetries: 3 })
 
-// Recursive with concurrency (Vooya FS: faster for large trees)
+// Recursive with explicit concurrency (measure for your workload)
 await rm('./large-tree', { recursive: true, force: true, concurrency: 4 })
 ```
 
@@ -26,10 +28,10 @@ await rm('./large-tree', { recursive: true, force: true, concurrency: 4 })
 
 **Async.** Returns `Promise<void>`.
 
-| Argument  | Type   | Description                |
-| --------- | ------ | -------------------------- |
-| `path`    | string | Path to file or directory. |
-| `options` | object | Optional. See below.       |
+| Argument  | Type                  | Description                |
+| --------- | --------------------- | -------------------------- |
+| `path`    | string / Buffer / URL | Path to file or directory. |
+| `options` | object                | Optional. See below.       |
 
 **Options:**
 
@@ -43,14 +45,15 @@ await rm('./large-tree', { recursive: true, force: true, concurrency: 4 })
 
 ### `rmSync(path, options?)`
 
-**Sync.** Same arguments; throws on error.
+**Sync.** Same Node arguments; calls Node directly and throws on error. The
+`concurrency` extension is validated but does not affect synchronous execution.
 
 ## Performance
 
-- **Recursive**: Vooya FS can be **~1.75×** faster than Node.js for large trees when using `concurrency` (e.g. 2000 files with 4 threads in benchmarks). Higher concurrency helps until I/O becomes the bottleneck.
-- **Single file**: On par with Node.js; small N-API overhead.
+- **Recursive**: Removal speed is workload-dependent. The current evidence does not establish a reliable advantage for every scale; increasing concurrency can hurt.
+- **Single file**: The public entry calls Node directly.
 
-See [Benchmarks](/benchmarks) (e.g. `rm` 2000 files, 4 threads: Node 92 ms vs Vooya FS 53 ms).
+See [Batch API evidence](/guide/batch-evidence) for the current measurements and their limits.
 
 ### Local scale report
 
@@ -59,19 +62,30 @@ See [Benchmarks](/benchmarks) (e.g. `rm` 2000 files, 4 threads: Node 92 ms vs Vo
 _Generated from local performance reports. Do not edit this block by hand._
 
 - Runtime: v22.22.0 on darwin/arm64
-- Samples: 2 warmup runs, 7 measured runs
+- Samples: 2 warmup runs, 10 measured runs
 - Aggregation: trimmed mean for wall-clock time; average per-run memory delta for RSS
 
 | Scale  |               Fixture |  Node.js | Vooya FS |        Ratio | Node RSS | Vooya FS RSS |
 | ------ | --------------------: | -------: | -------: | -----------: | -------: | -----------: |
-| tiny   |      8 files / 2 dirs |  0.53 ms |  0.41 ms | 1.30x faster |  13.7 KB |       2.3 KB |
-| small  |   104 files / 13 dirs |  2.93 ms |  3.04 ms | 1.04x slower |  11.4 KB |       6.9 KB |
-| medium | 2728 files / 341 dirs | 85.42 ms | 73.57 ms | 1.16x faster |  82.3 KB |          0 B |
+| tiny   |      8 files / 2 dirs |  0.42 ms |  0.41 ms | 1.04x faster |      0 B |          0 B |
+| small  |   104 files / 13 dirs |  2.47 ms |  2.63 ms | 1.06x slower |      0 B |          0 B |
+| medium | 2728 files / 341 dirs | 75.23 ms | 68.29 ms | 1.10x faster |  12.8 KB |          0 B |
 
 {/* vooya-fs-perf:end rm */}
 
 ## Notes
 
-- **Recursive**: When `recursive: true`, Vooya FS uses [rayon](https://github.com/rayon-rs/rayon) for parallel deletion. Default `concurrency` is 1 for safety; increase (e.g. 4) for large directories.
+- **Recursive**: When `recursive: true`, Vooya FS uses [rayon](https://github.com/rayon-rs/rayon) for parallel deletion. Default `concurrency` is 1; values 0 and 1 are serial. Measure before increasing it.
 - **Windows**: `maxRetries` and `retryDelay` help with transient "access denied" or locking issues. Same semantics as Node.js.
 - **Symlinks**: Recursive removal does not follow symlinks; valid and broken links are removed without touching their targets.
+
+An empty directory still requires `recursive: true`; `force` does not change that
+rule. Retry delays apply only to recursive removal and eligible error codes. The
+public entry uses Node for non-recursive calls, Windows removal and all `rmSync`
+calls, preserving runtime-specific synchronous errors.
+
+## Competitor measurements
+
+See the [full rm comparison table](/guide/all-api-evidence#rm) for
+Node 22/24, peer libraries, sync/Promise modes, small and batch workloads,
+execution routes and measurement limits.
