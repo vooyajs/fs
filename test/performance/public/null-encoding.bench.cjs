@@ -15,6 +15,7 @@ before._compile(execFileSync('git', ['show', `${baseline}:api.js`], { encoding: 
 const after = require(path.join(root, 'api.js'))
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'vooya-null-encoding-'))
 const samples = []
+const rounds = []
 try {
   for (const [scale, count, bytes] of [
     ['tiny', 8, 128],
@@ -27,22 +28,37 @@ try {
     fs.writeFileSync(file, Buffer.alloc(bytes, 65))
     for (const api of ['readFileSync', 'readdirSync']) {
       const target = api === 'readFileSync' ? file : dir
-      for (const [route, implementation, options] of [
+      const routes = [
         ['before-default', before.exports, {}],
         ['after-default', after, {}],
         ['node-default', fs, {}],
         ['after-null', after, { encoding: null }],
         ['node-null', fs, { encoding: null }],
-      ]) {
-        const invoke = () => implementation[api](target, options)
-        for (let warmup = 0; warmup < 2; warmup++) invoke()
-        const milliseconds = []
-        for (let sample = 0; sample < 10; sample++) {
+      ].map(([route, implementation, options]) => ({
+        route,
+        invoke: () => implementation[api](target, options),
+        milliseconds: [],
+      }))
+      // Each route occupies each position twice across ten measured rounds.
+      for (let round = -2; round < 10; round++) {
+        const offset = (round + routes.length) % routes.length
+        const ordered = [...routes.slice(offset), ...routes.slice(0, offset)]
+        rounds.push({
+          scale,
+          api,
+          phase: round < 0 ? 'warmup' : 'sample',
+          round: round < 0 ? round + 2 : round,
+          order: ordered.map(({ route }) => route),
+        })
+        for (const entry of ordered) {
           const start = performance.now()
-          const result = invoke()
-          milliseconds.push(performance.now() - start)
+          const result = entry.invoke()
+          const elapsed = performance.now() - start
           if (result.length !== (api === 'readFileSync' ? bytes : count)) throw Error('invalid result')
+          if (round >= 0) entry.milliseconds.push(elapsed)
         }
+      }
+      for (const { route, milliseconds } of routes) {
         samples.push({ scale, count, bytes, api, route, milliseconds })
       }
     }
@@ -58,8 +74,9 @@ try {
         binding: 'local release build; shared by before and after',
         warmups: 2,
         sampleCount: 10,
-        cache: 'warm OS cache; sequential local samples; exploratory, no speed claim',
+        cache: 'warm OS cache; interleaved deterministic rotation; exploratory, no speed claim',
         limitations: 'No memory or cross-platform claim. Baseline null encoding throws InvalidArg, so it is not timed.',
+        rounds,
         samples,
       },
       null,
