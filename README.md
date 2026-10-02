@@ -7,7 +7,7 @@
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
   <a href="https://github.com/vooyajs/fs">Repository</a> ·
-  <a href="https://rush-fs-docs.vercel.app/benchmarks">Benchmarks & Docs</a> ·
+  <a href="https://rush-fs-docs.vercel.app/guide/quick-start">Quick Start & Docs</a> ·
   <a href="https://vooyajs.com/">Vooya</a> ·
   <a href="https://vooyajs.github.io/vooya-lab/">Vooya Lab</a>
 </p>
@@ -24,6 +24,45 @@ walks, globbing, recursive copy/removal, and combined traversal + metadata work.
 > [!IMPORTANT]
 > npm already contains `@vooya/fs@0.1.0`. The compatibility iteration in this
 > checkout is unreleased; build from source to test the new behaviors described here.
+
+## Install and run
+
+Use Node.js 22 or newer. Prebuilt 0.1.0 binaries support macOS arm64/x64,
+Linux x64 with glibc, and Windows x64. Supported prebuilt installs do not need Rust.
+Keep optional dependencies enabled so npm can install the matching binary.
+
+```sh
+npm install @vooya/fs@0.1.0
+```
+
+Save this as `scan.mjs` in your project, then run `node scan.mjs`:
+
+```js
+import { scan } from '@vooya/fs'
+
+try {
+  const entries = await scan('.', {
+    include: ['**/*.{js,mjs,ts,rs}'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
+    skipHidden: true,
+  })
+  console.table(entries.slice(0, 10))
+  console.log(`${entries.length} matching entries`)
+} catch (error) {
+  console.error(error)
+  process.exitCode = 1
+}
+```
+
+This example works with npm 0.1.0 and the source checkout. Results contain paths
+relative to the scanned directory; an empty array is valid when no files match.
+For CommonJS, import with `const { scan } = require('@vooya/fs')` and call it from
+an async function.
+
+[Quick Start](https://rush-fs-docs.vercel.app/guide/quick-start) covers both install
+paths. Check the [release/source differences](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences)
+before using newer options, or follow [native binding troubleshooting](https://rush-fs-docs.vercel.app/guide/troubleshooting#cannot-find-the-native-binding)
+if the import fails.
 
 ## Product direction and development contract
 

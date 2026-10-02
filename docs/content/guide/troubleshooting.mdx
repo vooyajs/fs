@@ -6,6 +6,7 @@ The site follows main. npm currently provides `@vooya/fs@0.1.0`; main includes
 additional compatibility fixes and newer measurements. Use the
 [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.0) for 0.1.0 and the
 [checkout instructions](/guide/quick-start#try-the-current-source) to try main.
+For common tasks, start with the [release/source comparison](/guide/quick-start#published-release-and-source-differences).
 
 ## Cannot find the native binding
 
@@ -20,6 +21,35 @@ Version 0.1.0 ships binaries for macOS arm64/x64, Linux x64 glibc and Windows x6
 The architecture is that of the Node process, which can differ from the host under
 emulation. Ensure your package manager installs optional dependencies and install
 on the target platform; copying `node_modules` from a different OS is not portable.
+
+Check the platform package as well as the main package. Choose the name for your
+**Node process** from this table, then run `npm ls` with that name:
+
+| Node platform / architecture | 0.1.0 platform package     |
+| ---------------------------- | -------------------------- |
+| `darwin arm64`               | `@vooya/fs-darwin-arm64`   |
+| `darwin x64`                 | `@vooya/fs-darwin-x64`     |
+| `linux x64` with glibc       | `@vooya/fs-linux-x64-gnu`  |
+| `win32 x64`                  | `@vooya/fs-win32-x64-msvc` |
+
+For example, on Apple Silicon Node:
+
+```sh
+npm ls @vooya/fs-darwin-arm64
+```
+
+If the matching package is missing on a supported platform, run this in the
+application directory to include optional packages, then verify the import:
+
+```sh
+npm install --include=optional @vooya/fs@0.1.0
+node -e "require('@vooya/fs'); console.log('native binding loaded')"
+```
+
+Keep your lockfile. If the package is present but loading still fails, retain the
+full error and the two `npm ls` outputs when reporting it. Linux arm64 and
+Alpine/musl have no 0.1.0 prebuilt package; enabling optional dependencies cannot
+add support for those targets.
 
 There is no WASM fallback or automatic Node-only fallback when the addon is missing.
 For a source checkout, run `pnpm install --frozen-lockfile` and `pnpm build` with
@@ -57,6 +87,30 @@ as copy filters or some glob patterns. This preserves the documented behavior.
 On main, `cpSync` and `rmSync` always use Node. A successful call or a speed ratio
 alone is not proof of Rust acceleration; consult the
 [execution policy](/api/compatibility).
+
+## Why does a line range return the whole file?
+
+The `readFile` / `readFileSync` extension needs an explicit text encoding:
+`{ encoding: 'utf8', lines: { from: 110, to: 120 } }`. With no encoding, it returns the entire file as a Buffer on both npm 0.1.0 and main.
+Explicit `encoding: null` rejects with `InvalidArg` on npm 0.1.0; omit the encoding
+for Buffer reads on that release. See the [line-range example](/api/read-file#read-a-line-range).
+
+There are also release-specific limits. Given `one\n\nthree\n`, lines 2–3
+with UTF-8 return `"three"` on npm 0.1.0, but `"\nthree"` on main. Main's
+blank-line fix is not yet published. If exact line content matters, use the
+[source checkout](/guide/quick-start#try-the-current-source) or an existing Node
+implementation until a release includes the fix.
+
+## Why does a missing file have code GenericFailure?
+
+In npm 0.1.0, `readFile` and `readFileSync` report a missing file with
+`code: 'GenericFailure'` and an ENOENT message; `path`, `syscall` and `errno` are
+absent. Main's public entry reports `code: 'ENOENT'` with those structured fields.
+Do not assume the main-only fields exist in the installed release. Catch the
+Promise rejection (or the synchronous exception), log the complete error, and
+record the package version when reporting it. Applications that require Node's
+structured error handling can keep this operation on `node:fs` / `node:fs/promises`
+or verify the source checkout before adopting it.
 
 ## Report a mismatch or performance regression
 

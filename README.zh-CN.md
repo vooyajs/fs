@@ -7,7 +7,7 @@
 <p align="center">
   <a href="./README.md">English</a> ·
   <a href="https://github.com/vooyajs/fs">代码仓库</a> ·
-  <a href="https://rush-fs-docs.vercel.app/benchmarks">官方文档与性能对比</a> ·
+  <a href="https://rush-fs-docs.vercel.app/guide/quick-start">快速上手与文档</a> ·
   <a href="https://vooyajs.com/">Vooya</a> ·
   <a href="https://vooyajs.github.io/vooya-lab/">Vooya Lab</a>
 </p>
@@ -22,6 +22,43 @@ JavaScript → Rust 调用，替代成千上万次 JS 与文件系统之间的�
 
 > [!IMPORTANT]
 > npm 已发布 `@vooya/fs@0.1.0`。本工作区的兼容性迭代尚未发布；验证这些新行为请从源码构建。
+
+## 安装并运行
+
+使用 Node.js 22 或更新版本。0.1.0 提供 macOS arm64/x64、Linux x64 glibc
+和 Windows x64 预编译包；这些平台直接安装使用不需要 Rust。
+请启用 optional dependencies，以便 npm 安装对应平台的原生包。
+
+```sh
+npm install @vooya/fs@0.1.0
+```
+
+在项目中将以下内容保存为 `scan.mjs`，然后运行 `node scan.mjs`：
+
+```js
+import { scan } from '@vooya/fs'
+
+try {
+  const entries = await scan('.', {
+    include: ['**/*.{js,mjs,ts,rs}'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
+    skipHidden: true,
+  })
+  console.table(entries.slice(0, 10))
+  console.log(`${entries.length} matching entries`)
+} catch (error) {
+  console.error(error)
+  process.exitCode = 1
+}
+```
+
+该示例适用于 npm 0.1.0 和源码工作区。返回的路径相对于扫描目录；没有匹配文件时，
+空数组是正常结果。CommonJS 可以用 `const { scan } = require('@vooya/fs')`
+导入，并在 async 函数中调用。
+
+[快速上手（英文）](https://rush-fs-docs.vercel.app/guide/quick-start) 说明两种安装方式。
+使用新选项前请查看[发布版与源码差异](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences)；
+导入失败时请按[原生绑定排错步骤](https://rush-fs-docs.vercel.app/guide/troubleshooting#cannot-find-the-native-binding)检查。
 
 ## 产品方向与开发约束
 

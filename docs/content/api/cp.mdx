@@ -35,7 +35,22 @@ its input.
 
 ### `cpSync(src, dest, options?)`
 
-**Sync.** Same arguments; throws on error.
+**Sync.** Returns `undefined` on success and throws on error. Its `filter(src,
+dest)` must return a boolean **synchronously**; Promise-returning filters are
+supported only by `cp`. The public entry calls Node directly. `concurrency` is
+validated but does not affect synchronous execution.
+
+```ts
+import { cpSync } from '@vooya/fs'
+
+cpSync('./src', './dest', {
+  recursive: true,
+  filter: (src) => !src.endsWith('.map'),
+})
+```
+
+The filter runs for directories as well as files. Returning `false` for a directory
+skips its contents. For asynchronous filtering, use `await cp(...)` instead.
 
 ## Performance
 
