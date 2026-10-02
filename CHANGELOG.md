@@ -6,10 +6,7 @@ All notable Vooya FS changes are documented here. The format follows
 
 ## [Unreleased]
 
-## [@vooya/fs 0.1.1] - Release candidate
-
-Prepared for publication; npm 0.1.0 remains the latest published release until the
-Release workflow succeeds. The changes below are included in this candidate.
+## [@vooya/fs 0.1.1] - 2026-10-02
 
 ### Added
 
@@ -147,8 +144,8 @@ Release workflow succeeds. The changes below are included in this candidate.
 
 ---
 
-[Unreleased]: https://github.com/vooyajs/fs/compare/fs-v0.1.0...HEAD
-[@vooya/fs 0.1.1]: https://github.com/vooyajs/fs/compare/fs-v0.1.0...release/fs-0-1-1
+[Unreleased]: https://github.com/vooyajs/fs/compare/fs-v0.1.1...HEAD
+[@vooya/fs 0.1.1]: https://github.com/vooyajs/fs/releases/tag/fs-v0.1.1
 [@vooya/fs 0.1.0]: https://github.com/vooyajs/fs/releases/tag/fs-v0.1.0
 [@rush-fs/core 0.1.0]: https://github.com/vooyajs/fs/compare/v0.0.5...v0.1.0
 [0.0.5]: https://github.com/vooyajs/fs/compare/v0.0.4...v0.0.5

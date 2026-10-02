@@ -1,6 +1,6 @@
 # readFile
 
-> This page describes unreleased checkout changes. See [Node compatibility and execution policy](/api/compatibility) for native fast paths, Node routes and verified limits.
+> This page describes `@vooya/fs@0.1.1`. See [Node compatibility and execution policy](/api/compatibility) for native fast paths, Node routes and verified limits.
 
 Read the entire contents of a file. Returns a `Buffer` or a decoded string depending on `encoding`.
 
@@ -40,9 +40,9 @@ line. Selected lines are joined with `\n`, without a final line terminator.
 Omitting the encoding (or using `encoding: null`) returns the **whole file as a
 Buffer**, so it does not limit how much content your caller receives.
 
-Main preserves blank lines in the selected range. The published 0.1.0 release
+Version 0.1.1 preserves blank lines in the selected range. The published 0.1.0 release
 can drop leading blank lines from the excerpt; its missing-file errors also lack
-main's structured fields. See [version-specific troubleshooting](/guide/troubleshooting#why-does-a-line-range-return-the-whole-file).
+0.1.1's structured fields. See [version-specific troubleshooting](/guide/troubleshooting#why-does-a-line-range-return-the-whole-file).
 
 ## Methods
 

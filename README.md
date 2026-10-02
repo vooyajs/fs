@@ -22,17 +22,17 @@ It is not intended to make every `node:fs` call faster. Tiny operations such as
 walks, globbing, recursive copy/removal, and combined traversal + metadata work.
 
 > [!IMPORTANT]
-> npm already contains `@vooya/fs@0.1.0`. The 0.1.1 release candidate in this
-> checkout is unreleased; build from source to test the new behaviors described here.
+> Install `@vooya/fs@0.1.1` for the compatibility fixes described here.
+> See the [0.1.0 → 0.1.1 comparison](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences) when upgrading.
 
 ## Install and run
 
-Use Node.js 22 or newer. Prebuilt 0.1.0 binaries support macOS arm64/x64,
+Use Node.js 22 or newer. Prebuilt 0.1.1 binaries support macOS arm64/x64,
 Linux x64 with glibc, and Windows x64. Supported prebuilt installs do not need Rust.
 Keep optional dependencies enabled so npm can install the matching binary.
 
 ```sh
-npm install @vooya/fs@0.1.0
+npm install @vooya/fs@0.1.1
 ```
 
 Save this as `scan.mjs` in your project, then run `node scan.mjs`:
@@ -54,13 +54,13 @@ try {
 }
 ```
 
-This example works with npm 0.1.0 and the source checkout. Results contain paths
+This example works with npm 0.1.1. Results contain paths
 relative to the scanned directory; an empty array is valid when no files match.
 For CommonJS, import with `const { scan } = require('@vooya/fs')` and call it from
 an async function.
 
 [Quick Start](https://rush-fs-docs.vercel.app/guide/quick-start) covers both install
-paths. Check the [release/source differences](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences)
+paths. Check the [0.1.0 → 0.1.1 differences](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences)
 before using newer options, or follow [native binding troubleshooting](https://rush-fs-docs.vercel.app/guide/troubleshooting#cannot-find-the-native-binding)
 if the import fails.
 
@@ -154,7 +154,7 @@ The package also exposes promise and sync variants for `access`, `appendFile`,
 `readFile`, `readlink`, `realpath`, `rename`, `rmdir`, `stat`, `symlink`,
 `truncate`, `unlink`, `utimes`, and `writeFile`.
 
-Compatibility is deliberately scoped. The unreleased batch entry accepts string,
+Compatibility is deliberately scoped. The 0.1.1 batch entry accepts string,
 Buffer and file URL paths, and routes advanced Node options to Node when needed.
 Callback-style APIs are not provided. See the
 [compatibility policy](./docs/content/api/compatibility.mdx) and conformance SDDs under
