@@ -1,6 +1,6 @@
 # Quick Start
 
-This site documents **main, including changes not yet released to npm**. The
+This site documents **the 0.1.1 release candidate, not yet released to npm**. The
 published package is [`@vooya/fs@0.1.0`](https://www.npmjs.com/package/@vooya/fs).
 Its [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.0) is the reference
 for that version. The current compatibility policy and benchmark tables describe
@@ -65,10 +65,10 @@ async function or with `.then()`. Promise methods are exported directly from
 
 ## Published release and source differences
 
-Use this small comparison when choosing between npm 0.1.0 and the unreleased
+Use this small comparison when choosing between npm 0.1.0 and the 0.1.1 release candidate
 source. It covers the operations below, not every API/option combination.
 
-| Task                                                     | npm `@vooya/fs@0.1.0`                                                                                    | Unreleased source                             |
+| Task                                                     | npm `@vooya/fs@0.1.0`                                                                                    | 0.1.1 candidate source                        |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | Run the [string-path scan example](#run-your-first-scan) | Supported                                                                                                | Supported                                     |
 | Read lines with `encoding: 'utf8'`                       | Supported, but can drop leading blank lines in the selected range                                        | Preserves selected blank lines                |
@@ -98,8 +98,8 @@ node --input-type=module -e "import { scan } from '@vooya/fs'; console.log((awai
 
 Run that command from the repository root: the package's self-reference resolves
 the local public entry. Record `git rev-parse HEAD` when comparing results. The
-checkout still carries version 0.1.0 until the next release, so the version string
-alone does not identify its behavior.
+checkout carries candidate version 0.1.1. That version string does not confirm
+npm publication; use the published-release instructions above for registry installs.
 
 ## Adopt one operation at a time
 

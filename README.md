@@ -22,7 +22,7 @@ It is not intended to make every `node:fs` call faster. Tiny operations such as
 walks, globbing, recursive copy/removal, and combined traversal + metadata work.
 
 > [!IMPORTANT]
-> npm already contains `@vooya/fs@0.1.0`. The compatibility iteration in this
+> npm already contains `@vooya/fs@0.1.0`. The 0.1.1 release candidate in this
 > checkout is unreleased; build from source to test the new behaviors described here.
 
 ## Install and run
