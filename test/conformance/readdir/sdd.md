@@ -40,3 +40,6 @@ Vooya FS should lose or be close to Node on tiny directories because N-API bridg
 - Docs must state that tiny/non-recursive directory reads can be slower than Node because bridge overhead dominates.
 - Docs must describe Buffer output and the public Node route for recursive Buffer combinations.
 - If performance reports identify a new break-even point or best-practice boundary, update the Performance and Notes sections.
+
+The public entry accepts `encoding: null` as the default UTF-8 filename mode,
+including recursive and Dirent results, without mutating caller options.

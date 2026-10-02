@@ -27,6 +27,9 @@ All notable Vooya FS changes are documented here. The format follows
 
 ### Fixed
 
+- Public `readFile` and `readdir` sync/Promise calls now accept `encoding: null`
+  with Node default semantics, including frozen options and recursive Dirents.
+
 - `scan`: Windows directory sizes now match Node's zero-size metadata convention,
   including followed directory links; file and unfollowed link sizes are unchanged.
 - Public glob compatibility for consecutive globstars, wildcard exclusion

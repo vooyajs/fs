@@ -440,3 +440,35 @@ test('public cp preserves Node Buffer-path rejection on callback routes', async 
   await t.throwsAsync(() => vooya.cp(src, join(root, 'copy'), options), { code: expected.code })
   t.false(fs.existsSync(join(root, 'copy')))
 })
+
+test('public read and directory batches accept null encoding without mutating options', async (t) => {
+  const root = fixture(t)
+  const file = join(root, 'src/a.txt')
+  const options = Object.freeze({ encoding: null })
+  const bytes: Buffer = vooya.readFileSync(file, options)
+  const asyncBytes: Buffer = await vooya.readFile(file, options)
+  t.deepEqual(bytes, fs.readFileSync(file, options))
+  t.deepEqual(asyncBytes, await promises.readFile(file, options))
+  for (const recursive of [false, true]) {
+    const directoryOptions = Object.freeze({ encoding: null, recursive })
+    const names: string[] = vooya.readdirSync(root, directoryOptions)
+    const asyncNames: string[] = await vooya.readdir(root, directoryOptions)
+    t.deepEqual(names.sort(), fs.readdirSync(root, directoryOptions).sort())
+    t.deepEqual(asyncNames.sort(), (await promises.readdir(root, directoryOptions)).sort())
+    const typedOptions = Object.freeze({ ...directoryOptions, withFileTypes: true as const })
+    const entries = vooya.readdirSync(root, typedOptions)
+    const asyncEntries = await vooya.readdir(root, typedOptions)
+    t.deepEqual(
+      entries.map((entry) => entry.name).sort(),
+      fs
+        .readdirSync(root, typedOptions)
+        .map((entry) => entry.name)
+        .sort(),
+    )
+    t.deepEqual(
+      asyncEntries.map((entry) => entry.name).sort(),
+      (await promises.readdir(root, typedOptions)).map((entry) => entry.name).sort(),
+    )
+  }
+  t.is(options.encoding, null)
+})

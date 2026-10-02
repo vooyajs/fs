@@ -50,6 +50,9 @@ const all = await readdir('./src', {
 
 **Sync.** Same arguments and return types; throws on error.
 
+An explicit `encoding: null` uses UTF-8 filenames, just like omitting the encoding.
+This applies to both names and Dirent results, including recursive reads.
+
 ## Performance
 
 - **Recursive** (`recursive: true`): Vooya FS can be faster on medium and large trees because it uses [jwalk](https://github.com/Byron/jwalk) for parallel directory traversal. The checked-in scale report below is the current evidence; rerun it for your storage and tree shape.

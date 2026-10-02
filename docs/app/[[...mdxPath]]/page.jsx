@@ -6,7 +6,10 @@ export const generateStaticParams = generateStaticParamsFor('mdxPath')
 export async function generateMetadata(props) {
   const params = await props.params
   const { metadata } = await importPage(params.mdxPath)
-  return metadata
+  // The root heading already contains the product name; do not append it twice.
+  return !params.mdxPath?.length
+    ? { ...metadata, title: { absolute: 'Vooya FS — Native batch filesystem operations for Node.js' } }
+    : metadata
 }
 
 const Wrapper = getMDXComponents().wrapper

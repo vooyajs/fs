@@ -8,7 +8,7 @@ export { constants } from 'node:fs'
 export type CpOptions = fs.CopyOptions & { concurrency?: number }
 export type CpSyncOptions = fs.CopySyncOptions & { concurrency?: number }
 export type RmOptions = fs.RmOptions & { concurrency?: number }
-export type ReaddirOptions = binding.ReaddirOptions
+export type ReaddirOptions = Omit<binding.ReaddirOptions, 'encoding'> & { encoding?: string | null }
 export type ScanOptions = binding.ScanOptions
 export type GlobOptions = fs.GlobOptions & { concurrency?: number; gitIgnore?: boolean }
 

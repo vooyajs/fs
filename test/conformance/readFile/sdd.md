@@ -53,3 +53,6 @@ at the JS-to-Rust string boundary remain unverified or unsupported.
 
 Core missing-path errors now expose code/syscall/path/errno. Public routing, cancellation,
 file URL/Buffer inputs and permission behavior are tested in `../public/batch.spec.ts`.
+
+The public entry accepts `encoding: null` as the default Buffer mode, in both
+sync and Promise forms, without mutating the options object.

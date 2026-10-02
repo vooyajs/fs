@@ -4,7 +4,8 @@ This site documents **main, including changes not yet released to npm**. The
 published package is [`@vooya/fs@0.1.0`](https://www.npmjs.com/package/@vooya/fs).
 Its [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.0) is the reference
 for that version. The current compatibility policy and benchmark tables describe
-the newer checkout; installing 0.1.0 does not install those changes.
+the newer checkout; installing 0.1.0 does not install those changes. See the
+[release/source comparison](#published-release-and-source-differences) for common tasks.
 
 ## Requirements
 
@@ -61,6 +62,26 @@ For CommonJS, use `const { scan } = require('@vooya/fs')` and call it inside an
 async function or with `.then()`. Promise methods are exported directly from
 `@vooya/fs`; there is no `@vooya/fs/promises` entry. Synchronous variants such as
 `scanSync` block the JavaScript thread.
+
+## Published release and source differences
+
+Use this small comparison when choosing between npm 0.1.0 and the unreleased
+source. It covers the operations below, not every API/option combination.
+
+| Task                                                     | npm `@vooya/fs@0.1.0`                                                                                    | Unreleased source                             |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Run the [string-path scan example](#run-your-first-scan) | Supported                                                                                                | Supported                                     |
+| Read lines with `encoding: 'utf8'`                       | Supported, but can drop leading blank lines in the selected range                                        | Preserves selected blank lines                |
+| Pass `lines` without an encoding                         | Returns the whole file as a Buffer                                                                       | Returns the whole file as a Buffer            |
+| Handle a missing file from `readFile` / `readFileSync`   | `code: 'GenericFailure'`; ENOENT appears in the message, without structured `path`, `syscall` or `errno` | `code: 'ENOENT'` with those structured fields |
+
+The read behavior above was checked in both sync and Promise forms against the
+installed npm 0.1.0 package and the source entry on Node 22, macOS arm64. It is not
+cross-platform runtime verification. See the [line-range example](/api/read-file#read-a-line-range)
+and [error guidance](/guide/troubleshooting#why-does-a-missing-file-have-code-genericfailure).
+The [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.0) identifies the
+published implementation; use the [source instructions](#try-the-current-source)
+for the newer behavior. The version string alone cannot distinguish these builds.
 
 ## Try the current source
 
