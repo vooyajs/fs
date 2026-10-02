@@ -29,7 +29,7 @@ Explicit `encoding: null` preserves Node defaults: readFile returns a Buffer and
 readdir returns UTF-8 names, including recursive and Dirent results. Frozen caller
 options are accepted and never changed during native option normalization.
 
-### Null encoding routing evidence
+## Null encoding routing evidence
 
 Reproduce after `pnpm build`, from the repository root, with Node 22 or 24:
 
@@ -40,16 +40,17 @@ node test/performance/public/null-encoding.bench.cjs > /tmp/null-encoding.json
 The optional first argument selects the baseline Git revision; the default is
 `d3c0ad06087855d39dee229198bfddf3a7b63a14`. Both public entries use the same release
 binding. Fixtures cover 128-byte / 1-MiB reads and 8 / 2,048-entry flat directories.
-Two warmups and ten samples per case use a warm OS cache, sequentially, after
-builds and tests completed. Results are validated before recording.
+Two warmups and ten samples per case use a warm OS cache after builds and tests
+complete. Routes run in interleaved rounds with deterministic rotation: each
+route occupies each position twice in the measured rounds. The JSON records
+every warmup and sample order. Results are validated before recording.
 
 Raw [Node 22 samples](../../../docs/public/evidence/null-encoding-node22.json) and
 [Node 24 samples](../../../docs/public/evidence/null-encoding-node24.json) retain
 hardware, runtime and baseline identity. The prior null route throws and cannot
-be timed successfully. On this macOS arm64 host, the unchanged default route's
-median latencies stayed in the same range (tiny reads 0.011–0.015 ms, batch reads
-0.078–0.089 ms, batch listings 1.19–1.25 ms). Flat directory listing remained slower
-than Node (about 0.71 ms at 2,048 entries). These exploratory samples support no
-acceleration claim; no peak-memory, Promise latency or other-platform performance
-conclusion was measured. The new null branch creates one options wrapper; other
+be timed successfully. These exploratory samples support no acceleration claim. Native and Node reads
+use different implementations; differences in these short timings alone do not
+identify a cache artifact or prove a general speed advantage. Flat directory
+listing remains a workload to compare with Node before adoption. No peak-memory,
+Promise latency or other-platform performance conclusion was measured. The new null branch creates one options wrapper; other
 encodings retain their existing options object and execution route.

@@ -7,8 +7,346 @@
   "binding": "local release build; shared by before and after",
   "warmups": 2,
   "sampleCount": 10,
-  "cache": "warm OS cache; sequential local samples; exploratory, no speed claim",
+  "cache": "warm OS cache; interleaved deterministic rotation; exploratory, no speed claim",
   "limitations": "No memory or cross-platform claim. Baseline null encoding throws InvalidArg, so it is not timed.",
+  "rounds": [
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "warmup",
+      "round": 0,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "warmup",
+      "round": 1,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 0,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 1,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 2,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 3,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 4,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 5,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 6,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 7,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 8,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 9,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "warmup",
+      "round": 0,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "warmup",
+      "round": 1,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 0,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 1,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 2,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 3,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 4,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 5,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 6,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 7,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 8,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "tiny",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 9,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "warmup",
+      "round": 0,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "warmup",
+      "round": 1,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 0,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 1,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 2,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 3,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 4,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 5,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 6,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 7,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 8,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readFileSync",
+      "phase": "sample",
+      "round": 9,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "warmup",
+      "round": 0,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "warmup",
+      "round": 1,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 0,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 1,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 2,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 3,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 4,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 5,
+      "order": ["before-default", "after-default", "node-default", "after-null", "node-null"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 6,
+      "order": ["after-default", "node-default", "after-null", "node-null", "before-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 7,
+      "order": ["node-default", "after-null", "node-null", "before-default", "after-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 8,
+      "order": ["after-null", "node-null", "before-default", "after-default", "node-default"]
+    },
+    {
+      "scale": "batch",
+      "api": "readdirSync",
+      "phase": "sample",
+      "round": 9,
+      "order": ["node-null", "before-default", "after-default", "node-default", "after-null"]
+    }
+  ],
   "samples": [
     {
       "scale": "tiny",
@@ -17,8 +355,8 @@
       "api": "readFileSync",
       "route": "before-default",
       "milliseconds": [
-        0.01566700000000054, 0.013832999999998208, 0.013415999999999428, 0.012833000000000538, 0.012999999999998124,
-        0.012666000000002953, 0.021958000000001476, 0.02583399999999969, 0.01633300000000304, 0.015499999999999403
+        0.014458999999998667, 0.015125000000001165, 0.01433399999999807, 0.014333000000000595, 0.014041999999999888,
+        0.013875000000002302, 0.01970799999999784, 0.01979199999999892, 0.014958000000000027, 0.013624999999997556
       ]
     },
     {
@@ -28,8 +366,8 @@
       "api": "readFileSync",
       "route": "after-default",
       "milliseconds": [
-        0.012415999999998206, 0.012041999999997444, 0.012042000000000996, 0.011791999999999803, 0.011791999999999803,
-        0.011791999999999803, 0.019166000000002015, 0.019750000000001933, 0.014458000000001192, 0.013958999999999833
+        0.014541999999998723, 0.018582999999999572, 0.023792000000000257, 0.013916000000001816, 0.013083000000001732,
+        0.012917000000001622, 0.014041999999999888, 0.014124999999999943, 0.013583000000000567, 0.012916000000000594
       ]
     },
     {
@@ -39,8 +377,8 @@
       "api": "readFileSync",
       "route": "node-default",
       "milliseconds": [
-        0.014458999999998667, 0.013624999999997556, 0.01329199999999986, 0.013708999999998639, 0.01387499999999875,
-        0.016707999999997725, 0.020333000000000823, 0.018000000000000682, 0.014124999999999943, 0.012790999999999997
+        0.0135419999999975, 0.015540999999998917, 0.02054199999999895, 0.01425000000000054, 0.01287500000000108,
+        0.012707999999999942, 0.01249999999999929, 0.012874999999997527, 0.012833000000000538, 0.013749999999998153
       ]
     },
     {
@@ -50,8 +388,8 @@
       "api": "readFileSync",
       "route": "after-null",
       "milliseconds": [
-        0.015625, 0.013708000000001164, 0.012333999999999179, 0.01249999999999929, 0.011874999999999858,
-        0.014707999999998833, 0.017125000000000057, 0.017832999999999544, 0.013208999999999804, 0.011665999999998178
+        0.01445799999999764, 0.018958999999998838, 0.01816599999999724, 0.01966600000000085, 0.015125000000001165,
+        0.014500000000001734, 0.014999999999997016, 0.014958000000000027, 0.017458000000001306, 0.014292000000001082
       ]
     },
     {
@@ -61,8 +399,8 @@
       "api": "readFileSync",
       "route": "node-null",
       "milliseconds": [
-        0.01133400000000151, 0.01091599999999815, 0.010832999999998094, 0.01079199999999858, 0.011665999999998178,
-        0.011624999999998664, 0.011499999999998067, 0.01150000000000162, 0.011375000000001023, 0.015583000000003011
+        0.01566700000000054, 0.01929100000000261, 0.01991599999999849, 0.01737500000000125, 0.013332999999999373,
+        0.012624999999999886, 0.012457999999998748, 0.013957999999998805, 0.012958000000001135, 0.012750000000000483
       ]
     },
     {
@@ -72,8 +410,8 @@
       "api": "readdirSync",
       "route": "before-default",
       "milliseconds": [
-        0.022875000000002643, 0.023167000000000826, 0.021291000000001503, 0.020749999999999602, 0.019750000000001933,
-        0.019999999999999574, 0.01916699999999949, 0.02054199999999895, 0.01816599999999724, 0.017875000000000085
+        0.022375000000000256, 0.021666999999997216, 0.022209000000000145, 0.020792000000000144, 0.02125000000000199,
+        0.02008299999999963, 0.021791999999997813, 0.023291000000000395, 0.02049999999999841, 0.020208000000000226
       ]
     },
     {
@@ -83,8 +421,8 @@
       "api": "readdirSync",
       "route": "after-default",
       "milliseconds": [
-        0.020582999999998464, 0.020624999999999005, 0.01979199999999892, 0.01974999999999838, 0.019667000000001877,
-        0.019833000000001988, 0.022959000000000174, 0.028291999999996875, 0.021708000000000283, 0.020333000000000823
+        0.02208299999999852, 0.021332999999998492, 0.023291000000000395, 0.020250000000000767, 0.019999999999999574,
+        0.019417000000000684, 0.019750000000001933, 0.01974999999999838, 0.019415999999999656, 0.019417000000000684
       ]
     },
     {
@@ -94,8 +432,8 @@
       "api": "readdirSync",
       "route": "node-default",
       "milliseconds": [
-        0.015084000000001652, 0.014874999999999972, 0.014583999999999264, 0.014416999999998126, 0.014499999999998181,
-        0.014583000000001789, 0.014750000000002927, 0.015583999999996934, 0.014584000000002817, 0.014416999999998126
+        0.015625, 0.01545899999999989, 0.015583000000003011, 0.01608399999999932, 0.015125000000001165,
+        0.014958000000000027, 0.014749999999999375, 0.014917000000000513, 0.014458999999998667, 0.014624999999998778
       ]
     },
     {
@@ -105,8 +443,8 @@
       "api": "readdirSync",
       "route": "after-null",
       "milliseconds": [
-        0.02108300000000085, 0.020375000000001364, 0.02016699999999716, 0.02008299999999963, 0.02208299999999852,
-        0.02049999999999841, 0.020042000000000115, 0.020042000000000115, 0.019874999999998977, 0.02070900000000009
+        0.02287499999999909, 0.021542000000000172, 0.024499999999999744, 0.02245800000000031, 0.0208750000000002,
+        0.02045800000000142, 0.02037499999999781, 0.020416000000000878, 0.020333000000000823, 0.02029200000000131
       ]
     },
     {
@@ -116,8 +454,8 @@
       "api": "readdirSync",
       "route": "node-null",
       "milliseconds": [
-        0.014167000000000485, 0.01408400000000043, 0.013999999999999346, 0.014167000000000485, 0.013957999999998805,
-        0.013916999999999291, 0.013916999999999291, 0.015458000000002414, 0.015584000000000486, 0.014541999999998723
+        0.015749999999997044, 0.015000000000000568, 0.01679200000000236, 0.015625, 0.014791999999999916,
+        0.014749999999999375, 0.016458000000000084, 0.014583999999999264, 0.014624999999998778, 0.014374999999997584
       ]
     },
     {
@@ -127,8 +465,8 @@
       "api": "readFileSync",
       "route": "before-default",
       "milliseconds": [
-        0.09883299999999906, 0.08995799999999576, 0.08804200000000151, 0.10091699999999548, 0.10045799999998906,
-        0.09145799999998871, 0.08787499999999682, 0.08804099999998982, 0.07958299999999952, 0.07129199999999969
+        0.07020799999999383, 0.084541999999999, 0.08937499999998977, 0.08187499999999659, 0.08558299999999974,
+        0.09204099999999471, 0.08824999999998795, 0.07745800000000713, 0.07474999999999454, 0.07395800000000463
       ]
     },
     {
@@ -138,8 +476,8 @@
       "api": "readFileSync",
       "route": "after-default",
       "milliseconds": [
-        0.08312499999999545, 0.07412499999999511, 0.07550000000000523, 0.0819580000000002, 0.08745899999999551,
-        0.0787910000000096, 0.0777920000000023, 0.07287500000001046, 0.07754200000000822, 0.0701660000000004
+        0.07937499999999886, 0.07291600000000642, 0.09591700000000003, 0.08570900000000847, 0.08733399999999847,
+        0.08933299999999633, 0.08124999999999716, 0.0736660000000029, 0.07437500000000341, 0.07675000000000409
       ]
     },
     {
@@ -149,8 +487,8 @@
       "api": "readFileSync",
       "route": "node-default",
       "milliseconds": [
-        0.08416699999999366, 0.07295799999999986, 0.07029099999999744, 0.08445900000000961, 0.08083299999999838,
-        0.0762499999999875, 0.07337499999999864, 0.11558300000000088, 1.025541000000004, 0.08720799999998974
+        0.08412500000000023, 0.0761669999999981, 0.08249999999999602, 0.08120800000000372, 0.07791600000000187,
+        0.08800000000000807, 0.07795799999999531, 0.07245799999999747, 0.06670800000000554, 0.07062500000000682
       ]
     },
     {
@@ -160,8 +498,8 @@
       "api": "readFileSync",
       "route": "after-null",
       "milliseconds": [
-        0.047584000000000515, 0.049000000000006594, 0.044124999999993975, 0.04200000000000159, 0.04654100000000483,
-        0.044582999999988715, 0.04512499999999875, 0.04554199999999753, 0.08908300000000224, 0.08183400000000063
+        0.07979200000001185, 0.0699159999999921, 0.07841700000000174, 0.08262499999999307, 0.08437500000000853,
+        0.08750000000000568, 0.07687500000000114, 0.07191600000000165, 0.0783750000000083, 0.07949999999999591
       ]
     },
     {
@@ -171,8 +509,8 @@
       "api": "readFileSync",
       "route": "node-null",
       "milliseconds": [
-        0.09445800000000304, 0.0905830000000094, 0.10199999999998965, 0.09358299999999531, 0.08737499999999443,
-        0.08816699999999855, 0.07679100000000005, 0.07895800000000008, 0.07195900000000677, 0.07895800000000008
+        0.08320799999999906, 0.07175000000000864, 0.07712499999999523, 0.09158299999999997, 0.07954200000000355,
+        0.08587500000000148, 0.08091699999999946, 0.07958399999999699, 0.0748750000000058, 0.07324999999998738
       ]
     },
     {
@@ -182,8 +520,8 @@
       "api": "readdirSync",
       "route": "before-default",
       "milliseconds": [
-        1.1884579999999971, 1.200499999999991, 1.1977090000000032, 1.2426250000000039, 1.2822090000000088,
-        1.2600840000000062, 1.2959170000000029, 1.2004170000000016, 1.260916999999992, 1.1960420000000056
+        1.2375839999999982, 1.2374169999999935, 1.2587080000000128, 1.2246660000000134, 1.2590829999999755,
+        1.1946670000000097, 1.219583, 1.1923329999999908, 1.2472500000000082, 1.1942909999999927
       ]
     },
     {
@@ -193,8 +531,8 @@
       "api": "readdirSync",
       "route": "after-default",
       "milliseconds": [
-        1.1710839999999934, 1.3136669999999953, 1.2384580000000085, 1.1862500000000011, 1.1946660000000122,
-        1.1861249999999757, 1.1858330000000024, 1.1832079999999792, 1.2097079999999778, 1.1773749999999836
+        1.218999999999994, 1.2129999999999939, 1.2170839999999998, 1.1962919999999997, 1.254624999999976,
+        1.224540999999988, 1.2436250000000086, 1.1477079999999944, 1.2452089999999885, 1.2154170000000022
       ]
     },
     {
@@ -204,8 +542,8 @@
       "api": "readdirSync",
       "route": "node-default",
       "milliseconds": [
-        0.7142079999999851, 0.6987079999999821, 0.6957080000000246, 0.8419590000000028, 0.7803749999999923,
-        0.7466660000000047, 0.7116670000000056, 0.6986249999999927, 0.6762080000000026, 0.6808330000000069
+        0.6844580000000065, 0.6799579999999992, 0.6848329999999976, 0.6990419999999915, 0.6838750000000005,
+        0.6907500000000084, 0.6928329999999789, 0.7018750000000011, 0.7266659999999945, 0.6851660000000095
       ]
     },
     {
@@ -215,8 +553,8 @@
       "api": "readdirSync",
       "route": "after-null",
       "milliseconds": [
-        1.2269579999999962, 1.2208750000000066, 1.1786670000000186, 1.1869580000000042, 1.1702080000000024, 1.198791,
-        1.185165999999981, 1.1912920000000042, 1.2100829999999974, 1.1910420000000101
+        1.2029579999999953, 1.3804169999999942, 1.2026659999999936, 1.2900000000000205, 1.2233750000000043,
+        1.283457999999996, 1.1954580000000021, 1.229707999999988, 1.210916999999995, 1.2621660000000077
       ]
     },
     {
@@ -226,8 +564,8 @@
       "api": "readdirSync",
       "route": "node-null",
       "milliseconds": [
-        0.7222079999999949, 0.7114579999999933, 0.6785419999999931, 0.689707999999996, 0.6524579999999958,
-        0.6817079999999862, 0.6807920000000252, 0.6925840000000107, 0.681999999999988, 0.7880000000000109
+        0.6858749999999958, 0.6845830000000035, 0.6747919999999965, 0.6980420000000152, 0.683415999999994,
+        0.6824579999999969, 0.6802920000000086, 0.7896250000000009, 0.7472920000000158, 0.7008340000000146
       ]
     }
   ]
