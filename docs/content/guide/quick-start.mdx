@@ -1,24 +1,22 @@
 # Quick Start
 
-This site documents **the 0.1.1 release candidate, not yet released to npm**. The
-published package is [`@vooya/fs@0.1.0`](https://www.npmjs.com/package/@vooya/fs).
-Its [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.0) is the reference
-for that version. The current compatibility policy and benchmark tables describe
-the newer checkout; installing 0.1.0 does not install those changes. See the
-[release/source comparison](#published-release-and-source-differences) for common tasks.
+Install [`@vooya/fs@0.1.1`](https://www.npmjs.com/package/@vooya/fs), the published
+release covered by this guide. Its [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.1)
+identifies the implementation. Upgrading from 0.1.0? Check the
+[version comparison](#published-release-and-source-differences) for common tasks.
 
 ## Requirements
 
 Use Node.js **22 or newer**; the current conformance matrix checks Node 22 and 24.
-Prebuilt 0.1.0 packages cover macOS arm64/x64, Linux x64 with glibc, and Windows
+Prebuilt 0.1.1 packages cover macOS arm64/x64, Linux x64 with glibc, and Windows
 x64. Rust is needed to build a checkout, not to use a supported prebuilt package.
 Linux arm64 and Alpine/musl do not have published binaries in this release.
 
 ## Install the published release
 
 ```sh
-npm install @vooya/fs@0.1.0
-# Or: pnpm add @vooya/fs@0.1.0
+npm install @vooya/fs@0.1.1
+# Or: pnpm add @vooya/fs@0.1.1
 ```
 
 Keep optional dependencies enabled: the package manager selects the native binary
@@ -28,7 +26,7 @@ the module cannot load.
 ## Run your first scan
 
 Save this as `scan.mjs` in the project where you installed the package. This
-string-path example works with 0.1.0 and the current checkout:
+string-path example works with 0.1.1:
 
 ```js
 import { scan } from '@vooya/fs'
@@ -63,29 +61,28 @@ async function or with `.then()`. Promise methods are exported directly from
 `@vooya/fs`; there is no `@vooya/fs/promises` entry. Synchronous variants such as
 `scanSync` block the JavaScript thread.
 
-## Published release and source differences
+<a id="published-release-and-source-differences" />
 
-Use this small comparison when choosing between npm 0.1.0 and the 0.1.1 release candidate
-source. It covers the operations below, not every API/option combination.
+## Upgrading from 0.1.0 to 0.1.1
 
-| Task                                                     | npm `@vooya/fs@0.1.0`                                                                                    | 0.1.1 candidate source                        |
+Use this small comparison when upgrading from npm 0.1.0 to 0.1.1. It covers the operations below, not every API/option combination.
+
+| Task                                                     | npm `@vooya/fs@0.1.0`                                                                                    | npm `@vooya/fs@0.1.1`                         |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | Run the [string-path scan example](#run-your-first-scan) | Supported                                                                                                | Supported                                     |
 | Read lines with `encoding: 'utf8'`                       | Supported, but can drop leading blank lines in the selected range                                        | Preserves selected blank lines                |
 | Pass `lines` without an encoding                         | Returns the whole file as a Buffer                                                                       | Returns the whole file as a Buffer            |
 | Handle a missing file from `readFile` / `readFileSync`   | `code: 'GenericFailure'`; ENOENT appears in the message, without structured `path`, `syscall` or `errno` | `code: 'ENOENT'` with those structured fields |
 
-The read behavior above was checked in both sync and Promise forms against the
-installed npm 0.1.0 package and the source entry on Node 22, macOS arm64. It is not
-cross-platform runtime verification. See the [line-range example](/api/read-file#read-a-line-range)
+The read behavior above was checked in both sync and Promise forms against
+separate registry installations of 0.1.0 and 0.1.1 on Node 22, macOS arm64.
+The 0.1.1 acceptance also ran on Node 24. This is local runtime verification,
+not a new cross-platform performance result. See the [line-range example](/api/read-file#read-a-line-range)
 and [error guidance](/guide/troubleshooting#why-does-a-missing-file-have-code-genericfailure).
-The [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.0) identifies the
-published implementation; use the [source instructions](#try-the-current-source)
-for the newer behavior. The version string alone cannot distinguish these builds.
 
 ## Try the current source
 
-To use the compatibility fixes and reproduce the published benchmark evidence,
+To develop changes or reproduce the source-build benchmark evidence,
 install Git, Rust stable and pnpm 9, then build a release binding:
 
 ```sh
@@ -97,9 +94,9 @@ node --input-type=module -e "import { scan } from '@vooya/fs'; console.log((awai
 ```
 
 Run that command from the repository root: the package's self-reference resolves
-the local public entry. Record `git rev-parse HEAD` when comparing results. The
-checkout carries candidate version 0.1.1. That version string does not confirm
-npm publication; use the published-release instructions above for registry installs.
+the local public entry. Record `git rev-parse HEAD` when comparing results. A
+checkout can contain changes beyond the published version; record the commit as
+well as the package version when reporting its behavior.
 
 ## Adopt one operation at a time
 
