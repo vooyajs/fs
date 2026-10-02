@@ -1,7 +1,7 @@
 # Release: Maintainer-only; builds four platforms and publishes to npm.
 # Main package: @vooya/fs (see package.json). Platform packages: @vooya/fs-darwin-arm64, etc.
 # Trigger:
-#   1. Manual: Actions → Release → Run workflow (uses current main's package.json version)
+#   1. Manual: Actions → Release → Run workflow (uses the selected ref's package.json version; choose reviewed main)
 #   2. The workflow creates an fs-v0.x.x tag only after npm publishing succeeds.
 # Required: Secrets → NPM_TOKEN (granular token with @vooya package/org write permission)
 name: Release

@@ -663,5 +663,5 @@ When cutting a new version (before running the Release workflow):
    - `package.json` → `"version": "x.y.z"`
    - `Cargo.toml` → `version = "x.y.z"`
    - npm does not allow re-publishing the same version; if a previous run partially published (e.g. 0.0.4 already on npm), bump to the next version (e.g. 0.0.5) and release again.
-2. **Update [CHANGELOG.md](CHANGELOG.md):** move items from **\[Unreleased]** into a new `## [x.y.z] - YYYY-MM-DD` section, and add the version link at the bottom (`[x.y.z]: https://github.com/vooyajs/fs/compare/vA.B.C...vx.y.z`).
-3. **Run Release:** push to `main`, then use **Actions → Release → Run workflow**. The workflow creates `fs-vx.y.z` only after successful npm publication.
+2. **Update [CHANGELOG.md](CHANGELOG.md):** move items from **\[Unreleased]** into a new `## [x.y.z] - YYYY-MM-DD` section, and add the version link at the bottom using the `fs-v` tag series (`[x.y.z]: https://github.com/vooyajs/fs/compare/fs-vA.B.C...fs-vx.y.z`). Keep the section marked **Release candidate** until npm publication succeeds; then record the publication date.
+3. **Run Release:** merge the reviewed release PR to `main`, then use **Actions → Release → Run workflow** with `main` selected. Manual dispatch supports a selected ref; both checkout jobs use that ref, so verify its commit before dispatching. The workflow creates `fs-vx.y.z` only after successful npm publication.
