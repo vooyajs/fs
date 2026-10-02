@@ -23,6 +23,27 @@ const hex = await readFile('./file.bin', { encoding: 'hex' })
 Encoding names are case-insensitive. Whole-file UTF-8 reads replace malformed byte
 sequences with the replacement character, matching Node. The `lines` extension applies the same decoding after selecting raw line bytes.
 
+## Read a line range
+
+Always supply a text encoding when using `lines`:
+
+```ts
+const excerpt = await readFile('./test.ts', {
+  encoding: 'utf8',
+  lines: { from: 110, to: 120 },
+})
+```
+
+Bounds are one-based and inclusive. A range past EOF returns an empty string;
+when only the upper bound exceeds EOF, the result ends at the last available
+line. Selected lines are joined with `\n`, without a final line terminator.
+Omitting the encoding (or using `encoding: null`) returns the **whole file as a
+Buffer**, so it does not limit how much content your caller receives.
+
+Main preserves blank lines in the selected range. The published 0.1.0 release
+can drop leading blank lines from the excerpt; its missing-file errors also lack
+main's structured fields. See [version-specific troubleshooting](/guide/troubleshooting#why-does-a-line-range-return-the-whole-file).
+
 ## Methods
 
 ### `readFile(path, options?)`
@@ -45,6 +66,9 @@ sequences with the replacement character, matching Node. The `lines` extension a
 ### `readFileSync(path, options?)`
 
 **Sync.** Same arguments and return types; throws on error.
+
+An explicit `encoding: null` uses the default Buffer result, just like omitting
+the encoding. This also works with frozen options objects.
 
 ## Performance
 

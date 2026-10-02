@@ -77,6 +77,10 @@ function encodingSupported(encoding, buffer = false) {
     (typeof encoding === 'string' && (encodings.has(encoding.toLowerCase()) || (buffer && encoding === 'buffer')))
   )
 }
+// Node treats null encoding as the default; napi-rs optional strings accept undefined.
+function nativeEncodingOptions(options) {
+  return options.encoding === null ? Object.create(options, { encoding: { value: undefined } }) : options
+}
 function directoryRoute(path, options) {
   const p = nativePath(path)
   const opts = optionsObject(options)
@@ -86,7 +90,9 @@ function directoryRoute(path, options) {
     booleans(opts, ['recursive', 'withFileTypes', 'skipHidden']) &&
     encodingSupported(opts.encoding, true)
   // Node's recursive Buffer result currently has runtime-specific behavior.
-  return p !== undefined && supported && !(opts.recursive && opts.encoding === 'buffer') ? [p, opts] : undefined
+  return p !== undefined && supported && !(opts.recursive && opts.encoding === 'buffer')
+    ? [p, nativeEncodingOptions(opts)]
+    : undefined
 }
 function copyRoute(src, dest, options) {
   const a = nativePath(src),
@@ -137,7 +143,7 @@ function readRoute(path, options) {
     error.code = 'ERR_INVALID_ARG_VALUE'
     throw error
   }
-  return p !== undefined && supported ? [p, opts] : undefined
+  return p !== undefined && supported ? [p, nativeEncodingOptions(opts)] : undefined
 }
 function nativePattern(pattern) {
   if (typeof pattern !== 'string' || pattern.length === 0 || pattern.endsWith('/')) return false
