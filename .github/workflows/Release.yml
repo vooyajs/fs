@@ -1,4 +1,4 @@
-# Release: Maintainer-only; builds four platforms and publishes to npm.
+# Release: Maintainer-only; builds five platforms and publishes to npm.
 # Main package: @vooya/fs (see package.json). Platform packages: @vooya/fs-darwin-arm64, etc.
 # Trigger:
 #   1. Manual: Actions → Release → Run workflow (uses the selected ref's package.json version; choose reviewed main)
@@ -14,7 +14,7 @@ env:
 on: workflow_dispatch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   build:
     strategy:
@@ -30,6 +30,9 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             build: pnpm build --target x86_64-unknown-linux-gnu --use-napi-cross
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            build: pnpm build --target x86_64-unknown-linux-musl --cross-compile
           - host: macos-latest
             target: aarch64-apple-darwin
             build: pnpm build --target aarch64-apple-darwin
@@ -85,6 +88,8 @@ jobs:
             ${{ env.APP_NAME }}.*.wasm
           if-no-files-found: error
   publish:
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     name: Publish to npm
     runs-on: ubuntu-latest
     permissions:
@@ -138,6 +143,9 @@ jobs:
               "
             fi
           done
+      - name: Read release version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Publish to npm
         run: |
           npm config set provenance true
@@ -178,6 +186,7 @@ jobs:
             '@vooya/fs-win32-x64-msvc': v,
             '@vooya/fs-darwin-x64': v,
             '@vooya/fs-linux-x64-gnu': v,
+            '@vooya/fs-linux-x64-musl': v,
             '@vooya/fs-darwin-arm64': v
           };
           fs.writeFileSync('package.json', JSON.stringify(p, null, 2));
@@ -185,6 +194,18 @@ jobs:
           npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  verify-musl:
+    needs: publish
+    uses: ./.github/workflows/Verify-npm.yml
+    with:
+      version: ${{ needs.publish.outputs.version }}
+  release:
+    needs: [publish, verify-musl]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
       - name: Create GitHub release
         run: |
           VERSION=$(node -p "require('./package.json').version")

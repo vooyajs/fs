@@ -1,0 +1,49 @@
+name: Verify npm musl
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact published @vooya/fs version
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  alpine:
+    name: npm install on Alpine - node@${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install published package without build tools and exercise public APIs
+        env:
+          PACKAGE_VERSION: ${{ inputs.version }}
+        run: |
+          docker run --rm --platform linux/amd64 \
+            -e PACKAGE_VERSION \
+            -v "$GITHUB_WORKSPACE/scripts/verify-npm.cjs:/consumer/verify-npm.cjs:ro" \
+            -w /consumer "node:${{ matrix.node }}-alpine" sh -eu -c '
+              for tool in rustc cargo cc gcc g++; do
+                if command -v "$tool"; then
+                  echo "Unexpected build tool: $tool"
+                  exit 1
+                fi
+              done
+              npm init -y
+              for attempt in 1 2 3 4 5; do
+                if npm install --ignore-scripts --include=optional --registry=https://registry.npmjs.org "@vooya/fs@$PACKAGE_VERSION"; then
+                  break
+                fi
+                if [ "$attempt" = 5 ]; then exit 1; fi
+                sleep 15
+              done
+              node verify-npm.cjs
+            '

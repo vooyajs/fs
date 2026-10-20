@@ -1,22 +1,22 @@
 # Quick Start
 
-Install [`@vooya/fs@0.1.1`](https://www.npmjs.com/package/@vooya/fs), the published
-release covered by this guide. Its [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.1)
+Install [`@vooya/fs@0.1.2`](https://www.npmjs.com/package/@vooya/fs), the published
+release covered by this guide. Its [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.2)
 identifies the implementation. Upgrading from 0.1.0? Check the
 [version comparison](#published-release-and-source-differences) for common tasks.
 
 ## Requirements
 
 Use Node.js **22 or newer**; the current conformance matrix checks Node 22 and 24.
-Prebuilt 0.1.1 packages cover macOS arm64/x64, Linux x64 with glibc, and Windows
+Prebuilt 0.1.2 packages cover macOS arm64/x64, Linux x64 with glibc or musl (Alpine), and Windows
 x64. Rust is needed to build a checkout, not to use a supported prebuilt package.
-Linux arm64 and Alpine/musl do not have published binaries in this release.
+Linux arm64 does not have published binaries in this release.
 
 ## Install the published release
 
 ```sh
-npm install @vooya/fs@0.1.1
-# Or: pnpm add @vooya/fs@0.1.1
+npm install @vooya/fs@0.1.2
+# Or: pnpm add @vooya/fs@0.1.2
 ```
 
 Keep optional dependencies enabled: the package manager selects the native binary
@@ -108,3 +108,14 @@ FS does not patch Node or replace filesystem calls made by your dependencies.
 Continue with [use cases](/guide/use-cases), [migration](/guide/migration), or the
 [reproducible benchmark matrix](/benchmarks). Contributor checks are documented in
 [CONTRIBUTING.md](https://github.com/vooyajs/fs/blob/main/CONTRIBUTING.md).
+
+## Alpine / musl installs
+
+Linux x64 musl prebuilds are available starting with 0.1.2. Upgrade from 0.1.1
+if Alpine reports a missing `@vooya/fs-linux-x64-musl` binding. Reinstalling
+0.1.1 cannot supply that missing platform package. Keep optional dependencies
+enabled; consumers do not need Rust, Cargo, or a C/C++ compiler.
+
+The release pipeline installs the published package in clean Node 22 and 24
+Alpine containers and checks public sync/Promise `scan` and `readFile` calls.
+Maintainers can rerun the **Verify npm musl** workflow for an explicit version.

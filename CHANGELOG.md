@@ -6,6 +6,15 @@ All notable Vooya FS changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [@vooya/fs 0.1.2] - 2026-10-21
+
+### Fixed
+
+- Ship the Linux x64 musl native package and optional dependency so Alpine
+  consumers can load `@vooya/fs` without a Rust toolchain (#36).
+- Build and test musl on Node 22/24 in CI; verify actual published npm installs
+  in clean Alpine containers before creating the GitHub release.
+
 ## [@vooya/fs 0.1.1] - 2026-10-02
 
 ### Added

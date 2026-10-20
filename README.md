@@ -22,17 +22,17 @@ It is not intended to make every `node:fs` call faster. Tiny operations such as
 walks, globbing, recursive copy/removal, and combined traversal + metadata work.
 
 > [!IMPORTANT]
-> Install `@vooya/fs@0.1.1` for the compatibility fixes described here.
+> Install `@vooya/fs@0.1.2` for the compatibility fixes described here.
 > See the [0.1.0 → 0.1.1 comparison](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences) when upgrading.
 
 ## Install and run
 
-Use Node.js 22 or newer. Prebuilt 0.1.1 binaries support macOS arm64/x64,
-Linux x64 with glibc, and Windows x64. Supported prebuilt installs do not need Rust.
+Use Node.js 22 or newer. Prebuilt 0.1.2 binaries support macOS arm64/x64,
+Linux x64 with glibc or musl (Alpine), and Windows x64. Supported prebuilt installs do not need Rust.
 Keep optional dependencies enabled so npm can install the matching binary.
 
 ```sh
-npm install @vooya/fs@0.1.1
+npm install @vooya/fs@0.1.2
 ```
 
 Save this as `scan.mjs` in your project, then run `node scan.mjs`:
