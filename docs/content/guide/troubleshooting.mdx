@@ -2,7 +2,7 @@
 
 ## Which version does this site describe?
 
-The API guide covers `@vooya/fs@0.1.1`. Use its
+The API guide covers `@vooya/fs@0.1.2`. Use its
 [release source](https://github.com/vooyajs/fs/tree/fs-v0.1.1) to identify the shipped
 implementation. Historical benchmark reports retain their measured revisions and
 limits. For common tasks, start with the [0.1.0 → 0.1.1 comparison](/guide/quick-start#published-release-and-source-differences).
@@ -24,12 +24,13 @@ on the target platform; copying `node_modules` from a different OS is not portab
 Check the platform package as well as the main package. Choose the name for your
 **Node process** from this table, then run `npm ls` with that name:
 
-| Node platform / architecture | 0.1.1 platform package     |
-| ---------------------------- | -------------------------- |
-| `darwin arm64`               | `@vooya/fs-darwin-arm64`   |
-| `darwin x64`                 | `@vooya/fs-darwin-x64`     |
-| `linux x64` with glibc       | `@vooya/fs-linux-x64-gnu`  |
-| `win32 x64`                  | `@vooya/fs-win32-x64-msvc` |
+| Node platform / architecture             | 0.1.1 platform package     |
+| ---------------------------------------- | -------------------------- |
+| `darwin arm64`                           | `@vooya/fs-darwin-arm64`   |
+| `darwin x64`                             | `@vooya/fs-darwin-x64`     |
+| `linux x64` with glibc                   | `@vooya/fs-linux-x64-gnu`  |
+| `linux x64` (musl / Alpine, since 0.1.2) | `@vooya/fs-linux-x64-musl` |
+| `win32 x64`                              | `@vooya/fs-win32-x64-msvc` |
 
 For example, on Apple Silicon Node:
 
@@ -41,14 +42,15 @@ If the matching package is missing on a supported platform, run this in the
 application directory to include optional packages, then verify the import:
 
 ```sh
-npm install --include=optional @vooya/fs@0.1.1
+npm install --include=optional @vooya/fs@0.1.2
 node -e "require('@vooya/fs'); console.log('native binding loaded')"
 ```
 
 Keep your lockfile. If the package is present but loading still fails, retain the
-full error and the two `npm ls` outputs when reporting it. Linux arm64 and
-Alpine/musl have no 0.1.1 prebuilt package; enabling optional dependencies cannot
-add support for those targets.
+full error and the two `npm ls` outputs when reporting it. Linux x64 Alpine/musl
+requires 0.1.2 or newer; 0.1.1 did not publish that platform package. Linux arm64
+still has no prebuilt package; enabling optional dependencies cannot add support
+for that target.
 
 There is no WASM fallback or automatic Node-only fallback when the addon is missing.
 For a source checkout, run `pnpm install --frozen-lockfile` and `pnpm build` with

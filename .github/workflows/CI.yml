@@ -147,9 +147,6 @@ jobs:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
             architecture: x64
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            build: pnpm build --target x86_64-unknown-linux-musl --cross-compile
           - host: macos-latest
             target: aarch64-apple-darwin
             architecture: arm64
