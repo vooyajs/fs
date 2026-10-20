@@ -3,7 +3,7 @@
 ## Which version does this site describe?
 
 The API guide covers `@vooya/fs@0.1.2`. Use its
-[release source](https://github.com/vooyajs/fs/tree/fs-v0.1.1) to identify the shipped
+[release source](https://github.com/vooyajs/fs/tree/fs-v0.1.2) to identify the shipped
 implementation. Historical benchmark reports retain their measured revisions and
 limits. For common tasks, start with the [0.1.0 → 0.1.1 comparison](/guide/quick-start#published-release-and-source-differences).
 
@@ -16,7 +16,7 @@ node -p "process.version + ' ' + process.platform + '/' + process.arch"
 npm ls @vooya/fs
 ```
 
-Version 0.1.1 ships binaries for macOS arm64/x64, Linux x64 glibc and Windows x64.
+Version 0.1.2 ships binaries for macOS arm64/x64, Linux x64 glibc/musl and Windows x64.
 The architecture is that of the Node process, which can differ from the host under
 emulation. Ensure your package manager installs optional dependencies and install
 on the target platform; copying `node_modules` from a different OS is not portable.
@@ -24,7 +24,7 @@ on the target platform; copying `node_modules` from a different OS is not portab
 Check the platform package as well as the main package. Choose the name for your
 **Node process** from this table, then run `npm ls` with that name:
 
-| Node platform / architecture             | 0.1.1 platform package     |
+| Node platform / architecture             | 0.1.2 platform package     |
 | ---------------------------------------- | -------------------------- |
 | `darwin arm64`                           | `@vooya/fs-darwin-arm64`   |
 | `darwin x64`                             | `@vooya/fs-darwin-x64`     |
