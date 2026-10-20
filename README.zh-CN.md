@@ -21,16 +21,16 @@ JavaScript → Rust 调用，替代成千上万次 JS 与文件系统之间的�
 “遍历 + 过滤 + metadata”这类可以在原生侧合并完成的工作。
 
 > [!IMPORTANT]
-> 安装 `@vooya/fs@0.1.1` 即可使用这里说明的兼容性修复；从旧版升级时请查看 [0.1.0 → 0.1.1 差异](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences)。
+> 安装 `@vooya/fs@0.1.2` 即可使用这里说明的兼容性修复；从旧版升级时请查看 [0.1.0 → 0.1.1 差异](https://rush-fs-docs.vercel.app/guide/quick-start#published-release-and-source-differences)。
 
 ## 安装并运行
 
-使用 Node.js 22 或更新版本。0.1.1 提供 macOS arm64/x64、Linux x64 glibc
+使用 Node.js 22 或更新版本。0.1.2 提供 macOS arm64/x64、Linux x64 glibc/musl（Alpine）
 和 Windows x64 预编译包；这些平台直接安装使用不需要 Rust。
 请启用 optional dependencies，以便 npm 安装对应平台的原生包。
 
 ```sh
-npm install @vooya/fs@0.1.1
+npm install @vooya/fs@0.1.2
 ```
 
 在项目中将以下内容保存为 `scan.mjs`，然后运行 `node scan.mjs`：
