@@ -17,6 +17,7 @@ jobs:
   alpine:
     name: npm install on Alpine - node@${{ matrix.node }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -38,12 +39,16 @@ jobs:
                 fi
               done
               npm init -y
-              for attempt in 1 2 3 4 5; do
-                if npm install --ignore-scripts --include=optional --registry=https://registry.npmjs.org "@vooya/fs@$PACKAGE_VERSION"; then
+              # npm can accept publication before either package is queryable.
+              # Wait for both manifests before npm creates an optional-dependency lockfile.
+              for attempt in $(seq 1 40); do
+                if npm view --prefer-online --registry=https://registry.npmjs.org "@vooya/fs@$PACKAGE_VERSION" version &&
+                   npm view --prefer-online --registry=https://registry.npmjs.org "@vooya/fs-linux-x64-musl@$PACKAGE_VERSION" version; then
                   break
                 fi
-                if [ "$attempt" = 5 ]; then exit 1; fi
+                if [ "$attempt" = 40 ]; then exit 1; fi
                 sleep 15
               done
+              npm install --ignore-scripts --include=optional --prefer-online --registry=https://registry.npmjs.org "@vooya/fs@$PACKAGE_VERSION"
               node verify-npm.cjs
             '
